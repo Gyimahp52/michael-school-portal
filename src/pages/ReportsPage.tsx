@@ -1,0 +1,242 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  FileText,
+  Download,
+  TrendingUp,
+  Users,
+  DollarSign,
+  BarChart3,
+  Calendar,
+  Eye,
+} from "lucide-react";
+
+export default function ReportsPage() {
+  const reports = [
+    {
+      id: "RPT-001",
+      title: "Student Enrollment Report",
+      description: "Complete overview of student enrollment by grade and class",
+      category: "Academic",
+      lastGenerated: "2024-01-15",
+      format: "PDF, Excel",
+      icon: Users,
+    },
+    {
+      id: "RPT-002",
+      title: "Financial Summary Report",
+      description: "Monthly revenue, expenses, and outstanding fees analysis",
+      category: "Finance",
+      lastGenerated: "2024-01-14",
+      format: "PDF, Excel",
+      icon: DollarSign,
+    },
+    {
+      id: "RPT-003",
+      title: "Academic Performance Report",
+      description: "Grade distribution and academic performance analytics",
+      category: "Academic",
+      lastGenerated: "2024-01-13",
+      format: "PDF",
+      icon: BarChart3,
+    },
+    {
+      id: "RPT-004",
+      title: "Attendance Summary",
+      description: "Student attendance rates and trends analysis",
+      category: "Academic",
+      lastGenerated: "2024-01-12",
+      format: "PDF, Excel",
+      icon: Calendar,
+    },
+  ];
+
+  const quickStats = [
+    {
+      title: "Reports Generated",
+      value: "245",
+      change: "This month",
+      icon: FileText,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Downloads",
+      value: "1,458",
+      change: "Total this year",
+      icon: Download,
+      color: "text-secondary",
+      bgColor: "bg-secondary/10",
+    },
+    {
+      title: "Active Reports",
+      value: "12",
+      change: "Scheduled reports",
+      icon: TrendingUp,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+  ];
+
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case "Finance":
+        return <Badge className="bg-success/10 text-success border-success/20">Finance</Badge>;
+      case "Academic":
+        return <Badge className="bg-primary/10 text-primary border-primary/20">Academic</Badge>;
+      default:
+        return <Badge variant="outline">{category}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <p className="text-muted-foreground mt-2">
+            Generate comprehensive reports for academic and financial analysis.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5">
+            <Calendar className="w-4 h-4" />
+            <span className="hidden sm:inline">Schedule Report</span>
+            <span className="sm:hidden">Schedule</span>
+          </Button>
+          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">Generate Report</span>
+            <span className="sm:hidden">Generate</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {quickStats.map((stat, index) => (
+          <Card key={index} className="shadow-soft border-border/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                  <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                </div>
+                <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Report Categories */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="shadow-soft border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              Enrollment Trends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Track student enrollment patterns and growth trends across academic years.
+            </p>
+            <Button variant="outline" className="w-full gap-2 hover:bg-primary/5">
+              <FileText className="w-4 h-4" />
+              Generate Enrollment Report
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-secondary" />
+              Academic Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Analyze student performance, grades, and attendance across all classes.
+            </p>
+            <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5">
+              <FileText className="w-4 h-4" />
+              Generate Academic Report
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-accent" />
+              Financial Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Comprehensive financial analysis including revenue, expenses, and projections.
+            </p>
+            <Button variant="outline" className="w-full gap-2 hover:bg-accent/5">
+              <FileText className="w-4 h-4" />
+              Generate Financial Report
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Available Reports */}
+      <Card className="shadow-soft border-border/50">
+        <CardHeader>
+          <CardTitle>Available Reports</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {reports.map((report) => (
+              <Card key={report.id} className="shadow-sm border-border/30 hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <report.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium text-foreground">{report.title}</h4>
+                        {getCategoryBadge(report.category)}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{report.description}</p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Last generated: {report.lastGenerated}</span>
+                        <span>Format: {report.format}</span>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                          <Eye className="w-3 h-3" />
+                          Preview
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                          <Download className="w-3 h-3" />
+                          Download
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs bg-primary/5">
+                          <FileText className="w-3 h-3" />
+                          Generate New
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
