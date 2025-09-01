@@ -91,14 +91,16 @@ export function AdminDashboard() {
             Here's what's happening at Michael Agyei School today.
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto">
             <FileText className="w-4 h-4" />
-            Generate Report
+            <span className="hidden sm:inline">Generate Report</span>
+            <span className="sm:hidden">Report</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary">
+          <Button className="gap-2 bg-gradient-primary w-full sm:w-auto">
             <Users className="w-4 h-4" />
-            Add Student
+            <span className="hidden sm:inline">Add Student</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -174,21 +176,21 @@ export function AdminDashboard() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <Users className="w-4 h-4" />
-                Add New Student
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-primary/5 transition-colors">
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Add New Student</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <GraduationCap className="w-4 h-4" />
-                Register Teacher
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-secondary/5 transition-colors">
+                <GraduationCap className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Register Teacher</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <DollarSign className="w-4 h-4" />
-                Generate Invoice
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5 transition-colors">
+                <DollarSign className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Generate Invoice</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3">
-                <FileText className="w-4 h-4" />
-                View Reports
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted/50 transition-colors">
+                <FileText className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">View Reports</span>
               </Button>
             </CardContent>
           </Card>

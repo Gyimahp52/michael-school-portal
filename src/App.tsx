@@ -8,6 +8,7 @@ import { AdminDashboard } from "./components/dashboard/AdminDashboard";
 import { StudentsPage } from "./pages/StudentsPage";
 import { BillingPage } from "./pages/BillingPage";
 import { GradesPage } from "./pages/GradesPage";
+import { LoginPage } from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,7 +20,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<MainLayout />}>
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/dashboard" element={<MainLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="billing" element={<BillingPage />} />

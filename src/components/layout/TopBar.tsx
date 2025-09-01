@@ -38,9 +38,14 @@ export function TopBar() {
         {/* Right section */}
         <div className="flex items-center gap-4">
           {/* Quick Actions */}
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2 hidden md:flex">
             <User className="h-4 w-4" />
             Add Student
+          </Button>
+          
+          {/* Mobile Quick Action */}
+          <Button variant="outline" size="sm" className="md:hidden">
+            <User className="h-4 w-4" />
           </Button>
 
           {/* Notifications */}
@@ -61,7 +66,7 @@ export function TopBar() {
                     AD
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-left">
+                <div className="text-left hidden sm:block">
                   <p className="text-sm font-medium">Admin User</p>
                   <p className="text-xs text-muted-foreground">Administrator</p>
                 </div>
