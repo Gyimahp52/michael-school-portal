@@ -15,8 +15,21 @@ export function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login - in real app, this would validate credentials
-    navigate("/dashboard");
+    
+    // Role-based routing based on selected role
+    switch (role) {
+      case "admin":
+        navigate("/admin-dashboard");
+        break;
+      case "teacher":
+        navigate("/teacher-dashboard");
+        break;
+      case "accountant":
+        navigate("/accountant-dashboard");
+        break;
+      default:
+        navigate("/admin-dashboard");
+    }
   };
 
   return (
