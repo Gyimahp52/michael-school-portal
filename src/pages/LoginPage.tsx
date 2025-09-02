@@ -1,141 +1,167 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { logLoginAttempt } from "@/lib/login-logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Mail, Lock, User } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Lock, Loader2, Mail, GraduationCap } from "lucide-react";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Role-based routing based on selected role
-    switch (role) {
-      case "admin":
-        navigate("/admin-dashboard");
-        break;
-      case "teacher":
-        navigate("/teacher-dashboard");
-        break;
-      case "accountant":
-        navigate("/accountant-dashboard");
-        break;
-      default:
-        navigate("/admin-dashboard");
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter both email and password.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Sign in with Firebase Auth using AuthContext
+      const user = await login(email, password);
+      
+      // Log successful login attempt
+      await logLoginAttempt(
+        user.uid,
+        user.email || email,
+        "success"
+      );
+
+      // Show success message
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.email}! `,
+      });
+
+      // Navigate to the appropriate dashboard
+      navigate("/");
+    } catch (error: any) {
+      // Log failed login attempt
+      await logLoginAttempt(
+        "unknown", // No user ID for failed login
+        email,
+        "failed", // Corrected status to 'failed'
+        undefined, // No role for failed login
+        error.message || "An unknown error occurred"
+      );
+
+      // Show error message
+      let errorMessage = "Failed to sign in. Please check your credentials and try again.";
+      
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later or reset your password.";
+      }
+
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* School Header */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="p-4 bg-primary/10 rounded-full">
-              <GraduationCap className="w-12 h-12 text-primary" />
+        <Card>
+          <CardHeader className="space-y-1">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-4 bg-primary/10 rounded-full">
+                <GraduationCap className="w-12 h-12 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground text-center">Michael Agyei School</h1>
+                <p className="text-muted-foreground text-center">School Management System</p>
+              </div>
             </div>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Michael Agyei School</h1>
-            <p className="text-muted-foreground">School Management System</p>
-          </div>
-        </div>
-
-        {/* Login Form */}
-        <Card className="shadow-elegant border-border/50">
-          <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to access your dashboard
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
-              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email Address
-                </Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-background"
+                  disabled={isLoading}
+                  autoComplete="username"
                 />
               </div>
-
-              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Password
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <a href="#" className="text-sm font-medium text-primary hover:underline">
+                    Forgot password?
+                  </a>
+                </div>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-background"
+                  disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
-
-              {/* Role Selection */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Role
-                </Label>
-                <Select value={role} onValueChange={setRole} required>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="accountant">Accountant</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Login Button */}
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-primary hover:opacity-90 transition-all"
-                size="lg"
-              >
-                Sign In
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
-
-              {/* Demo Credentials */}
-              <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground mb-2">Demo Credentials:</p>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <p><strong>Admin:</strong> admin@school.com / admin123</p>
-                  <p><strong>Teacher:</strong> teacher@school.com / teacher123</p>
-                  <p><strong>Accountant:</strong> accountant@school.com / account123</p>
-                </div>
-              </div>
             </form>
           </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-sm text-center text-muted-foreground">
+              Don't have an account?{" "}
+              <a href="#" className="font-medium text-primary hover:underline">
+                Contact administrator
+              </a>
+            </div>
+          </CardFooter>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground">
-          <p>© 2025 Michael Agyei School. All rights reserved.</p>
-        </div>
+        {/* Demo Credentials */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Demo Credentials</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p><strong>Admin:</strong> admin@school.com / admin123</p>
+              <p><strong>Teacher:</strong> teacher@school.com / teacher123</p>
+              <p><strong>Accountant:</strong> accountant@school.com / account123</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
