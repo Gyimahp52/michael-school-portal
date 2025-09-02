@@ -134,7 +134,7 @@ export function LoginPage() {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 2024 Michael Agyei School. All rights reserved.</p>
+          <p>© 2025 Michael Agyei School. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -41,7 +41,7 @@ const mockGrades = [
     score: 85,
     maxScore: 100,
     teacherName: "Mr. Thompson",
-    date: "2024-01-15",
+    date: "2025-01-15",
   },
   {
     id: 2,
@@ -53,7 +53,7 @@ const mockGrades = [
     score: 92,
     maxScore: 100,
     teacherName: "Mrs. Wilson",
-    date: "2024-01-12",
+    date: "2025-01-12",
   },
   {
     id: 3,
@@ -65,7 +65,7 @@ const mockGrades = [
     score: 78,
     maxScore: 100,
     teacherName: "Dr. Johnson",
-    date: "2024-01-14",
+    date: "2025-01-14",
   },
   {
     id: 4,
@@ -77,7 +77,7 @@ const mockGrades = [
     score: 89,
     maxScore: 100,
     teacherName: "Mrs. Adams",
-    date: "2024-01-16",
+    date: "2025-01-16",
   },
 ];
 

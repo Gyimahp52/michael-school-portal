@@ -30,7 +30,7 @@ export default function UserManagementPage() {
       email: "admin@michaelagyeischool.edu.gh",
       role: "Admin",
       status: "active",
-      lastLogin: "2024-01-15 09:30",
+      lastLogin: "2025-01-15 09:30",
       avatar: "",
     },
     {
@@ -39,7 +39,7 @@ export default function UserManagementPage() {
       email: "sarah.teacher@michaelagyeischool.edu.gh",
       role: "Teacher",
       status: "active",
-      lastLogin: "2024-01-15 08:45",
+      lastLogin: "2025-01-15 08:45",
       avatar: "",
     },
     {
@@ -48,7 +48,7 @@ export default function UserManagementPage() {
       email: "michael.acc@michaelagyeischool.edu.gh",
       role: "Accountant",
       status: "active",
-      lastLogin: "2024-01-14 16:20",
+      lastLogin: "2025-01-14 16:20",
       avatar: "",
     },
     {
@@ -57,7 +57,7 @@ export default function UserManagementPage() {
       email: "emma.wilson@michaelagyeischool.edu.gh",
       role: "Teacher",
       status: "inactive",
-      lastLogin: "2024-01-10 14:15",
+      lastLogin: "2025-01-10 14:15",
       avatar: "",
     },
   ];

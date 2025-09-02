@@ -24,13 +24,13 @@ export default function AdmissionsPage() {
   const applications = [
     {
       id: "APP-001",
-      studentName: "Alice Johnson",
+      studentName: "Prince Gyimah",
       parentName: "Robert Johnson",
       grade: "Grade 7",
       appliedDate: "2024-01-15",
       status: "pending",
       phone: "0551234567",
-      email: "robert.johnson@email.com",
+      email: "gyimap52@gmail.com",
     },
     {
       id: "APP-002", 
