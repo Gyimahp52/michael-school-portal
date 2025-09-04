@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Bell, User, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,6 +16,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { logout, currentUser } = useAuth();
 
   return (
     <header className="h-16 border-b border-border bg-card shadow-soft">
@@ -67,8 +69,8 @@ export function TopBar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden sm:block">
-                  <p className="text-sm font-medium">Admin User</p>
-                  <p className="text-xs text-muted-foreground">Administrator</p>
+                  <p className="text-sm font-medium">{currentUser?.displayName || 'User'}</p>
+                  <p className="text-xs text-muted-foreground">{currentUser?.role || 'User'}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -82,7 +84,10 @@ export function TopBar() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2 text-destructive">
+              <DropdownMenuItem 
+                className="gap-2 text-destructive cursor-pointer"
+                onClick={logout}
+              >
                 <LogOut className="h-4 w-4" />
                 Logout
               </DropdownMenuItem>

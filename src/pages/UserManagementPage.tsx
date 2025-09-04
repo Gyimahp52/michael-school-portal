@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,68 +21,73 @@ import {
   Key,
   Eye,
   MoreHorizontal,
+  Loader2,
 } from "lucide-react";
+import { CreateUserDialog } from "@/components/dialogs/CreateUserDialog";
+import { getAllUsers, User } from "@/lib/custom-auth";
+import { toast } from "@/hooks/use-toast";
 
 export default function UserManagementPage() {
-  const users = [
-    {
-      id: "USR-001",
-      name: "John Administrator",
-      email: "admin@michaelagyeischool.edu.gh",
-      role: "Admin",
-      status: "active",
-      lastLogin: "2025-01-15 09:30",
-      avatar: "",
-    },
-    {
-      id: "USR-002",
-      name: "Sarah Teacher",
-      email: "sarah.teacher@michaelagyeischool.edu.gh",
-      role: "Teacher",
-      status: "active",
-      lastLogin: "2025-01-15 08:45",
-      avatar: "",
-    },
-    {
-      id: "USR-003",
-      name: "Michael Accountant",
-      email: "michael.acc@michaelagyeischool.edu.gh",
-      role: "Accountant",
-      status: "active",
-      lastLogin: "2025-01-14 16:20",
-      avatar: "",
-    },
-    {
-      id: "USR-004",
-      name: "Emma Wilson",
-      email: "emma.wilson@michaelagyeischool.edu.gh",
-      role: "Teacher",
-      status: "inactive",
-      lastLogin: "2025-01-10 14:15",
-      avatar: "",
-    },
-  ];
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const roles = [
-    { name: "Admin", count: 3, permissions: "Full Access", color: "bg-primary/10 text-primary" },
-    { name: "Teacher", count: 24, permissions: "Academic Management", color: "bg-secondary/10 text-secondary" },
-    { name: "Accountant", count: 2, permissions: "Financial Management", color: "bg-accent/10 text-accent" },
-  ];
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const allUsers = await getAllUsers();
+      setUsers(allUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const filteredUsers = users.filter(user =>
+    user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getRoleCounts = () => {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    const teacherCount = users.filter(u => u.role === 'teacher').length;
+    const accountantCount = users.filter(u => u.role === 'accountant').length;
+    
+    return [
+      { name: "Admin", count: adminCount, permissions: "Full Access", color: "bg-primary/10 text-primary" },
+      { name: "Teacher", count: teacherCount, permissions: "Academic Management", color: "bg-secondary/10 text-secondary" },
+      { name: "Accountant", count: accountantCount, permissions: "Financial Management", color: "bg-accent/10 text-accent" },
+    ];
+  };
+
+  const roles = getRoleCounts();
 
   const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "Admin":
+    switch (role.toLowerCase()) {
+      case "admin":
         return <Badge className="bg-primary/10 text-primary border-primary/20">Admin</Badge>;
-      case "Teacher":
+      case "teacher":
         return <Badge className="bg-secondary/10 text-secondary border-secondary/20">Teacher</Badge>;
-      case "Accountant":
+      case "accountant":
         return <Badge className="bg-accent/10 text-accent border-accent/20">Accountant</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string = "active") => {
     return status === "active" 
       ? <Badge className="bg-success/10 text-success border-success/20">Active</Badge>
       : <Badge className="bg-destructive/10 text-destructive border-destructive/20">Inactive</Badge>;
@@ -103,7 +109,10 @@ export default function UserManagementPage() {
             <span className="hidden sm:inline">Manage Roles</span>
             <span className="sm:hidden">Roles</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
+          <Button 
+            className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto"
+            onClick={() => setCreateDialogOpen(true)}
+          >
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Add User</span>
             <span className="sm:hidden">Add</span>
@@ -118,7 +127,7 @@ export default function UserManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <h3 className="text-2xl font-bold mt-1">29</h3>
+                <h3 className="text-2xl font-bold mt-1">{users.length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Active system users</p>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
@@ -187,7 +196,11 @@ export default function UserManagementPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start gap-3 hover:bg-primary/5">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 hover:bg-primary/5"
+              onClick={() => setCreateDialogOpen(true)}
+            >
               <UserPlus className="w-4 h-4" />
               Create New User
             </Button>
@@ -217,62 +230,81 @@ export default function UserManagementPage() {
               <Input
                 placeholder="Search users..."
                 className="w-full lg:w-80 pl-10 bg-muted/50 border-border"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id} className="hover:bg-muted/30">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {user.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-xs text-muted-foreground">{user.id}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell className="text-sm">{user.lastLogin}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      {searchQuery ? 'No users found matching your search.' : 'No users found.'}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{user.displayName}</div>
+                            <div className="text-xs text-muted-foreground">{user.id}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{user.username}</TableCell>
+                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>{getStatusBadge("active")}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      <CreateUserDialog 
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onUserCreated={loadUsers}
+      />
     </div>
   );
 }
