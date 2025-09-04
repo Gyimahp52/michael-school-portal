@@ -140,43 +140,8 @@ export function LoginPage() {
           </CardFooter>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Demo Credentials</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Admin:</strong> admin / admin123</p>
-              <p><strong>Teacher:</strong> teacher / teacher123</p>
-              <p><strong>Accountant:</strong> accountant / account123</p>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Setup Users Button */}
-        <Card>
-          <CardContent className="pt-6">
-            <Button 
-              onClick={handleSetupUsers} 
-              disabled={isLoading}
-              className="w-full"
-              variant="outline"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting up users...
-                </>
-              ) : (
-                <>
-                  <User className="mr-2 h-4 w-4" />
-                  Setup Default Users
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+       
       </div>
     </div>
   );
