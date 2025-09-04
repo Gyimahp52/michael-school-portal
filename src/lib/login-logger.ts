@@ -23,19 +23,19 @@ export const logLoginAttempt = async (
 ): Promise<void> => {
   try {
     const loginRef = ref(rtdb, 'loginAttempts');
-    const newLogin: Omit<LoginAttempt, 'timestamp'> = {
+    
+    // Build object without undefined fields (RTDB rejects undefined)
+    const base: Partial<LoginAttempt> = {
       userId,
       email,
       status,
-      role,
-      errorMessage,
       userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server',
-      // Note: In a real app, you'd want to get the IP address from the server-side
-      // as client-side IP detection can be unreliable
     };
+    if (role !== undefined) base.role = role;
+    if (errorMessage !== undefined) base.errorMessage = errorMessage;
 
     await push(loginRef, {
-      ...newLogin,
+      ...base,
       timestamp: serverTimestamp(),
     });
   } catch (error) {
