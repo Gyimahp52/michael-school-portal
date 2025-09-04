@@ -17,7 +17,7 @@ import ReportsPage from "./pages/ReportsPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { useEffect } from "react";
 

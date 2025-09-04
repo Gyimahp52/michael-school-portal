@@ -1,31 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { logLoginAttempt } from "@/lib/login-logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Loader2, Mail, GraduationCap } from "lucide-react";
-import { SetupUsers } from "@/components/admin/SetupUsers";
+import { Lock, Loader2, User, GraduationCap } from "lucide-react";
 
 export function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, setupUsers } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Please enter both email and password.",
+        description: "Please enter both username and password.",
       });
       return;
     }
@@ -33,47 +31,39 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Sign in with Firebase Auth using AuthContext
-      const user = await login(email, password);
-      
-      // Log successful login attempt
-      await logLoginAttempt(
-        user.uid,
-        user.email || email,
-        "success"
-      );
+      const user = await login(username, password);
 
-      // Show success message
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.email}! `,
+        description: `Welcome back, ${user.displayName}!`,
       });
 
       // Navigate to the appropriate dashboard
       navigate("/");
     } catch (error: any) {
-      // Log failed login attempt
-      await logLoginAttempt(
-        "unknown", // No user ID for failed login
-        email,
-        "failed", // Corrected status to 'failed'
-        undefined, // No role for failed login
-        error.message || "An unknown error occurred"
-      );
-
-      // Show error message
-      let errorMessage = "Failed to sign in. Please check your credentials and try again.";
-      
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = "Invalid email or password.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Too many failed attempts. Please try again later or reset your password.";
-      }
-
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: errorMessage,
+        description: error.message || "Failed to sign in. Please check your credentials and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetupUsers = async () => {
+    try {
+      setIsLoading(true);
+      await setupUsers();
+      toast({
+        title: "Success",
+        description: "Default users have been created successfully!",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create users.",
       });
     } finally {
       setIsLoading(false);
@@ -98,13 +88,13 @@ export function LoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                   disabled={isLoading}
                   autoComplete="username"
@@ -157,15 +147,36 @@ export function LoginPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Admin:</strong> admin@school.com / admin123</p>
-              <p><strong>Teacher:</strong> teacher@school.com / teacher123</p>
-              <p><strong>Accountant:</strong> accountant@school.com / account123</p>
+              <p><strong>Admin:</strong> admin / admin123</p>
+              <p><strong>Teacher:</strong> teacher / teacher123</p>
+              <p><strong>Accountant:</strong> accountant / account123</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Setup Users */}
-        <SetupUsers />
+        {/* Setup Users Button */}
+        <Card>
+          <CardContent className="pt-6">
+            <Button 
+              onClick={handleSetupUsers} 
+              disabled={isLoading}
+              className="w-full"
+              variant="outline"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Setting up users...
+                </>
+              ) : (
+                <>
+                  <User className="mr-2 h-4 w-4" />
+                  Setup Default Users
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
