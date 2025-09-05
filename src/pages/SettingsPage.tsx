@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +16,11 @@ import {
   Save,
   Mail,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function SettingsPage() {
+  const [activeSection, setActiveSection] = useState("school");
+  const { theme, setTheme } = useTheme();
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -134,7 +138,11 @@ export default function SettingsPage() {
                   <Label htmlFor="darkMode">Dark Mode</Label>
                   <p className="text-sm text-muted-foreground">Enable dark theme for the interface</p>
                 </div>
-                <Switch id="darkMode" />
+                <Switch 
+                  id="darkMode" 
+                  checked={theme === "dark"} 
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
               </div>
 
               <Separator />
