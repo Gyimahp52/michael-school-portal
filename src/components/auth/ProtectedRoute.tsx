@@ -24,8 +24,8 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-    // Redirect to unauthorized or home if role is not allowed
-    return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+    // Redirect to role-appropriate landing (root will re-route by role)
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   return <Outlet />;

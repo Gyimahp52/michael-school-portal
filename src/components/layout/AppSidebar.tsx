@@ -22,81 +22,102 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/CustomAuthContext";
 
-const navigationItems = [
+const baseItems = [
   {
     title: "Dashboard",
-    url: "/dashboard",
+    suffix: "",
     icon: LayoutDashboard,
     group: "Main",
   },
   {
     title: "Students",
-    url: "/dashboard/students",
+    suffix: "/students",
     icon: Users,
     group: "Academic",
   },
   {
     title: "Teachers",
-    url: "/dashboard/teachers",
+    suffix: "/users",
     icon: GraduationCap,
     group: "Academic",
   },
   {
     title: "Classes & Subjects",
-    url: "/dashboard/classes",
+    suffix: "/classes",
     icon: BookOpen,
     group: "Academic",
   },
   {
     title: "Admissions",
-    url: "/dashboard/admissions",
+    suffix: "/admissions",
     icon: UserPlus,
     group: "Management",
   },
   {
     title: "Grades & Records", 
-    url: "/dashboard/grades",
+    suffix: "/grades",
     icon: FileText,
     group: "Management",
   },
   {
     title: "Reports & Analytics",
-    url: "/dashboard/reports", 
+    suffix: "/reports", 
     icon: FileText,
     group: "Management",
   },
   {
     title: "User Management",
-    url: "/dashboard/users",
+    suffix: "/users",
     icon: Users,
     group: "System", 
   },
   {
     title: "Fees & Billing",
-    url: "/dashboard/billing",
+    suffix: "/billing",
     icon: Calculator,
     group: "Financial",
   },
   {
     title: "Settings",
-    url: "/dashboard/settings",
+    suffix: "/settings",
     icon: Settings,
     group: "System",
   },
 ];
 
-const groupedItems = navigationItems.reduce((acc, item) => {
-  if (!acc[item.group]) {
-    acc[item.group] = [];
-  }
-  acc[item.group].push(item);
-  return acc;
-}, {} as Record<string, typeof navigationItems>);
+function buildNavigation(userRole?: string | null) {
+  const basePath = userRole ? `/${userRole}` : "/admin";
+
+  // Filter items by role
+  const visible = baseItems.filter((item) => {
+    if (userRole === 'teacher') {
+      return ["Dashboard","Classes & Subjects","Students","Grades & Records","Reports & Analytics","Settings"].includes(item.title);
+    }
+    if (userRole === 'accountant') {
+      return ["Dashboard","Fees & Billing","Reports & Analytics","Settings"].includes(item.title);
+    }
+    // default admin: show all
+    return true;
+  }).map(item => ({
+    ...item,
+    url: `${basePath}${item.suffix}`,
+  }));
+
+  const grouped = visible.reduce((acc, item) => {
+    if (!acc[item.group]) acc[item.group] = [] as typeof visible;
+    acc[item.group].push(item);
+    return acc;
+  }, {} as Record<string, typeof visible>);
+
+  return grouped;
+}
 
 export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
+  const { userRole } = useAuth();
   
   const isCollapsed = state === "collapsed";
 
@@ -105,6 +126,8 @@ export function AppSidebar() {
     if (path !== "/" && location.pathname.startsWith(path)) return true;
     return false;
   };
+
+  const groupedItems = buildNavigation(userRole);
 
   return (
     <Sidebar className="border-r border-sidebar-border">

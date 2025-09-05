@@ -45,7 +45,7 @@ export function SetupUsers() {
           <div><strong>Admin:</strong> admin@school.com / admin123</div>
           <div><strong>Teacher:</strong> teacher@school.com / teacher123</div>
           <div><strong>Accountant:</strong> accountant@school.com / account123</div>
-          <div><strong>Student:</strong> student@school.com / student123</div>
+          
         </CardContent>
       </Card>
     );

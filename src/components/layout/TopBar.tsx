@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Bell, User, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const { logout, currentUser } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="h-16 border-b border-border bg-card shadow-soft">
@@ -40,13 +42,13 @@ export function TopBar() {
         {/* Right section */}
         <div className="flex items-center gap-4">
           {/* Quick Actions */}
-          <Button variant="outline" size="sm" className="gap-2 hidden md:flex">
+          <Button variant="outline" size="sm" className="gap-2 hidden md:flex" onClick={() => navigate('/admin/students')}>
             <User className="h-4 w-4" />
             Add Student
           </Button>
           
           {/* Mobile Quick Action */}
-          <Button variant="outline" size="sm" className="md:hidden">
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/admin/students')}>
             <User className="h-4 w-4" />
           </Button>
 
@@ -75,11 +77,11 @@ export function TopBar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem className="gap-2">
+              <DropdownMenuItem className="gap-2" onClick={() => navigate('/admin/settings')}>
                 <User className="h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2">
+              <DropdownMenuItem className="gap-2" onClick={() => navigate('/admin/settings')}>
                 <Settings className="h-4 w-4" />
                 Settings
               </DropdownMenuItem>

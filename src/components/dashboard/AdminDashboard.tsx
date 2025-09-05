@@ -31,7 +31,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { useNavigate } from "react-router-dom";
+
 export function AdminDashboard() {
+  const navigate = useNavigate();
   // Enhanced statistics with financial metrics
   const primaryStats = [
     {
@@ -174,12 +177,14 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5">
+          {/*to report page on admin dashboard */}
+          <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5" onClick={() => navigate('/admin/reports')}>
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Generate Report</span>
             <span className="sm:hidden">Report</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
+          {/*to add a student on admin dashboard */}
+          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto" onClick={() => navigate('/admin/students')}>
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">Add Student</span>
             <span className="sm:hidden">Add</span>
@@ -391,19 +396,19 @@ export function AdminDashboard() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-primary/5 transition-colors">
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-primary/5 transition-colors" onClick={() => navigate('/admin/students')}>
                 <Users className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Add New Student</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-secondary/5 transition-colors">
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-secondary/5 transition-colors" onClick={() => navigate('/admin/users')}>
                 <GraduationCap className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Register Teacher</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5 transition-colors">
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5 transition-colors" onClick={() => navigate('/admin/billing')}>
                 <DollarSign className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Generate Invoice</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted/50 transition-colors">
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted/50 transition-colors" onClick={() => navigate('/admin/reports')}>
                 <FileText className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">View Reports</span>
               </Button>
