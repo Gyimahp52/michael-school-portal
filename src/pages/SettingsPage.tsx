@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,85 @@ import {
   Upload,
   Save,
   Mail,
+  Loader2,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getSchoolSettings, updateSchoolSettings, SchoolSettings } from "@/lib/school-settings";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("school");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<SchoolSettings | null>(null);
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const data = await getSchoolSettings();
+      setSettings(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load settings",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settings) return;
+    
+    setSaving(true);
+    try {
+      await updateSchoolSettings(settings);
+      toast({
+        title: "Success",
+        description: "Settings saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (key: keyof SchoolSettings, value: any) => {
+    if (!settings) return;
+    setSettings({ ...settings, [key]: value });
+  };
+
+  const updateNestedSetting = (section: 'notifications' | 'security', key: string, value: any) => {
+    if (!settings) return;
+    setSettings({
+      ...settings,
+      [section]: {
+        ...settings[section],
+        [key]: value
+      }
+    });
+  };
+
+  if (loading || !settings) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -31,7 +104,12 @@ export default function SettingsPage() {
             Configure school information, system preferences, and security settings.
           </p>
         </div>
-        <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-fit">
+        <Button 
+          className="gap-2 bg-gradient-primary hover:opacity-90 w-fit" 
+          onClick={handleSaveSettings}
+          disabled={saving}
+        >
+          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
           <Save className="w-4 h-4" />
           Save All Changes
         </Button>
@@ -81,11 +159,19 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="schoolName">School Name</Label>
-                  <Input id="schoolName" defaultValue="Michael Agyei School" />
+                  <Input 
+                    id="schoolName" 
+                    value={settings.schoolName}
+                    onChange={(e) => updateSetting('schoolName', e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="academicYear">Academic Year</Label>
-                  <Input id="academicYear" defaultValue="2023/2024" />
+                  <Input 
+                    id="academicYear" 
+                    value={settings.academicYear}
+                    onChange={(e) => updateSetting('academicYear', e.target.value)}
+                  />
                 </div>
               </div>
               
@@ -93,7 +179,8 @@ export default function SettingsPage() {
                 <Label htmlFor="schoolAddress">School Address</Label>
                 <Textarea 
                   id="schoolAddress" 
-                  defaultValue="123 Education Street, Accra, Ghana"
+                  value={settings.address}
+                  onChange={(e) => updateSetting('address', e.target.value)}
                   rows={3}
                 />
               </div>
@@ -101,11 +188,19 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" defaultValue="+233 20 123 4567" />
+                  <Input 
+                    id="phone" 
+                    value={settings.phone}
+                    onChange={(e) => updateSetting('phone', e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" defaultValue="info@michaelagyeischool.edu.gh" />
+                  <Input 
+                    id="email" 
+                    value={settings.email}
+                    onChange={(e) => updateSetting('email', e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -141,7 +236,10 @@ export default function SettingsPage() {
                 <Switch 
                   id="darkMode" 
                   checked={theme === "dark"} 
-                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                  onCheckedChange={(checked) => {
+                    setTheme(checked ? "dark" : "light");
+                    updateSetting('darkMode', checked);
+                  }}
                 />
               </div>
 
@@ -152,7 +250,11 @@ export default function SettingsPage() {
                   <Label htmlFor="autoBackup">Automatic Backup</Label>
                   <p className="text-sm text-muted-foreground">Daily automatic database backup</p>
                 </div>
-                <Switch id="autoBackup" defaultChecked />
+                <Switch 
+                  id="autoBackup" 
+                  checked={settings.autoBackup}
+                  onCheckedChange={(checked) => updateSetting('autoBackup', checked)}
+                />
               </div>
 
               <Separator />
@@ -162,14 +264,24 @@ export default function SettingsPage() {
                   <Label htmlFor="emailNotifications">Email Notifications</Label>
                   <p className="text-sm text-muted-foreground">Send system notifications via email</p>
                 </div>
-                <Switch id="emailNotifications" defaultChecked />
+                <Switch 
+                  id="emailNotifications" 
+                  checked={settings.emailNotifications}
+                  onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                />
               </div>
 
               <Separator />
 
               <div className="space-y-2">
                 <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                <Input id="sessionTimeout" type="number" defaultValue="30" className="w-32" />
+                <Input 
+                  id="sessionTimeout" 
+                  type="number" 
+                  value={settings.sessionTimeout}
+                  onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
+                  className="w-32" 
+                />
               </div>
             </CardContent>
           </Card>
@@ -188,7 +300,10 @@ export default function SettingsPage() {
                   <Label>New Student Enrollment</Label>
                   <p className="text-sm text-muted-foreground">Notify when new students enroll</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.notifications.newEnrollment}
+                  onCheckedChange={(checked) => updateNestedSetting('notifications', 'newEnrollment', checked)}
+                />
               </div>
 
               <Separator />
@@ -198,7 +313,10 @@ export default function SettingsPage() {
                   <Label>Fee Payment Reminders</Label>
                   <p className="text-sm text-muted-foreground">Send payment reminder notifications</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.notifications.feeReminders}
+                  onCheckedChange={(checked) => updateNestedSetting('notifications', 'feeReminders', checked)}
+                />
               </div>
 
               <Separator />
@@ -208,7 +326,10 @@ export default function SettingsPage() {
                   <Label>Grade Submissions</Label>
                   <p className="text-sm text-muted-foreground">Notify when teachers submit grades</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.notifications.gradeSubmissions}
+                  onCheckedChange={(checked) => updateNestedSetting('notifications', 'gradeSubmissions', checked)}
+                />
               </div>
 
               <Separator />
@@ -218,7 +339,10 @@ export default function SettingsPage() {
                   <Label>System Maintenance</Label>
                   <p className="text-sm text-muted-foreground">Alerts for system maintenance</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.notifications.systemMaintenance}
+                  onCheckedChange={(checked) => updateNestedSetting('notifications', 'systemMaintenance', checked)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -237,7 +361,10 @@ export default function SettingsPage() {
                   <Label>Two-Factor Authentication</Label>
                   <p className="text-sm text-muted-foreground">Enable 2FA for admin accounts</p>
                 </div>
-                <Switch />
+                <Switch 
+                  checked={settings.security.twoFactorAuth}
+                  onCheckedChange={(checked) => updateNestedSetting('security', 'twoFactorAuth', checked)}
+                />
               </div>
 
               <Separator />
@@ -256,7 +383,13 @@ export default function SettingsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="loginAttempts">Max Login Attempts</Label>
-                <Input id="loginAttempts" type="number" defaultValue="3" className="w-32" />
+                <Input 
+                  id="loginAttempts" 
+                  type="number" 
+                  value={settings.security.maxLoginAttempts}
+                  onChange={(e) => updateNestedSetting('security', 'maxLoginAttempts', parseInt(e.target.value))}
+                  className="w-32" 
+                />
               </div>
             </CardContent>
           </Card>

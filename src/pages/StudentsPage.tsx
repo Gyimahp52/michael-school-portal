@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent, 
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,92 +35,93 @@ import {
   Eye,
   Mail,
   Phone,
+  Trash2,
 } from "lucide-react";
-
-// Mock student data
-const mockStudents = [
-  {
-    id: "STU001",
-    name: "Sarah Johnson",
-    grade: "7-A",
-    age: 13,
-    email: "sarah.johnson@email.com",
-    phone: "+233 24 123 4567",
-    status: "Active",
-    avatar: "",
-    guardian: "Mrs. Johnson",
-    fees: "Paid",
-  },
-  {
-    id: "STU002", 
-    name: "Michael Adams",
-    grade: "9-B",
-    age: 15,
-    email: "michael.adams@email.com", 
-    phone: "+233 24 234 5678",
-    status: "Active",
-    avatar: "",
-    guardian: "Mr. Adams",
-    fees: "Pending",
-  },
-  {
-    id: "STU003",
-    name: "Emily Davis",
-    grade: "8-A", 
-    age: 14,
-    email: "emily.davis@email.com",
-    phone: "+233 24 345 6789",
-    status: "Active",
-    avatar: "",
-    guardian: "Mrs. Davis",
-    fees: "Paid",
-  },
-  {
-    id: "STU004",
-    name: "James Wilson",
-    grade: "10-C",
-    age: 16, 
-    email: "james.wilson@email.com",
-    phone: "+233 24 456 7890",
-    status: "Inactive",
-    avatar: "",
-    guardian: "Mr. Wilson",
-    fees: "Overdue",
-  },
-];
+import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
+import { StudentDialog } from "@/components/dialogs/StudentDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const { toast } = useToast();
 
-  const filteredStudents = mockStudents.filter((student) => {
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGrade = selectedGrade === "All" || student.grade.includes(selectedGrade);
+  useEffect(() => {
+    const unsubscribe = subscribeToStudents((studentsData) => {
+      setStudents(studentsData);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
+  const filteredStudents = students.filter((student) => {
+    const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
+                         student.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         student.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGrade = selectedGrade === "All" || student.grade === selectedGrade;
     return matchesSearch && matchesGrade;
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Active":
-        return <Badge className="bg-success text-success-foreground">Active</Badge>;
-      case "Inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const handleAddStudent = () => {
+    setSelectedStudent(null);
+    setDialogMode("create");
+    setDialogOpen(true);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setDialogMode("edit");
+    setDialogOpen(true);
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (confirm("Are you sure you want to delete this student?")) {
+      try {
+        await deleteStudent(studentId);
+        toast({
+          title: "Success",
+          description: "Student deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete student",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const getFeesBadge = (fees: string) => {
-    switch (fees) {
-      case "Paid":
-        return <Badge className="bg-success text-success-foreground">Paid</Badge>;
-      case "Pending":
-        return <Badge className="bg-warning text-warning-foreground">Pending</Badge>;
-      case "Overdue":
-        return <Badge variant="destructive">Overdue</Badge>;
+  const getStats = () => {
+    const total = students.length;
+    const active = students.filter(s => s.status === "active").length;
+    const thisMonth = students.filter(s => {
+      const enrollmentDate = new Date(s.enrollmentDate);
+      const now = new Date();
+      return enrollmentDate.getMonth() === now.getMonth() && 
+             enrollmentDate.getFullYear() === now.getFullYear();
+    }).length;
+    
+    return { total, active, thisMonth };
+  };
+
+  const stats = getStats();
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-success text-success-foreground">Active</Badge>;
+      case "inactive":
+        return <Badge variant="secondary">Inactive</Badge>;
+      case "graduated":
+        return <Badge className="bg-secondary text-secondary-foreground">Graduated</Badge>;
       default:
-        return <Badge variant="outline">{fees}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -130,7 +138,7 @@ export function StudentsPage() {
             <p className="text-muted-foreground">Manage student information and records</p>
           </div>
         </div>
-        <Button className="gap-2 bg-gradient-primary">
+        <Button className="gap-2 bg-gradient-primary" onClick={handleAddStudent}>
           <Plus className="w-4 h-4" />
           Add Student
         </Button>
@@ -143,7 +151,7 @@ export function StudentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Students</p>
-                <h3 className="text-2xl font-bold">1,247</h3>
+                <h3 className="text-2xl font-bold">{stats.total}</h3>
               </div>
               <Users className="w-8 h-8 text-primary" />
             </div>
@@ -154,7 +162,7 @@ export function StudentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active</p>
-                <h3 className="text-2xl font-bold text-success">1,198</h3>
+                <h3 className="text-2xl font-bold text-success">{stats.active}</h3>
               </div>
               <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center">
                 <div className="w-3 h-3 bg-success rounded-full"></div>
@@ -167,7 +175,7 @@ export function StudentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">New This Month</p>
-                <h3 className="text-2xl font-bold text-secondary">49</h3>
+                <h3 className="text-2xl font-bold text-secondary">{stats.thisMonth}</h3>
               </div>
               <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
                 <Plus className="w-4 h-4 text-secondary" />
@@ -180,7 +188,7 @@ export function StudentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Pending Fees</p>
-                <h3 className="text-2xl font-bold text-warning">127</h3>
+                <h3 className="text-2xl font-bold text-warning">-</h3>
               </div>
               <div className="w-8 h-8 bg-warning/10 rounded-full flex items-center justify-center">
                 <div className="w-3 h-3 bg-warning rounded-full"></div>
@@ -204,14 +212,20 @@ export function StudentsPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Filter by Grade
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Filter by Status
-              </Button>
+              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by Grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Grades</SelectItem>
+                  <SelectItem value="7">Grade 7</SelectItem>
+                  <SelectItem value="8">Grade 8</SelectItem>
+                  <SelectItem value="9">Grade 9</SelectItem>
+                  <SelectItem value="10">Grade 10</SelectItem>
+                  <SelectItem value="11">Grade 11</SelectItem>
+                  <SelectItem value="12">Grade 12</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -237,36 +251,46 @@ export function StudentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStudents.map((student) => (
+            {filteredStudents.map((student) => {
+              const age = student.dateOfBirth ? 
+                Math.floor((Date.now() - new Date(student.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 
+                0;
+              
+              return (
                 <TableRow key={student.id} className="hover:bg-muted/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={student.avatar} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                          {student.name.split(" ").map(n => n[0]).join("")}
+                          {student.firstName[0]}{student.lastName[0]}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-foreground">{student.name}</p>
-                        <p className="text-sm text-muted-foreground">Age {student.age}</p>
+                        <p className="font-medium text-foreground">{student.firstName} {student.lastName}</p>
+                        <p className="text-sm text-muted-foreground">Age {age}</p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{student.id}</TableCell>
+                  <TableCell className="font-mono text-sm">{student.id || "N/A"}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{student.grade}</Badge>
+                    <Badge variant="outline">Grade {student.grade}</Badge>
                   </TableCell>
-                  <TableCell>{student.guardian}</TableCell>
+                  <TableCell>{student.parentName}</TableCell>
                   <TableCell>{getStatusBadge(student.status)}</TableCell>
-                  <TableCell>{getFeesBadge(student.fees)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">-</Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Mail className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" asChild>
+                        <a href={`mailto:${student.email}`}>
+                          <Mail className="w-4 h-4" />
+                        </a>
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Phone className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" asChild>
+                        <a href={`tel:${student.phone}`}>
+                          <Phone className="w-4 h-4" />
+                        </a>
                       </Button>
                     </div>
                   </TableCell>
@@ -282,19 +306,34 @@ export function StudentsPage() {
                           <Eye className="w-4 h-4" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem className="gap-2" onClick={() => handleEditStudent(student)}>
                           <Edit className="w-4 h-4" />
                           Edit Student
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="gap-2 text-destructive" 
+                          onClick={() => student.id && handleDeleteStudent(student.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Student
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+            })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <StudentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        student={selectedStudent}
+        mode={dialogMode}
+      />
     </div>
   );
 }
