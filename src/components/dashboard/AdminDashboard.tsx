@@ -177,7 +177,7 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          {/*to report page on admin dashboard */}
+          {/*to generate report page on admin dashboard */}
           <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5" onClick={() => navigate('/admin/reports')}>
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Generate Report</span>

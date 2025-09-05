@@ -10,7 +10,7 @@ interface UserData {
   displayName: string;
   role: UserRole;
 }
-
+/*
 const users: UserData[] = [
   {
     email: 'admin@school.com',
@@ -37,7 +37,7 @@ const users: UserData[] = [
     role: 'student' as const,
   },
 ];
-
+*/
 async function createUser(userData: UserData) {
   try {
     // Create user in Firebase Authentication

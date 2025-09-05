@@ -29,16 +29,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string): Promise<User> => {
     try {
-      console.log("Attempting to login with username:", username);
       const user = await loginUser(username, password);
-      console.log("Login successful for user:", user.username);
-      
       setCurrentUser(user);
       setUserRole(user.role);
-      
-      // Store user in localStorage for persistence
       localStorage.setItem('currentUser', JSON.stringify(user));
-      
       return user;
     } catch (error) {
       console.error('Login error:', error);
@@ -63,19 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Check for stored user on app load
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       try {
-        const user = JSON.parse(storedUser);
+        const user: User = JSON.parse(storedUser);
         setCurrentUser(user);
         setUserRole(user.role);
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
+      } catch (e) {
         localStorage.removeItem('currentUser');
       }
     }
-    setLoading(false);
   }, []);
 
   const value = {
