@@ -57,13 +57,13 @@ export function LoginPage() {
       await setupUsers();
       toast({
         title: "Success",
-        description: "Default users have been created successfully!",
+        description: "Database connection verified successfully!",
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create users.",
+        description: error.message || "Failed to connect to database.",
       });
     } finally {
       setIsLoading(false);
@@ -146,46 +146,13 @@ export function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Setting up...
+                  Checking...
                 </>
               ) : (
-                'Setup Default Users'
+                'Check Database Connection'
               )}
             </Button>
           </CardFooter>
-        </Card>
-
-        {/* Demo Credentials */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Demo Credentials</CardTitle>
-            <CardDescription>
-              Use these usernames to test the system (from Realtime Database)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Admin</div>
-              <div className="text-sm text-muted-foreground">
-                Username: admin<br />
-                Password: admin123
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Teacher</div>
-              <div className="text-sm text-muted-foreground">
-                Username: teacher<br />
-                Password: teacher123
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Accountant</div>
-              <div className="text-sm text-muted-foreground">
-                Username: accountant<br />
-                Password: account123
-              </div>
-            </div>
-          </CardContent>
         </Card>
       </div>
     </div>

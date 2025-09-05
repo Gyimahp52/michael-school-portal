@@ -9,55 +9,19 @@ export interface User {
   id: string;
 }
 
-// Default users for the system
-const defaultUsers: User[] = [
-  {
-    id: 'admin1',
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    displayName: 'Admin User'
-  },
-  {
-    id: 'teacher1', 
-    username: 'teacher',
-    password: 'teacher123',
-    role: 'teacher',
-    displayName: 'Teacher One'
-  },
-  {
-    id: 'accountant1',
-    username: 'accountant', 
-    password: 'account123',
-    role: 'accountant',
-    displayName: 'Accountant One'
-  }
-];
-
-// Initialize default users in Firebase Database
+// Initialize users check - just verify database connection
 export const initializeUsers = async (): Promise<void> => {
   try {
     const usersRef = ref(rtdb, 'users');
     const snapshot = await get(usersRef);
     
-    // Only initialize if no users exist
-    if (!snapshot.exists()) {
-      const usersData: { [key: string]: Omit<User, 'id'> } = {};
-      
-      defaultUsers.forEach(user => {
-        usersData[user.id] = {
-          username: user.username,
-          password: user.password, // In production, this should be hashed
-          role: user.role,
-          displayName: user.displayName
-        };
-      });
-      
-      await set(usersRef, usersData);
-      console.log('Default users initialized successfully');
+    if (snapshot.exists()) {
+      console.log('Users found in database:', Object.keys(snapshot.val()));
+    } else {
+      console.log('No users found in database');
     }
   } catch (error) {
-    console.error('Error initializing users:', error);
+    console.error('Error checking users:', error);
     throw error;
   }
 };
