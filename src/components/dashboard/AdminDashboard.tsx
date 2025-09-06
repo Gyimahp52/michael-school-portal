@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,30 +33,130 @@ import {
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
+import {
+  getDashboardStats,
+  getEnrollmentGrowthData,
+  getFeeCollectionData,
+  getFeeBreakdownData,
+  getRecentActivities,
+  getPendingTasks,
+  subscribeToDashboardStats,
+  subscribeToRecentActivities,
+  type DashboardStats,
+  type EnrollmentData,
+  type FeeCollectionData,
+  type FeeBreakdownData,
+  type RecentActivity,
+  type PendingTask
+} from "@/lib/dashboard-analytics";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  // Enhanced statistics with financial metrics
+  
+  // State for real-time data
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalStudents: 0,
+    totalTeachers: 0,
+    activeClasses: 0,
+    activeEnrollments: 0,
+    totalRevenue: 0,
+    outstandingFees: 0,
+    monthlyExpenses: 0,
+    netBalance: 0
+  });
+  const [enrollmentData, setEnrollmentData] = useState<EnrollmentData[]>([]);
+  const [feeData, setFeeData] = useState<FeeCollectionData[]>([]);
+  const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdownData[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load initial data and set up real-time subscriptions
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [stats, enrollment, fees, breakdown, activities, tasks] = await Promise.all([
+          getDashboardStats(),
+          getEnrollmentGrowthData(),
+          getFeeCollectionData(),
+          getFeeBreakdownData(),
+          getRecentActivities(),
+          getPendingTasks()
+        ]);
+
+        setDashboardStats(stats);
+        setEnrollmentData(enrollment);
+        setFeeData(fees);
+        setFeeBreakdown(breakdown);
+        setRecentActivities(activities);
+        setPendingTasks(tasks);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+
+    // Set up real-time subscriptions
+    const unsubscribeStats = subscribeToDashboardStats(setDashboardStats);
+    const unsubscribeActivities = subscribeToRecentActivities(setRecentActivities);
+
+    return () => {
+      unsubscribeStats();
+      unsubscribeActivities();
+    };
+  }, []);
+
+  // Format currency
+  const formatCurrency = (amount: number) => `₵${amount.toLocaleString()}`;
+
+  // Helper function to get activity icon
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'enrollment': return Users;
+      case 'payment': return DollarSign;
+      case 'grade': return FileText;
+      case 'class': return Calendar;
+      case 'user': return Users;
+      default: return Clock;
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = (timestamp: string) => {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffInHours = Math.abs(now.getTime() - activityTime.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
+    return `${Math.floor(diffInHours / 24)} days ago`;
+  };
+
+  // Primary stats with real data
   const primaryStats = [
     {
       title: "Total Students",
-      value: "1,247",
-      change: "+12% from last month",
+      value: dashboardStats.totalStudents.toString(),
+      change: "Active enrollments",
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       title: "Total Teachers",
-      value: "87",
-      change: "+2 new this month",
+      value: dashboardStats.totalTeachers.toString(),
+      change: "Staff members",
       icon: GraduationCap,
       color: "text-secondary",
       bgColor: "bg-secondary/10",
     },
     {
       title: "Active Classes",
-      value: "45",
+      value: dashboardStats.activeClasses.toString(),
       change: "Across all grades",
       icon: BookOpen,
       color: "text-accent",
@@ -63,106 +164,59 @@ export function AdminDashboard() {
     },
     {
       title: "Active Enrollments",
-      value: "1,198",
-      change: "96% capacity",
+      value: dashboardStats.activeEnrollments.toString(),
+      change: `${Math.round((dashboardStats.activeEnrollments / dashboardStats.totalStudents) * 100) || 0}% active`,
       icon: School,
       color: "text-success",
       bgColor: "bg-success/10",
     },
   ];
 
-  // Financial summary statistics
+  // Financial stats with real data
   const financialStats = [
     {
-      title: "Fees Collected",
-      value: "₵285,750",
-      change: "+15.3% this month",
+      title: "Total Revenue",
+      value: formatCurrency(dashboardStats.totalRevenue),
+      change: "All time collected",
       icon: DollarSign,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
       title: "Outstanding Fees",
-      value: "₵42,350",
-      change: "23 students pending",
+      value: formatCurrency(dashboardStats.outstandingFees),
+      change: "Pending collection",
       icon: AlertTriangle,
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
     {
       title: "Monthly Expenses",
-      value: "₵95,200",
-      change: "Within budget",
+      value: formatCurrency(dashboardStats.monthlyExpenses),
+      change: "Current month",
       icon: CreditCard,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
     },
     {
       title: "Net Balance",
-      value: "₵190,550",
-      change: "+12.8% profit margin",
+      value: formatCurrency(dashboardStats.netBalance),
+      change: "Available funds",
       icon: TrendingUp,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
   ];
 
-  // Enrollment growth data for line chart
-  const enrollmentData = [
-    { month: 'Jan', students: 1150 },
-    { month: 'Feb', students: 1175 },
-    { month: 'Mar', students: 1198 },
-    { month: 'Apr', students: 1220 },
-    { month: 'May', students: 1235 },
-    { month: 'Jun', students: 1247 },
-  ];
-
-  // Fee collection vs outstanding data for bar chart
-  const feeData = [
-    { month: 'Jan', collected: 265000, outstanding: 45000 },
-    { month: 'Feb', collected: 275000, outstanding: 38000 },
-    { month: 'Mar', collected: 280000, outstanding: 35000 },
-    { month: 'Apr', collected: 285750, outstanding: 42350 },
-  ];
-
-  // Fee collection breakdown for pie chart
-  const feeBreakdown = [
-    { name: 'Tuition Fees', value: 185750, fill: 'hsl(var(--primary))' },
-    { name: 'Lab Fees', value: 45000, fill: 'hsl(var(--secondary))' },
-    { name: 'Library Fees', value: 25000, fill: 'hsl(var(--accent))' },
-    { name: 'Sports Fees', value: 30000, fill: 'hsl(var(--success))' },
-  ];
-
-  const recentActivities = [
-    {
-      type: "enrollment",
-      title: "New student enrolled",
-      description: "Sarah Johnson joined Grade 7-A",
-      time: "2 hours ago",
-      icon: Users,
-    },
-    {
-      type: "payment",
-      title: "Fee payment received",
-      description: "₵850 from Michael Adams (Grade 9-B)",
-      time: "4 hours ago",
-      icon: DollarSign,
-    },
-    {
-      type: "grade",
-      title: "Grades submitted",
-      description: "Math grades for Grade 8-A by Mrs. Thompson",
-      time: "6 hours ago",
-      icon: FileText,
-    },
-    {
-      type: "class",
-      title: "Class schedule updated",
-      description: "Physics class moved to Laboratory 2",
-      time: "1 day ago",
-      icon: Calendar,
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="text-center">
+          <div className="text-lg">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -362,27 +416,36 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <activity.icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-foreground">
-                        {activity.title}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {activity.description}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </span>
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity) => {
+                    const ActivityIcon = getActivityIcon(activity.type);
+                    return (
+                      <div
+                        key={activity.id}
+                        className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <ActivityIcon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-foreground">
+                            {activity.title}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {activity.description}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTime(activity.timestamp)}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    No recent activities
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -421,22 +484,21 @@ export function AdminDashboard() {
               <CardTitle>Pending Tasks</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Admission Reviews</span>
-                <Badge variant="secondary">12</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Outstanding Fees</span>
-                <Badge variant="destructive">₵23,450</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Grade Approvals</span>
-                <Badge variant="secondary">8</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Teacher Evaluations</span>
-                <Badge variant="secondary">5</Badge>
-              </div>
+              {pendingTasks.map((task, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm">{task.label}</span>
+                  {task.amount ? (
+                    <Badge variant="destructive">{formatCurrency(task.amount)}</Badge>
+                  ) : (
+                    <Badge variant="secondary">{task.count}</Badge>
+                  )}
+                </div>
+              ))}
+              {pendingTasks.length === 0 && (
+                <div className="text-center text-muted-foreground py-4">
+                  No pending tasks
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
