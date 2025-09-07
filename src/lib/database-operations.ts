@@ -12,10 +12,12 @@ export interface Student {
   grade: string;
   parentName: string;
   parentPhone: string;
+  parentWhatsApp: string;
   parentEmail: string;
   address: string;
   enrollmentDate: string;
   status: 'active' | 'inactive' | 'graduated';
+  photoUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -153,13 +155,14 @@ export const updateTeacher = async (teacherId: string, updates: Partial<Teacher>
 export interface Subject {
   id?: string;
   name: string;
-  code: string;
-  description: string;
-  grade: string;
-  department: string;
-  credits: number;
+  code?: string;
+  description?: string;
+  category?: 'core' | 'elective' | 'extracurricular';
+  grade?: string;
+  department?: string;
+  credits?: number;
   teacherId?: string;
-  status: 'active' | 'inactive';
+  status?: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -217,17 +220,25 @@ export const updateSubject = async (subjectId: string, updates: Partial<Subject>
 // ===== CLASS OPERATIONS =====
 export interface Class {
   id?: string;
-  name: string;
-  grade: string;
-  section: string;
-  academicYear: string;
-  teacherId: string; // Class teacher
-  room: string;
-  capacity: number;
-  currentStrength: number;
-  subjects: string[]; // Array of subject IDs
-  schedule: ClassSchedule[];
-  status: 'active' | 'inactive';
+  className: string;
+  name?: string;
+  grade?: string;
+  section?: string;
+  academicYear?: string;
+  subjectId: string;
+  teacherId?: string; 
+  room?: string;
+  capacity?: number;
+  currentStrength?: number;
+  subjects?: string[]; 
+  schedule?: {
+    monday?: string;
+    tuesday?: string;
+    wednesday?: string;
+    thursday?: string;
+    friday?: string;
+  };
+  status?: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
 }

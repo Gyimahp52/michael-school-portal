@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,47 +21,99 @@ import {
   Eye,
   Edit,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  subscribeToClasses, 
+  subscribeToSubjects, 
+  subscribeToTeachers, 
+  subscribeToStudents,
+  Class, 
+  Subject, 
+  Teacher, 
+  Student 
+} from "@/lib/database-operations";
+import { ClassDialog } from "@/components/dialogs/ClassDialog";
+import { SubjectDialog } from "@/components/dialogs/SubjectDialog";
+import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";
 
 export default function AcademicsPage() {
-  const classes = [
-    {
-      id: "CLS-001",
-      className: "Grade 7-A",
-      subject: "Mathematics",
-      teacher: "Mrs. Thompson",
-      students: 28,
-      schedule: "Mon, Wed, Fri - 9:00 AM",
-      room: "Room 101",
-      status: "active",
-    },
-    {
-      id: "CLS-002",
-      className: "Grade 8-B",
-      subject: "English Literature",
-      teacher: "Mr. Anderson",
-      students: 25,
-      schedule: "Tue, Thu - 10:30 AM",
-      room: "Room 203",
-      status: "active",
-    },
-    {
-      id: "CLS-003",
-      className: "Grade 9-A",
-      subject: "Physics",
-      teacher: "Dr. Wilson",
-      students: 30,
-      schedule: "Mon, Wed - 2:00 PM",
-      room: "Laboratory 1",
-      status: "active",
-    },
-  ];
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Dialog states
+  const [classDialogOpen, setClassDialogOpen] = useState(false);
+  const [subjectDialogOpen, setSubjectDialogOpen] = useState(false);
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
 
-  const subjects = [
-    { name: "Mathematics", classes: 12, teachers: 4, students: 320 },
-    { name: "English", classes: 10, teachers: 3, students: 285 },
-    { name: "Science", classes: 8, teachers: 3, students: 240 },
-    { name: "History", classes: 6, teachers: 2, students: 180 },
-  ];
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const unsubscribes = [
+      subscribeToClasses(setClasses),
+      subscribeToSubjects(setSubjects),
+      subscribeToTeachers(setTeachers),
+      subscribeToStudents(setStudents)
+    ];
+
+    return () => {
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, []);
+
+  const handleCreateClass = () => {
+    setSelectedClass(null);
+    setDialogMode("create");
+    setClassDialogOpen(true);
+  };
+
+  const handleEditClass = (classItem: Class) => {
+    setSelectedClass(classItem);
+    setDialogMode("edit");
+    setClassDialogOpen(true);
+  };
+
+  const handleCreateSubject = () => {
+    setSelectedSubject(null);
+    setDialogMode("create");
+    setSubjectDialogOpen(true);
+  };
+
+  const getSubjectName = (subjectId: string) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.name : 'Unknown Subject';
+  };
+
+  const getTeacherName = (teacherId: string) => {
+    const teacher = teachers.find(t => t.id === teacherId);
+    return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned';
+  };
+
+  const getSubjectStats = () => {
+    return subjects.map(subject => {
+      const subjectClasses = classes.filter(c => c.subjectId === subject.id);
+      const subjectTeachers = [...new Set(subjectClasses.map(c => c.teacherId).filter(Boolean))];
+      const subjectStudents = students.filter(s => s.status === 'active').length; // Simplified for demo
+      
+      return {
+        ...subject,
+        classCount: subjectClasses.length,
+        teacherCount: subjectTeachers.length,
+        studentCount: Math.floor(subjectStudents / subjects.length) // Simplified distribution
+      };
+    });
+  };
+
+  const filteredClasses = classes.filter(classItem =>
+    classItem.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getSubjectName(classItem.subjectId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getTeacherName(classItem.teacherId || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -73,12 +126,19 @@ export default function AcademicsPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5">
+          <Button 
+            variant="outline" 
+            className="gap-2 w-full sm:w-auto hover:bg-primary/5"
+            onClick={() => setAttendanceDialogOpen(true)}
+          >
             <GraduationCap className="w-4 h-4" />
-            <span className="hidden sm:inline">Assign Teacher</span>
-            <span className="sm:hidden">Assign</span>
+            <span className="hidden sm:inline">View Attendance</span>
+            <span className="sm:hidden">Attendance</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
+          <Button 
+            className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto"
+            onClick={handleCreateClass}
+          >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Class</span>
             <span className="sm:hidden">New</span>
@@ -93,7 +153,7 @@ export default function AcademicsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
-                <h3 className="text-2xl font-bold mt-1">45</h3>
+                <h3 className="text-2xl font-bold mt-1">{classes.length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Across all grades</p>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
@@ -108,7 +168,7 @@ export default function AcademicsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Subjects</p>
-                <h3 className="text-2xl font-bold mt-1">12</h3>
+                <h3 className="text-2xl font-bold mt-1">{subjects.filter(s => s.status === 'active').length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Core & electives</p>
               </div>
               <div className="bg-secondary/10 p-3 rounded-lg">
@@ -123,7 +183,7 @@ export default function AcademicsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Teaching Staff</p>
-                <h3 className="text-2xl font-bold mt-1">87</h3>
+                <h3 className="text-2xl font-bold mt-1">{teachers.filter(t => t.status === 'active').length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Full & part-time</p>
               </div>
               <div className="bg-accent/10 p-3 rounded-lg">
@@ -138,7 +198,7 @@ export default function AcademicsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Enrolled Students</p>
-                <h3 className="text-2xl font-bold mt-1">1,247</h3>
+                <h3 className="text-2xl font-bold mt-1">{students.filter(s => s.status === 'active').length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">All classes</p>
               </div>
               <div className="bg-success/10 p-3 rounded-lg">
@@ -157,20 +217,25 @@ export default function AcademicsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {subjects.map((subject, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+              {getSubjectStats().map((subject) => (
+                <div key={subject.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                   <div>
                     <h4 className="font-medium">{subject.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {subject.classes} classes • {subject.teachers} teachers
+                      {subject.classCount} classes • {subject.teacherCount} teachers
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{subject.students}</div>
+                    <div className="font-semibold">{subject.studentCount}</div>
                     <div className="text-xs text-muted-foreground">students</div>
                   </div>
                 </div>
               ))}
+              {subjects.length === 0 && (
+                <div className="text-center text-muted-foreground py-4">
+                  No subjects found
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -180,15 +245,27 @@ export default function AcademicsPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start gap-3 hover:bg-primary/5">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 hover:bg-primary/5"
+              onClick={handleCreateClass}
+            >
               <BookOpen className="w-4 h-4" />
               Create New Class
             </Button>
-            <Button variant="outline" className="w-full justify-start gap-3 hover:bg-secondary/5">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 hover:bg-secondary/5"
+              onClick={handleCreateSubject}
+            >
               <GraduationCap className="w-4 h-4" />
               Add Subject
             </Button>
-            <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 hover:bg-accent/5"
+              onClick={() => setAttendanceDialogOpen(true)}
+            >
               <Users className="w-4 h-4" />
               View Attendance
             </Button>
@@ -209,6 +286,8 @@ export default function AcademicsPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search classes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full lg:w-80 pl-10 bg-muted/50 border-border"
               />
             </div>
@@ -229,33 +308,73 @@ export default function AcademicsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {classes.map((classItem) => (
+              {filteredClasses.map((classItem) => (
                 <TableRow key={classItem.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{classItem.id}</TableCell>
                   <TableCell>{classItem.className}</TableCell>
-                  <TableCell>{classItem.subject}</TableCell>
-                  <TableCell>{classItem.teacher}</TableCell>
+                  <TableCell>{getSubjectName(classItem.subjectId)}</TableCell>
+                  <TableCell>{getTeacherName(classItem.teacherId || '')}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{classItem.students}</Badge>
+                    <Badge variant="outline">{classItem.capacity || 30}</Badge>
                   </TableCell>
-                  <TableCell className="text-sm">{classItem.schedule}</TableCell>
-                  <TableCell>{classItem.room}</TableCell>
+                  <TableCell className="text-sm">
+                    {classItem.schedule ? 
+                      Object.entries(classItem.schedule)
+                        .filter(([_, time]) => time)
+                        .map(([day, time]) => `${day.charAt(0).toUpperCase() + day.slice(1)}: ${time}`)
+                        .join(', ') || 'Not scheduled'
+                      : 'Not scheduled'
+                    }
+                  </TableCell>
+                  <TableCell>{classItem.room || 'Not assigned'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleEditClass(classItem)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredClasses.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    No classes found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <ClassDialog
+        open={classDialogOpen}
+        onOpenChange={setClassDialogOpen}
+        classItem={selectedClass}
+        mode={dialogMode}
+      />
+      
+      <SubjectDialog
+        open={subjectDialogOpen}
+        onOpenChange={setSubjectDialogOpen}
+        subject={selectedSubject}
+        mode={dialogMode}
+      />
+      
+      <AttendanceDialog
+        open={attendanceDialogOpen}
+        onOpenChange={setAttendanceDialogOpen}
+      />
     </div>
   );
 }

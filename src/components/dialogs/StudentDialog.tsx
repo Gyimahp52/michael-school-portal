@@ -28,10 +28,12 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     grade: "",
     parentName: "",
     parentPhone: "",
+    parentWhatsApp: "",
     parentEmail: "",
     address: "",
     enrollmentDate: new Date().toISOString().split('T')[0],
     status: "active" as "active" | "inactive" | "graduated",
+    photoUrl: "",
   });
 
   useEffect(() => {
@@ -45,10 +47,12 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         grade: student.grade,
         parentName: student.parentName,
         parentPhone: student.parentPhone,
+        parentWhatsApp: student.parentWhatsApp || "",
         parentEmail: student.parentEmail,
         address: student.address,
         enrollmentDate: student.enrollmentDate,
         status: student.status,
+        photoUrl: student.photoUrl || "",
       });
     } else if (mode === "create") {
       setFormData({
@@ -60,10 +64,12 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         grade: "",
         parentName: "",
         parentPhone: "",
+        parentWhatsApp: "",
         parentEmail: "",
         address: "",
         enrollmentDate: new Date().toISOString().split('T')[0],
         status: "active" as "active" | "inactive" | "graduated",
+        photoUrl: "",
       });
     }
   }, [student, mode, open]);
@@ -112,6 +118,16 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="photoUrl">Student Photo URL (Optional)</Label>
+            <Input
+              id="photoUrl"
+              value={formData.photoUrl}
+              onChange={(e) => handleChange("photoUrl", e.target.value)}
+              placeholder="https://example.com/photo.jpg"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name *</Label>
@@ -201,6 +217,17 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                 onChange={(e) => handleChange("parentPhone", e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="parentWhatsApp">Parent/Guardian WhatsApp Number *</Label>
+            <Input
+              id="parentWhatsApp"
+              value={formData.parentWhatsApp}
+              onChange={(e) => handleChange("parentWhatsApp", e.target.value)}
+              placeholder="+233XXXXXXXXX"
+              required
+            />
           </div>
 
           <div className="space-y-2">
