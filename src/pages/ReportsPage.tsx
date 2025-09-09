@@ -1,8 +1,12 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { getAllStudents, getAllClasses, Student, Class } from "@/lib/database-operations";
 import {
   FileText,
   Download,
@@ -12,29 +16,12 @@ import {
   BarChart3,
   Calendar,
   Eye,
+  MessageCircle,
+  Send,
+  Loader2,
 } from "lucide-react";
 
 export default function ReportsPage() {
-  const { toast } = useToast();
-
-  const sendViaWhatsApp = async (reportTitle: string) => {
-    try {
-      const input = window.prompt(
-        `Enter recipient WhatsApp number (Ghana). Examples: 0241234567 or 233241234567`,
-        "0"
-      );
-      if (!input) return;
-      const message = `Report: ${reportTitle} is ready. Please check your portal or contact the school for details.`;
-      await sendWhatsAppText(input, message);
-      toast({ title: "Sent", description: `WhatsApp message sent to ${input}` });
-    } catch (error: any) {
-      toast({
-        title: "Failed to send",
-        description: error.message || "WhatsApp sending failed",
-        variant: "destructive",
-      });
-    }
-  };
   const reports = [
     {
       id: "RPT-001",
@@ -215,6 +202,72 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* WhatsApp Report Sending */}
+      <Card className="shadow-soft border-border/50 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+            <MessageCircle className="w-5 h-5" />
+            Send Student Reports via WhatsApp
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-green-700 dark:text-green-300">
+              Send academic reports directly to parents' WhatsApp numbers for an entire class with just one click.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 space-y-2">
+                <label className="text-sm font-medium text-green-800 dark:text-green-200">
+                  Select Class/Grade
+                </label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="bg-white dark:bg-background border-green-300 dark:border-green-700">
+                    <SelectValue placeholder="Choose a class to send reports" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Grade 7</SelectItem>
+                    <SelectItem value="8">Grade 8</SelectItem>
+                    <SelectItem value="9">Grade 9</SelectItem>
+                    <SelectItem value="10">Grade 10</SelectItem>
+                    <SelectItem value="11">Grade 11</SelectItem>
+                    <SelectItem value="12">Grade 12</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                onClick={sendClassReportsToParents}
+                disabled={!selectedClass || sendingReports || loading}
+                className="bg-green-600 hover:bg-green-700 text-white gap-2 min-w-[140px]"
+              >
+                {sendingReports ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send Reports
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {selectedClass && (
+              <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  {students.filter(s => s.grade === selectedClass).length} students found in Grade {selectedClass}
+                  {" - "}
+                  {students.filter(s => s.grade === selectedClass && s.parentWhatsApp).length} parents have WhatsApp numbers
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Available Reports */}
       <Card className="shadow-soft border-border/50">

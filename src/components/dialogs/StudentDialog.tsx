@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createStudent, updateStudent, Student } from "@/lib/database-operations";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
   open: boolean;
@@ -17,6 +17,8 @@ interface StudentDialogProps {
 
 export function StudentDialog({ open, onOpenChange, student, mode }: StudentDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -54,6 +56,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         status: student.status,
         photoUrl: student.photoUrl || "",
       });
+      setPhotoPreview(student.photoUrl || "");
     } else if (mode === "create") {
       setFormData({
         firstName: "",
@@ -71,8 +74,32 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         status: "active" as "active" | "inactive" | "graduated",
         photoUrl: "",
       });
+      setPhotoFile(null);
+      setPhotoPreview("");
     }
   }, [student, mode, open]);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setPhotoFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setPhotoPreview(result);
+        setFormData(prev => ({ ...prev, photoUrl: result }));
+      };
+      reader.readAsDataURL(file);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select a valid image file",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,14 +145,41 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="photoUrl">Student Photo URL (Optional)</Label>
-            <Input
-              id="photoUrl"
-              value={formData.photoUrl}
-              onChange={(e) => handleChange("photoUrl", e.target.value)}
-              placeholder="https://example.com/photo.jpg"
-            />
+          <div className="space-y-4">
+            <Label>Student Photo (Optional)</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                {photoPreview ? (
+                  <img 
+                    src={photoPreview} 
+                    alt="Student preview" 
+                    className="w-20 h-20 object-cover rounded-lg border-2 border-border"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-muted rounded-lg border-2 border-dashed border-border flex items-center justify-center">
+                    <User className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <Label htmlFor="photo-upload" className="cursor-pointer">
+                  <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted/50 transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm">Upload Photo</span>
+                  </div>
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  JPG, PNG, GIF up to 10MB
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
