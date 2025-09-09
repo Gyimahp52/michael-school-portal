@@ -433,3 +433,114 @@ export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void): ((
   });
   return unsubscribe;
 };
+
+// ===== REPORTS =====
+export interface Report {
+  id?: string;
+  title: string;
+  description: string;
+  category: 'Academic' | 'Finance' | 'Administrative';
+  lastGenerated?: string;
+  format: string;
+  icon?: string;
+  status?: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReportStats {
+  reportsGenerated: number;
+  downloads: number;
+  activeReports: number;
+  lastUpdated: string;
+}
+
+export const createReport = async (report: Omit<Report, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const reportsRef = ref(rtdb, 'reports');
+    const newReportRef = push(reportsRef);
+    
+    const reportData = {
+      ...report,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newReportRef, reportData);
+    return newReportRef.key!;
+  } catch (error) {
+    console.error('Error creating report:', error);
+    throw error;
+  }
+};
+
+export const getAllReports = async (): Promise<Report[]> => {
+  try {
+    const reportsRef = ref(rtdb, 'reports');
+    const snapshot = await get(reportsRef);
+    
+    if (!snapshot.exists()) return [];
+    
+    const reportsData = snapshot.val();
+    return Object.keys(reportsData).map(key => ({
+      id: key,
+      ...reportsData[key]
+    }));
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    throw error;
+  }
+};
+
+export const subscribeToReports = (callback: (reports: Report[]) => void): (() => void) => {
+  const reportsRef = ref(rtdb, 'reports');
+  
+  const unsubscribe = onValue(reportsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const reportsData = snapshot.val();
+      const reports = Object.keys(reportsData).map(key => ({
+        id: key,
+        ...reportsData[key]
+      }));
+      callback(reports);
+    } else {
+      callback([]);
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const subscribeToReportStats = (callback: (stats: ReportStats) => void): (() => void) => {
+  const statsRef = ref(rtdb, 'reportStats');
+  
+  const unsubscribe = onValue(statsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const statsData = snapshot.val();
+      callback(statsData);
+    } else {
+      // Default stats if none exist
+      callback({
+        reportsGenerated: 0,
+        downloads: 0,
+        activeReports: 0,
+        lastUpdated: new Date().toISOString()
+      });
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const updateReportStats = async (updates: Partial<ReportStats>): Promise<void> => {
+  try {
+    const statsRef = ref(rtdb, 'reportStats');
+    await update(statsRef, {
+      ...updates,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating report stats:', error);
+    throw error;
+  }
+};

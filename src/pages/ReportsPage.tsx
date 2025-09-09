@@ -5,8 +5,16 @@ import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { getAllStudents, getAllClasses, Student, Class } from "@/lib/database-operations";
+import { 
+  subscribeToReports, 
+  subscribeToReportStats, 
+  subscribeToStudents,
+  subscribeToClasses,
+  Report, 
+  ReportStats,
+  Student,
+  Class
+} from "@/lib/database-operations";
 import {
   FileText,
   Download,
@@ -22,7 +30,124 @@ import {
 } from "lucide-react";
 
 export default function ReportsPage() {
-  const reports = [
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportStats, setReportStats] = useState<ReportStats>({
+    reportsGenerated: 0,
+    downloads: 0,
+    activeReports: 0,
+    lastUpdated: new Date().toISOString()
+  });
+  const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [sendingReports, setSendingReports] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Subscribe to real-time data
+    const unsubscribeReports = subscribeToReports((reportsData) => {
+      setReports(reportsData);
+    });
+
+    const unsubscribeStats = subscribeToReportStats((statsData) => {
+      setReportStats(statsData);
+    });
+
+    const unsubscribeStudents = subscribeToStudents((studentsData) => {
+      setStudents(studentsData);
+    });
+
+    const unsubscribeClasses = subscribeToClasses((classesData) => {
+      setClasses(classesData);
+    });
+
+    setLoading(false);
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribeReports();
+      unsubscribeStats();
+      unsubscribeStudents();
+      unsubscribeClasses();
+    };
+  }, []);
+
+  const sendViaWhatsApp = async (reportTitle: string) => {
+    try {
+      const input = window.prompt(
+        `Enter recipient WhatsApp number (Ghana). Examples: 0241234567 or 233241234567`,
+        "0"
+      );
+      if (!input) return;
+      const message = `Report: ${reportTitle} is ready. Please check your portal or contact the school for details.`;
+      await sendWhatsAppText(input, message);
+      toast({ title: "Sent", description: `WhatsApp message sent to ${input}` });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send",
+        description: error.message || "WhatsApp sending failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendClassReportsToParents = async () => {
+    if (!selectedClass) {
+      toast({
+        title: "Error",
+        description: "Please select a class first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingReports(true);
+    
+    try {
+      const classStudents = students.filter(student => student.grade === selectedClass);
+      
+      if (classStudents.length === 0) {
+        toast({
+          title: "No Students Found",
+          description: "No students found in the selected class",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send WhatsApp messages to parents
+      for (const student of classStudents) {
+        if (student.parentWhatsApp) {
+          try {
+            const message = `Academic Report for ${student.firstName} ${student.lastName} is ready. Please check your portal or contact the school for details.`;
+            await sendWhatsAppText(student.parentWhatsApp, message);
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (error) {
+            console.error(`Failed to send to ${student.parentName}:`, error);
+          }
+        }
+      }
+
+      toast({
+        title: "Reports Sent Successfully",
+        description: `Academic reports sent to ${classStudents.filter(s => s.parentWhatsApp).length} parents via WhatsApp`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send reports to parents",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReports(false);
+    }
+  };
+
+  // Default reports if none exist in database
+  const defaultReports: Report[] = [
     {
       id: "RPT-001",
       title: "Student Enrollment Report",
@@ -30,7 +155,7 @@ export default function ReportsPage() {
       category: "Academic",
       lastGenerated: "2025-01-15",
       format: "PDF, Excel",
-      icon: Users,
+      icon: "Users",
     },
     {
       id: "RPT-002",
@@ -39,7 +164,7 @@ export default function ReportsPage() {
       category: "Finance",
       lastGenerated: "2025-01-14",
       format: "PDF, Excel",
-      icon: DollarSign,
+      icon: "DollarSign",
     },
     {
       id: "RPT-003",
@@ -48,7 +173,7 @@ export default function ReportsPage() {
       category: "Academic",
       lastGenerated: "2025-01-13",
       format: "PDF",
-      icon: BarChart3,
+      icon: "BarChart3",
     },
     {
       id: "RPT-004",
@@ -57,14 +182,16 @@ export default function ReportsPage() {
       category: "Academic",
       lastGenerated: "2025-01-12",
       format: "PDF, Excel",
-      icon: Calendar,
+      icon: "Calendar",
     },
   ];
+
+  const displayReports = reports.length > 0 ? reports : defaultReports;
 
   const quickStats = [
     {
       title: "Reports Generated",
-      value: "245",
+      value: reportStats.reportsGenerated.toString(),
       change: "This month",
       icon: FileText,
       color: "text-primary",
@@ -72,7 +199,7 @@ export default function ReportsPage() {
     },
     {
       title: "Downloads",
-      value: "1,458",
+      value: reportStats.downloads.toString(),
       change: "Total this year",
       icon: Download,
       color: "text-secondary",
@@ -80,7 +207,7 @@ export default function ReportsPage() {
     },
     {
       title: "Active Reports",
-      value: "12",
+      value: reportStats.activeReports.toString(),
       change: "Scheduled reports",
       icon: TrendingUp,
       color: "text-accent",
@@ -98,6 +225,19 @@ export default function ReportsPage() {
         return <Badge variant="outline">{category}</Badge>;
     }
   };
+
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case "Users": return Users;
+      case "DollarSign": return DollarSign;
+      case "BarChart3": return BarChart3;
+      case "Calendar": return Calendar;
+      default: return FileText;
+    }
+  };
+
+  // Get unique grades from students
+  const availableGrades = [...new Set(students.map(s => s.grade))].sort();
 
   return (
     <div className="space-y-6 p-6">
@@ -227,12 +367,9 @@ export default function ReportsPage() {
                     <SelectValue placeholder="Choose a class to send reports" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">Grade 7</SelectItem>
-                    <SelectItem value="8">Grade 8</SelectItem>
-                    <SelectItem value="9">Grade 9</SelectItem>
-                    <SelectItem value="10">Grade 10</SelectItem>
-                    <SelectItem value="11">Grade 11</SelectItem>
-                    <SelectItem value="12">Grade 12</SelectItem>
+                    {availableGrades.map(grade => (
+                      <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -276,12 +413,14 @@ export default function ReportsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {reports.map((report) => (
+            {displayReports.map((report) => {
+              const IconComponent = getIconComponent(report.icon || "FileText");
+              return (
               <Card key={report.id} className="shadow-sm border-border/30 hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="p-2 rounded-lg bg-primary/10">
-                      <report.icon className="w-5 h-5 text-primary" />
+                        <IconComponent className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1 space-y-2">
                       <div className="flex items-start justify-between">
@@ -290,7 +429,7 @@ export default function ReportsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{report.description}</p>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Last generated: {report.lastGenerated}</span>
+                          <span>Last generated: {report.lastGenerated || "Never"}</span>
                         <span>Format: {report.format}</span>
                       </div>
                       <div className="flex gap-2 pt-2">
@@ -306,15 +445,16 @@ export default function ReportsPage() {
                           <FileText className="w-3 h-3" />
                           Generate New
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => sendViaWhatsApp(report.title)}>
-                          Send via WhatsApp
-                        </Button>
-                      </div>
+                          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => sendViaWhatsApp(report.title)}>
+                            Send via WhatsApp
+                          </Button>
+                        </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
