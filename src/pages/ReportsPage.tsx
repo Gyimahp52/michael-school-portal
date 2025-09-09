@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { sendWhatsAppText } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText,
@@ -13,6 +15,26 @@ import {
 } from "lucide-react";
 
 export default function ReportsPage() {
+  const { toast } = useToast();
+
+  const sendViaWhatsApp = async (reportTitle: string) => {
+    try {
+      const input = window.prompt(
+        `Enter recipient WhatsApp number (Ghana). Examples: 0241234567 or 233241234567`,
+        "0"
+      );
+      if (!input) return;
+      const message = `Report: ${reportTitle} is ready. Please check your portal or contact the school for details.`;
+      await sendWhatsAppText(input, message);
+      toast({ title: "Sent", description: `WhatsApp message sent to ${input}` });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send",
+        description: error.message || "WhatsApp sending failed",
+        variant: "destructive",
+      });
+    }
+  };
   const reports = [
     {
       id: "RPT-001",
@@ -151,6 +173,7 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Enrollment Report
             </Button>
+            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Student Enrollment Report")}>Send via WhatsApp</Button>
           </CardContent>
         </Card>
 
@@ -169,6 +192,7 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Academic Report
             </Button>
+            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Academic Performance Report")}>Send via WhatsApp</Button>
           </CardContent>
         </Card>
 
@@ -187,6 +211,7 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Financial Report
             </Button>
+            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Financial Summary Report")}>Send via WhatsApp</Button>
           </CardContent>
         </Card>
       </div>
@@ -227,6 +252,9 @@ export default function ReportsPage() {
                         <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs bg-primary/5">
                           <FileText className="w-3 h-3" />
                           Generate New
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => sendViaWhatsApp(report.title)}>
+                          Send via WhatsApp
                         </Button>
                       </div>
                     </div>

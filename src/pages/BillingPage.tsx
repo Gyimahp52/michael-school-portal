@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,55 +30,17 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
-
-// Mock billing data
-const mockInvoices = [
-  {
-    id: "INV-001",
-    studentName: "Sarah Johnson",
-    studentId: "STU001",
-    amount: 850,
-    dueDate: "2025-01-15",
-    status: "Paid",
-    paymentDate: "2025-01-10",
-    description: "Term 1 Tuition Fee",
-  },
-  {
-    id: "INV-002",
-    studentName: "Michael Adams",
-    studentId: "STU002", 
-    amount: 850,
-    dueDate: "2025-01-15",
-    status: "Pending",
-    paymentDate: null,
-    description: "Term 1 Tuition Fee",
-  },
-  {
-    id: "INV-003",
-    studentName: "Emily Davis", 
-    studentId: "STU003",
-    amount: 750,
-    dueDate: "2025-01-10",
-    status: "Overdue",
-    paymentDate: null,
-    description: "Term 1 Boarding Fee",
-  },
-  {
-    id: "INV-004",
-    studentName: "James Wilson",
-    studentId: "STU004",
-    amount: 1200,
-    dueDate: "2025-01-20",
-    status: "Paid",
-    paymentDate: "2025-01-18",
-    description: "Term 1 Full Package",
-  },
-];
+import { Invoice, subscribeToInvoices } from "@/lib/database-operations";
 
 export function BillingPage() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredInvoices = mockInvoices.filter((invoice) =>
+  useEffect(() => {
+    const unsubscribe = subscribeToInvoices(setInvoices);
+    return () => unsubscribe();
+  }, []);
+  const filteredInvoices = invoices.filter((invoice) =>
     invoice.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -104,15 +66,15 @@ export function BillingPage() {
     }).format(amount);
   };
 
-  const totalRevenue = mockInvoices
+  const totalRevenue = invoices
     .filter(inv => inv.status === "Paid")
     .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const pendingAmount = mockInvoices
+  const pendingAmount = invoices
     .filter(inv => inv.status === "Pending")
     .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const overdueAmount = mockInvoices
+  const overdueAmount = invoices
     .filter(inv => inv.status === "Overdue")
     .reduce((sum, inv) => sum + inv.amount, 0);
 

@@ -19,40 +19,16 @@ import {
   Filter,
   Eye,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Application, subscribeToApplications } from "@/lib/database-operations";
 
 export default function AdmissionsPage() {
-  const applications = [
-    {
-      id: "APP-001",
-      studentName: "Prince Gyimah",
-      parentName: "Robert Johnson",
-      grade: "Grade 7",
-      appliedDate: "2024-01-15",
-      status: "pending",
-      phone: "0551234567",
-      email: "gyimap52@gmail.com",
-    },
-    {
-      id: "APP-002", 
-      studentName: "David Wilson",
-      parentName: "Sarah Wilson",
-      grade: "Grade 9",
-      appliedDate: "2024-01-14",
-      status: "approved",
-      phone: "0559876543",
-      email: "sarah.wilson@email.com",
-    },
-    {
-      id: "APP-003",
-      studentName: "Emma Brown",
-      parentName: "Michael Brown",
-      grade: "Grade 8", 
-      appliedDate: "2024-01-13",
-      status: "rejected",
-      phone: "0557654321",
-      email: "michael.brown@email.com",
-    },
-  ];
+  const [applications, setApplications] = useState<Application[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToApplications(setApplications);
+    return () => unsubscribe();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

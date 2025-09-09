@@ -40,6 +40,7 @@ import {
 import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { useToast } from "@/hooks/use-toast";
+import { sendWhatsAppText } from "@/lib/whatsapp";
 
 export function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -94,6 +95,31 @@ export function StudentsPage() {
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleSendWhatsApp = async (student: Student) => {
+    try {
+      if (!student.parentWhatsApp) {
+        toast({
+          title: "Missing WhatsApp",
+          description: "No parent WhatsApp number saved for this student.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const message = `Hello ${student.parentName}, your child's latest report is ready. Student: ${student.firstName} ${student.lastName} (Grade ${student.grade}).`;
+      await sendWhatsAppText(student.parentWhatsApp, message);
+      toast({
+        title: "Sent",
+        description: `Report message sent to WhatsApp ${student.parentWhatsApp}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "WhatsApp send failed",
+        description: error.message || 'Unable to send message',
+        variant: "destructive",
+      });
     }
   };
 
@@ -305,6 +331,10 @@ export function StudentsPage() {
                         <DropdownMenuItem className="gap-2">
                           <Eye className="w-4 h-4" />
                           View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onClick={() => handleSendWhatsApp(student)}>
+                          <Mail className="w-4 h-4" />
+                          Send Report via WhatsApp
                         </DropdownMenuItem>
                         <DropdownMenuItem className="gap-2" onClick={() => handleEditStudent(student)}>
                           <Edit className="w-4 h-4" />

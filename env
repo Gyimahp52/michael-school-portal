@@ -1,0 +1,14 @@
+# WhatsApp Cloud API configuration
+
+# Required: Your WhatsApp Cloud API permanent access token
+VITE_WHATSAPP_TOKEN=YOUR_WA_CLOUD_API_TOKEN_HERE
+
+# Required: The Phone Number ID from Meta for the SENDER WhatsApp number
+# This corresponds to the WhatsApp Business sender line (Ghana number you configured)
+# Place your SENDER'S phone number in Meta and copy its phone number ID here.
+VITE_WHATSAPP_PHONE_NUMBER_ID=YOUR_WA_PHONE_NUMBER_ID_HERE
+
+# Optional: For reference only (not used by the API call)
+# Put the sender's WhatsApp phone number in E.164 Ghana format (e.g., 23324XXXXXXX)
+# This is just a reminder/comment of which line is sending messages.
+# VITE_WHATSAPP_SENDER_E164=23324XXXXXXX

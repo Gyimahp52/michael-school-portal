@@ -225,12 +225,15 @@ export interface Class {
   grade?: string;
   section?: string;
   academicYear?: string;
-  subjectId: string;
-  teacherId?: string; 
+  // Subject is optional now
+  subjectId?: string;
+  // Support multiple teachers
+  teacherIds?: string[];
   room?: string;
   capacity?: number;
   currentStrength?: number;
-  subjects?: string[]; 
+  subjects?: string[];
+  // Weekly schedule is optional; keep shape for future use
   schedule?: {
     monday?: string;
     tuesday?: string;
@@ -376,5 +379,57 @@ export const subscribeToClasses = (callback: (classes: Class[]) => void): (() =>
     }
   });
   
+  return unsubscribe;
+};
+
+// ===== ADMISSIONS/APPLICATIONS =====
+export interface Application {
+  id?: string;
+  studentName: string;
+  parentName: string;
+  grade: string;
+  appliedDate: string;
+  status: 'pending' | 'approved' | 'rejected';
+  phone?: string;
+  email?: string;
+}
+
+export const subscribeToApplications = (callback: (apps: Application[]) => void): (() => void) => {
+  const appsRef = ref(rtdb, 'applications');
+  const unsubscribe = onValue(appsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const appsData = snapshot.val();
+      const apps = Object.keys(appsData).map(key => ({ id: key, ...appsData[key] }));
+      callback(apps);
+    } else {
+      callback([]);
+    }
+  });
+  return unsubscribe;
+};
+
+// ===== BILLING/INVOICES =====
+export interface Invoice {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  description: string;
+  amount: number;
+  dueDate: string;
+  status: 'Paid' | 'Pending' | 'Overdue';
+  paymentDate?: string | null;
+}
+
+export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void): (() => void) => {
+  const invoicesRef = ref(rtdb, 'invoices');
+  const unsubscribe = onValue(invoicesRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const invData = snapshot.val();
+      const invoices = Object.keys(invData).map(key => ({ id: key, ...invData[key] }));
+      callback(invoices);
+    } else {
+      callback([]);
+    }
+  });
   return unsubscribe;
 };
