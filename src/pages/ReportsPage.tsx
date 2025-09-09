@@ -5,15 +5,28 @@ import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import { 
   subscribeToReports, 
   subscribeToReportStats, 
   subscribeToStudents,
   subscribeToClasses,
+  subscribeToInvoices,
+  subscribeToSchoolFees,
+  subscribeToStudentBalances,
+  createInvoice,
+  updateStudentBalance,
+  createStudentBalance,
   Report, 
   ReportStats,
   Student,
-  Class
+  Class,
+  Invoice,
+  SchoolFees,
+  StudentBalance
 } from "@/lib/database-operations";
 import {
   FileText,
@@ -27,9 +40,13 @@ import {
   MessageCircle,
   Send,
   Loader2,
+  Plus,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 
 export default function ReportsPage() {
+  const { userRole } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [reportStats, setReportStats] = useState<ReportStats>({
     reportsGenerated: 0,
@@ -39,9 +56,17 @@ export default function ReportsPage() {
   });
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
+  const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [sendingReports, setSendingReports] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDescription, setPaymentDescription] = useState("");
+  const [paymentDueDate, setPaymentDueDate] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,6 +87,18 @@ export default function ReportsPage() {
       setClasses(classesData);
     });
 
+    const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
+      setInvoices(invoicesData);
+    });
+
+    const unsubscribeSchoolFees = subscribeToSchoolFees((feesData) => {
+      setSchoolFees(feesData);
+    });
+
+    const unsubscribeStudentBalances = subscribeToStudentBalances((balancesData) => {
+      setStudentBalances(balancesData);
+    });
+
     setLoading(false);
 
     // Cleanup subscriptions
@@ -70,6 +107,9 @@ export default function ReportsPage() {
       unsubscribeStats();
       unsubscribeStudents();
       unsubscribeClasses();
+      unsubscribeInvoices();
+      unsubscribeSchoolFees();
+      unsubscribeStudentBalances();
     };
   }, []);
 
@@ -146,47 +186,178 @@ export default function ReportsPage() {
     }
   };
 
-  // Default reports if none exist in database
-  const defaultReports: Report[] = [
-    {
-      id: "RPT-001",
-      title: "Student Enrollment Report",
-      description: "Complete overview of student enrollment by grade and class",
-      category: "Academic",
-      lastGenerated: "2025-01-15",
-      format: "PDF, Excel",
-      icon: "Users",
-    },
-    {
-      id: "RPT-002",
-      title: "Financial Summary Report",
-      description: "Monthly revenue, expenses, and outstanding fees analysis",
-      category: "Finance",
-      lastGenerated: "2025-01-14",
-      format: "PDF, Excel",
-      icon: "DollarSign",
-    },
-    {
-      id: "RPT-003",
-      title: "Academic Performance Report",
-      description: "Grade distribution and academic performance analytics",
-      category: "Academic",
-      lastGenerated: "2025-01-13",
-      format: "PDF",
-      icon: "BarChart3",
-    },
-    {
-      id: "RPT-004",
-      title: "Attendance Summary",
-      description: "Student attendance rates and trends analysis",
-      category: "Academic",
-      lastGenerated: "2025-01-12",
-      format: "PDF, Excel",
-      icon: "Calendar",
-    },
-  ];
+  const handlePaymentEntry = async () => {
+    if (!selectedStudent || !paymentAmount || !paymentDescription || !paymentDueDate) {
+      toast({
+        title: "Error",
+        description: "Please fill in all payment details",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const displayReports = reports.length > 0 ? reports : defaultReports;
+    try {
+      const student = students.find(s => s.id === selectedStudent);
+      if (!student) {
+        toast({
+          title: "Error",
+          description: "Student not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const paymentAmountNum = parseFloat(paymentAmount);
+      
+      // Create invoice
+      await createInvoice({
+        studentId: selectedStudent,
+        studentName: `${student.firstName} ${student.lastName}`,
+        description: paymentDescription,
+        amount: paymentAmountNum,
+        dueDate: paymentDueDate,
+        status: 'Paid' // Mark as paid since we're recording a payment
+      });
+
+      // Get school fees for the student's grade
+      const gradeFees = schoolFees.find(f => f.grade === student.grade);
+      const totalFees = gradeFees?.totalFees || 0;
+
+      // Check if student balance exists
+      const existingBalance = studentBalances.find(b => b.studentId === selectedStudent);
+      
+      if (existingBalance) {
+        // Update existing balance
+        await updateStudentBalance(selectedStudent, paymentAmountNum);
+      } else {
+        // Create new student balance
+        await createStudentBalance({
+          studentId: selectedStudent,
+          studentName: `${student.firstName} ${student.lastName}`,
+          grade: student.grade,
+          totalFees: totalFees,
+          amountPaid: paymentAmountNum,
+          balance: totalFees - paymentAmountNum,
+          lastPaymentDate: new Date().toISOString(),
+          status: paymentAmountNum >= totalFees ? 'paid' : 'partial'
+        });
+      }
+
+      toast({
+        title: "Payment Recorded",
+        description: `Payment of ₵${paymentAmountNum.toFixed(2)} recorded for ${student.firstName} ${student.lastName}`,
+      });
+
+      // Reset form
+      setSelectedStudent("");
+      setPaymentAmount("");
+      setPaymentDescription("");
+      setPaymentDueDate("");
+      setPaymentDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Default reports based on user role
+  const getDefaultReports = (): Report[] => {
+    if (userRole === 'accountant') {
+      return [
+        {
+          id: "RPT-001",
+          title: "Student Enrollment Report",
+          description: "Complete overview of student enrollment by grade and class",
+          category: "Administrative",
+          lastGenerated: "2025-01-15",
+          format: "PDF, Excel",
+          icon: "Users",
+        },
+        {
+          id: "RPT-002",
+          title: "Financial Summary Report",
+          description: "Monthly revenue, expenses, and outstanding fees analysis",
+          category: "Finance",
+          lastGenerated: "2025-01-14",
+          format: "PDF, Excel",
+          icon: "DollarSign",
+        },
+        {
+          id: "RPT-003",
+          title: "Payment Collection Report",
+          description: "Detailed analysis of fee collections and outstanding payments",
+          category: "Finance",
+          lastGenerated: "2025-01-13",
+          format: "PDF, Excel",
+          icon: "Receipt",
+        },
+        {
+          id: "RPT-004",
+          title: "Outstanding Fees Report",
+          description: "Students with pending payments and overdue amounts",
+          category: "Finance",
+          lastGenerated: "2025-01-12",
+          format: "PDF, Excel",
+          icon: "CreditCard",
+        },
+      ];
+    } else {
+      return [
+        {
+          id: "RPT-001",
+          title: "Student Enrollment Report",
+          description: "Complete overview of student enrollment by grade and class",
+          category: "Academic",
+          lastGenerated: "2025-01-15",
+          format: "PDF, Excel",
+          icon: "Users",
+        },
+        {
+          id: "RPT-002",
+          title: "Financial Summary Report",
+          description: "Monthly revenue, expenses, and outstanding fees analysis",
+          category: "Finance",
+          lastGenerated: "2025-01-14",
+          format: "PDF, Excel",
+          icon: "DollarSign",
+        },
+        {
+          id: "RPT-003",
+          title: "Academic Performance Report",
+          description: "Grade distribution and academic performance analytics",
+          category: "Academic",
+          lastGenerated: "2025-01-13",
+          format: "PDF",
+          icon: "BarChart3",
+        },
+        {
+          id: "RPT-004",
+          title: "Attendance Summary",
+          description: "Student attendance rates and trends analysis",
+          category: "Academic",
+          lastGenerated: "2025-01-12",
+          format: "PDF, Excel",
+          icon: "Calendar",
+        },
+      ];
+    }
+  };
+
+  const defaultReports = getDefaultReports();
+
+  // Filter reports based on user role
+  const getFilteredReports = () => {
+    const reportsToShow = reports.length > 0 ? reports : defaultReports;
+    if (userRole === 'accountant') {
+      return reportsToShow.filter(report => report.category !== 'Academic');
+    }
+    return reportsToShow;
+  };
+
+  const displayReports = getFilteredReports();
 
   const quickStats = [
     {
@@ -232,6 +403,8 @@ export default function ReportsPage() {
       case "DollarSign": return DollarSign;
       case "BarChart3": return BarChart3;
       case "Calendar": return Calendar;
+      case "Receipt": return Receipt;
+      case "CreditCard": return CreditCard;
       default: return FileText;
     }
   };
@@ -244,12 +417,101 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {userRole === 'accountant' ? 'Financial Reports & Analytics' : 'Reports & Analytics'}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Generate comprehensive reports for academic and financial analysis.
+            {userRole === 'accountant' 
+              ? 'Generate financial reports and manage student payments.'
+              : 'Generate comprehensive reports for academic and financial analysis.'
+            }
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
+          {userRole === 'accountant' && (
+            <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Record Payment</span>
+                  <span className="sm:hidden">Record</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Record Student Payment</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="class-select">Select Class</Label>
+                    <Select value={selectedClass} onValueChange={setSelectedClass}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableGrades.map(grade => (
+                          <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="student-select">Select Student</Label>
+                    <Select value={selectedStudent} onValueChange={setSelectedStudent} disabled={!selectedClass}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {students
+                          .filter(s => s.grade === selectedClass)
+                          .map(student => (
+                            <SelectItem key={student.id} value={student.id!}>
+                              {student.firstName} {student.lastName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="amount">Amount (₵)</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="0.00"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      placeholder="e.g., Tuition fees, Exam fees"
+                      value={paymentDescription}
+                      onChange={(e) => setPaymentDescription(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="due-date">Due Date</Label>
+                    <Input
+                      id="due-date"
+                      type="date"
+                      value={paymentDueDate}
+                      onChange={(e) => setPaymentDueDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handlePaymentEntry}>
+                    Record Payment
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5">
             <Calendar className="w-4 h-4" />
             <span className="hidden sm:inline">Schedule Report</span>
@@ -284,7 +546,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid gap-6 ${userRole === 'accountant' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'}`}>
         <Card className="shadow-soft border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -300,28 +562,32 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Enrollment Report
             </Button>
-            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Student Enrollment Report")}>Send via WhatsApp</Button>
+            {userRole !== 'accountant' && (
+              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Student Enrollment Report")}>Send via WhatsApp</Button>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-soft border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-secondary" />
-              Academic Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Analyze student performance, grades, and attendance across all classes.
-            </p>
-            <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5">
-              <FileText className="w-4 h-4" />
-              Generate Academic Report
-            </Button>
-            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Academic Performance Report")}>Send via WhatsApp</Button>
-          </CardContent>
-        </Card>
+        {userRole !== 'accountant' && (
+          <Card className="shadow-soft border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-secondary" />
+                Academic Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Analyze student performance, grades, and attendance across all classes.
+              </p>
+              <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5">
+                <FileText className="w-4 h-4" />
+                Generate Academic Report
+              </Button>
+              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Academic Performance Report")}>Send via WhatsApp</Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="shadow-soft border-border/50">
           <CardHeader>
@@ -338,73 +604,97 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Financial Report
             </Button>
-            <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Financial Summary Report")}>Send via WhatsApp</Button>
+            {userRole !== 'accountant' && (
+              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Financial Summary Report")}>Send via WhatsApp</Button>
+            )}
           </CardContent>
         </Card>
+
+        {userRole === 'accountant' && (
+          <Card className="shadow-soft border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-green-600" />
+                Payment Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Track and manage student payments, outstanding fees, and payment history.
+              </p>
+              <Button variant="outline" className="w-full gap-2 hover:bg-green-50">
+                <CreditCard className="w-4 h-4" />
+                View Payment Reports
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* WhatsApp Report Sending */}
-      <Card className="shadow-soft border-border/50 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
-            <MessageCircle className="w-5 h-5" />
-            Send Student Reports via WhatsApp
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm text-green-700 dark:text-green-300">
-              Send academic reports directly to parents' WhatsApp numbers for an entire class with just one click.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 space-y-2">
-                <label className="text-sm font-medium text-green-800 dark:text-green-200">
-                  Select Class/Grade
-                </label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="bg-white dark:bg-background border-green-300 dark:border-green-700">
-                    <SelectValue placeholder="Choose a class to send reports" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableGrades.map(grade => (
-                      <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* WhatsApp Report Sending - Only for non-accountants */}
+      {userRole !== 'accountant' && (
+        <Card className="shadow-soft border-border/50 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+              <MessageCircle className="w-5 h-5" />
+              Send Student Reports via WhatsApp
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                Send academic reports directly to parents' WhatsApp numbers for an entire class with just one click.
+              </p>
               
-              <Button 
-                onClick={sendClassReportsToParents}
-                disabled={!selectedClass || sendingReports || loading}
-                className="bg-green-600 hover:bg-green-700 text-white gap-2 min-w-[140px]"
-              >
-                {sendingReports ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Send Reports
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {selectedClass && (
-              <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  {students.filter(s => s.grade === selectedClass).length} students found in Grade {selectedClass}
-                  {" - "}
-                  {students.filter(s => s.grade === selectedClass && s.parentWhatsApp).length} parents have WhatsApp numbers
-                </p>
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-medium text-green-800 dark:text-green-200">
+                    Select Class/Grade
+                  </label>
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="bg-white dark:bg-background border-green-300 dark:border-green-700">
+                      <SelectValue placeholder="Choose a class to send reports" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableGrades.map(grade => (
+                        <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={sendClassReportsToParents}
+                  disabled={!selectedClass || sendingReports || loading}
+                  className="bg-green-600 hover:bg-green-700 text-white gap-2 min-w-[140px]"
+                >
+                  {sendingReports ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Send Reports
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+
+              {selectedClass && (
+                <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    {students.filter(s => s.grade === selectedClass).length} students found in Grade {selectedClass}
+                    {" - "}
+                    {students.filter(s => s.grade === selectedClass && s.parentWhatsApp).length} parents have WhatsApp numbers
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Available Reports */}
       <Card className="shadow-soft border-border/50">
@@ -445,9 +735,11 @@ export default function ReportsPage() {
                           <FileText className="w-3 h-3" />
                           Generate New
                         </Button>
+                        {userRole !== 'accountant' && (
                           <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => sendViaWhatsApp(report.title)}>
                             Send via WhatsApp
                           </Button>
+                        )}
                         </div>
                     </div>
                   </div>

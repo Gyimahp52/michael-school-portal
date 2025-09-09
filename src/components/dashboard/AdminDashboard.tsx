@@ -15,6 +15,7 @@ import {
   School,
   CreditCard,
   AlertTriangle,
+  Calculator,
 } from "lucide-react";
 import {
   LineChart,
@@ -467,8 +468,12 @@ export function AdminDashboard() {
                 <GraduationCap className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Register Teacher</span>
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5 transition-colors" onClick={() => navigate('/admin/billing')}>
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-green-50 transition-colors" onClick={() => navigate('/admin/school-fees')}>
                 <DollarSign className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Set School Fees</span>
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-3 hover:bg-accent/5 transition-colors" onClick={() => navigate('/admin/billing')}>
+                <Calculator className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">Generate Invoice</span>
               </Button>
               <Button variant="outline" className="w-full justify-start gap-3 hover:bg-muted/50 transition-colors" onClick={() => navigate('/admin/reports')}>

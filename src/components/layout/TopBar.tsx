@@ -17,7 +17,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -41,16 +41,20 @@ export function TopBar() {
 
         {/* Right section */}
         <div className="flex items-center gap-4">
-          {/* Quick Actions */}
-          <Button variant="outline" size="sm" className="gap-2 hidden md:flex" onClick={() => navigate('/admin/students')}>
-            <User className="h-4 w-4" />
-            Add Student
-          </Button>
-          
-          {/* Mobile Quick Action */}
-          <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/admin/students')}>
-            <User className="h-4 w-4" />
-          </Button>
+          {/* Quick Actions - Only show for non-accountants */}
+          {userRole !== 'accountant' && (
+            <>
+              <Button variant="outline" size="sm" className="gap-2 hidden md:flex" onClick={() => navigate('/admin/students')}>
+                <User className="h-4 w-4" />
+                Add Student
+              </Button>
+              
+              {/* Mobile Quick Action */}
+              <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/admin/students')}>
+                <User className="h-4 w-4" />
+              </Button>
+            </>
+          )}
 
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">

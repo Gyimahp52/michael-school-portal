@@ -420,6 +420,25 @@ export interface Invoice {
   paymentDate?: string | null;
 }
 
+export const createInvoice = async (invoice: Omit<Invoice, 'id'>): Promise<string> => {
+  try {
+    const invoicesRef = ref(rtdb, 'invoices');
+    const newInvoiceRef = push(invoicesRef);
+    
+    const invoiceData = {
+      ...invoice,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newInvoiceRef, invoiceData);
+    return newInvoiceRef.key!;
+  } catch (error) {
+    console.error('Error creating invoice:', error);
+    throw error;
+  }
+};
+
 export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void): (() => void) => {
   const invoicesRef = ref(rtdb, 'invoices');
   const unsubscribe = onValue(invoicesRef, (snapshot) => {
@@ -543,4 +562,170 @@ export const updateReportStats = async (updates: Partial<ReportStats>): Promise<
     console.error('Error updating report stats:', error);
     throw error;
   }
+};
+
+// ===== SCHOOL FEES MANAGEMENT =====
+export interface SchoolFees {
+  id?: string;
+  grade: string;
+  tuitionFees: number;
+  examFees: number;
+  activityFees: number;
+  otherFees: number;
+  totalFees: number;
+  academicYear: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface StudentBalance {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  grade: string;
+  totalFees: number;
+  amountPaid: number;
+  balance: number;
+  lastPaymentDate?: string;
+  status: 'paid' | 'partial' | 'overdue';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const createSchoolFees = async (fees: Omit<SchoolFees, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const feesRef = ref(rtdb, 'schoolFees');
+    const newFeesRef = push(feesRef);
+    
+    const feesData = {
+      ...fees,
+      totalFees: fees.tuitionFees + fees.examFees + fees.activityFees + fees.otherFees,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newFeesRef, feesData);
+    return newFeesRef.key!;
+  } catch (error) {
+    console.error('Error creating school fees:', error);
+    throw error;
+  }
+};
+
+export const getAllSchoolFees = async (): Promise<SchoolFees[]> => {
+  try {
+    const feesRef = ref(rtdb, 'schoolFees');
+    const snapshot = await get(feesRef);
+    
+    if (!snapshot.exists()) return [];
+    
+    const feesData = snapshot.val();
+    return Object.keys(feesData).map(key => ({
+      id: key,
+      ...feesData[key]
+    }));
+  } catch (error) {
+    console.error('Error fetching school fees:', error);
+    throw error;
+  }
+};
+
+export const updateSchoolFees = async (feesId: string, updates: Partial<SchoolFees>): Promise<void> => {
+  try {
+    const feesRef = ref(rtdb, `schoolFees/${feesId}`);
+    await update(feesRef, {
+      ...updates,
+      totalFees: (updates.tuitionFees || 0) + (updates.examFees || 0) + (updates.activityFees || 0) + (updates.otherFees || 0),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating school fees:', error);
+    throw error;
+  }
+};
+
+export const subscribeToSchoolFees = (callback: (fees: SchoolFees[]) => void): (() => void) => {
+  const feesRef = ref(rtdb, 'schoolFees');
+  
+  const unsubscribe = onValue(feesRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const feesData = snapshot.val();
+      const fees = Object.keys(feesData).map(key => ({
+        id: key,
+        ...feesData[key]
+      }));
+      callback(fees);
+    } else {
+      callback([]);
+    }
+  });
+  
+  return unsubscribe;
+};
+
+export const createStudentBalance = async (balance: Omit<StudentBalance, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const balanceRef = ref(rtdb, 'studentBalances');
+    const newBalanceRef = push(balanceRef);
+    
+    const balanceData = {
+      ...balance,
+      balance: balance.totalFees - balance.amountPaid,
+      status: balance.amountPaid >= balance.totalFees ? 'paid' : 
+              balance.amountPaid > 0 ? 'partial' : 'overdue',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newBalanceRef, balanceData);
+    return newBalanceRef.key!;
+  } catch (error) {
+    console.error('Error creating student balance:', error);
+    throw error;
+  }
+};
+
+export const updateStudentBalance = async (studentId: string, paymentAmount: number): Promise<void> => {
+  try {
+    const balanceRef = ref(rtdb, `studentBalances/${studentId}`);
+    const snapshot = await get(balanceRef);
+    
+    if (snapshot.exists()) {
+      const currentBalance = snapshot.val();
+      const newAmountPaid = currentBalance.amountPaid + paymentAmount;
+      const newBalance = currentBalance.totalFees - newAmountPaid;
+      const newStatus = newAmountPaid >= currentBalance.totalFees ? 'paid' : 
+                       newAmountPaid > 0 ? 'partial' : 'overdue';
+      
+      await update(balanceRef, {
+        amountPaid: newAmountPaid,
+        balance: newBalance,
+        status: newStatus,
+        lastPaymentDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating student balance:', error);
+    throw error;
+  }
+};
+
+export const subscribeToStudentBalances = (callback: (balances: StudentBalance[]) => void): (() => void) => {
+  const balancesRef = ref(rtdb, 'studentBalances');
+  
+  const unsubscribe = onValue(balancesRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const balancesData = snapshot.val();
+      const balances = Object.keys(balancesData).map(key => ({
+        id: key,
+        ...balancesData[key]
+      }));
+      callback(balances);
+    } else {
+      callback([]);
+    }
+  });
+  
+  return unsubscribe;
 };

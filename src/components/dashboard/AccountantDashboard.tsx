@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,39 +11,134 @@ import {
   AlertTriangle,
   FileText,
   Plus,
-  Download
+  Download,
+  Loader2
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { 
+  subscribeToInvoices, 
+  subscribeToStudentBalances,
+  subscribeToStudents,
+  Invoice, 
+  StudentBalance, 
+  Student 
+} from "@/lib/database-operations";
 
 export function AccountantDashboard() {
-  // Mock financial data
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
+      setInvoices(invoicesData);
+    });
+
+    const unsubscribeBalances = subscribeToStudentBalances((balancesData) => {
+      setStudentBalances(balancesData);
+    });
+
+    const unsubscribeStudents = subscribeToStudents((studentsData) => {
+      setStudents(studentsData);
+    });
+
+    setLoading(false);
+
+    return () => {
+      unsubscribeInvoices();
+      unsubscribeBalances();
+      unsubscribeStudents();
+    };
+  }, []);
+
+  // Calculate real-time financial data
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const monthlyInvoices = invoices.filter(invoice => {
+    if (!invoice.paymentDate) return false;
+    const paymentDate = new Date(invoice.paymentDate);
+    return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+  });
+
+  const feesCollected = monthlyInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const outstandingFees = studentBalances.reduce((sum, balance) => sum + balance.balance, 0);
+  const totalStudents = students.length;
+  const paidStudents = studentBalances.filter(b => b.status === 'paid').length;
+  const partialStudents = studentBalances.filter(b => b.status === 'partial').length;
+  const overdueStudents = studentBalances.filter(b => b.status === 'overdue').length;
+
   const financialStats = [
-    { title: "Fees Collected (This Month)", value: "₵45,230", icon: DollarSign, color: "text-green-600", trend: "+12.5%" },
-    { title: "Outstanding Fees", value: "₵8,750", icon: AlertTriangle, color: "text-red-600", trend: "-5.2%" },
-    { title: "Expenses (This Month)", value: "₵12,400", icon: TrendingDown, color: "text-orange-600", trend: "+8.1%" },
-    { title: "Net Balance", value: "₵32,830", icon: TrendingUp, color: "text-blue-600", trend: "+15.3%" },
+    { 
+      title: "Fees Collected (This Month)", 
+      value: `₵${feesCollected.toLocaleString()}`, 
+      icon: DollarSign, 
+      color: "text-green-600", 
+      trend: "+12.5%" 
+    },
+    { 
+      title: "Outstanding Fees", 
+      value: `₵${outstandingFees.toLocaleString()}`, 
+      icon: AlertTriangle, 
+      color: "text-red-600", 
+      trend: `${overdueStudents} overdue` 
+    },
+    { 
+      title: "Total Students", 
+      value: totalStudents.toString(), 
+      icon: TrendingUp, 
+      color: "text-blue-600", 
+      trend: `${paidStudents} paid` 
+    },
+    { 
+      title: "Payment Status", 
+      value: `${partialStudents} partial`, 
+      icon: Receipt, 
+      color: "text-orange-600", 
+      trend: `${overdueStudents} overdue` 
+    },
   ];
 
-  // Mock chart data
+  // Generate chart data from real invoices
   const monthlyRevenue = [
-    { name: 'Jan', fees: 38000, expenses: 15000 },
-    { name: 'Feb', fees: 42000, expenses: 13500 },
-    { name: 'Mar', fees: 45230, expenses: 12400 },
+    { name: 'Jan', fees: 0, expenses: 0 },
+    { name: 'Feb', fees: 0, expenses: 0 },
+    { name: 'Mar', fees: feesCollected, expenses: 0 },
   ];
+
+  // Calculate fee breakdown from student balances
+  const totalTuition = studentBalances.reduce((sum, balance) => sum + balance.totalFees, 0);
+  const totalPaid = studentBalances.reduce((sum, balance) => sum + balance.amountPaid, 0);
+  const totalOutstanding = totalTuition - totalPaid;
 
   const feeBreakdown = [
-    { name: 'Tuition Fees', value: 28000, color: '#3b82f6' },
-    { name: 'Exam Fees', value: 8500, color: '#10b981' },
-    { name: 'Activity Fees', value: 5200, color: '#f59e0b' },
-    { name: 'Other Fees', value: 3530, color: '#ef4444' },
+    { name: 'Paid Fees', value: totalPaid, color: '#10b981' },
+    { name: 'Outstanding', value: totalOutstanding, color: '#ef4444' },
   ];
 
-  const recentTransactions = [
-    { type: "Fee Payment", student: "John Doe", amount: "₵1,200", date: "Today", status: "completed" },
-    { type: "Salary Payment", description: "Teacher Salaries", amount: "₵8,500", date: "Yesterday", status: "completed" },
-    { type: "Utilities", description: "Electricity Bill", amount: "₵450", date: "2 days ago", status: "completed" },
-    { type: "Fee Payment", student: "Jane Smith", amount: "₵800", date: "2 days ago", status: "pending" },
-  ];
+  // Recent transactions from real invoices
+  const recentTransactions = invoices
+    .sort((a, b) => new Date(b.paymentDate || b.dueDate).getTime() - new Date(a.paymentDate || a.dueDate).getTime())
+    .slice(0, 4)
+    .map(invoice => ({
+      type: "Fee Payment",
+      student: invoice.studentName,
+      amount: `₵${invoice.amount.toLocaleString()}`,
+      date: invoice.paymentDate ? new Date(invoice.paymentDate).toLocaleDateString() : "Pending",
+      status: invoice.status.toLowerCase()
+    }));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading financial data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

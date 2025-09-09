@@ -8,6 +8,7 @@ import {
   UserPlus,
   FileText,
   Settings,
+  DollarSign,
 } from "lucide-react";
 import {
   Sidebar,
@@ -72,6 +73,12 @@ const baseItems = [
     suffix: "/users",
     icon: Users,
     group: "System", 
+  },
+  {
+    title: "School Fees",
+    suffix: "/school-fees",
+    icon: DollarSign,
+    group: "Financial",
   },
   {
     title: "Fees & Billing",

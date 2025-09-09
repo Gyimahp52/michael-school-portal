@@ -16,6 +16,7 @@ import AcademicsPage from "./pages/AcademicsPage";
 import ReportsPage from "./pages/ReportsPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import SettingsPage from "./pages/SettingsPage";
+import SchoolFeesPage from "./pages/SchoolFeesPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -59,6 +60,7 @@ const AppContent = () => {
           <Route path="classes" element={<AcademicsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="school-fees" element={<SchoolFeesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
