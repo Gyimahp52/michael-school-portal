@@ -68,10 +68,8 @@ const AppContent = () => {
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>
         <Route path="/teacher" element={<MainLayout />}>
           <Route index element={<TeacherDashboard />} />
-          <Route path="classes" element={<AcademicsPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="grades" element={<GradesPage />} />
-          <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>

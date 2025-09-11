@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,65 +28,60 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
+import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord } from "@/lib/database-operations";
+import { useAuth } from "@/contexts/CustomAuthContext";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 
-// Mock grades data
-const mockGrades = [
-  {
-    id: 1,
-    studentName: "Sarah Johnson",
-    studentId: "STU001",
-    grade: "7-A",
-    subject: "Mathematics",
-    assessment: "Mid-term Exam",
-    score: 85,
-    maxScore: 100,
-    teacherName: "Mr. Thompson",
-    date: "2025-01-15",
-  },
-  {
-    id: 2,
-    studentName: "Sarah Johnson", 
-    studentId: "STU001",
-    grade: "7-A",
-    subject: "English",
-    assessment: "Class Test",
-    score: 92,
-    maxScore: 100,
-    teacherName: "Mrs. Wilson",
-    date: "2025-01-12",
-  },
-  {
-    id: 3,
-    studentName: "Michael Adams",
-    studentId: "STU002",
-    grade: "9-B",
-    subject: "Physics",
-    assessment: "Lab Report",
-    score: 78,
-    maxScore: 100,
-    teacherName: "Dr. Johnson",
-    date: "2025-01-14",
-  },
-  {
-    id: 4,
-    studentName: "Emily Davis",
-    studentId: "STU003", 
-    grade: "8-A",
-    subject: "Chemistry",
-    assessment: "Mid-term Exam",
-    score: 89,
-    maxScore: 100,
-    teacherName: "Mrs. Adams",
-    date: "2025-01-16",
-  },
-];
+type GradeRow = {
+  id: string;
+  studentName: string;
+  studentId: string;
+  grade: string;
+  subject: string;
+  assessment: string;
+  score: number;
+  maxScore: number;
+  teacherName: string;
+  date: string;
+};
 
 export function GradesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const { currentUser, userRole } = useAuth();
 
-  const filteredGrades = mockGrades.filter((grade) => {
+  useEffect(() => {
+    const unsubA = subscribeToAssessments(setAssessments);
+    const unsubS = subscribeToStudents(setStudents);
+    const unsubSub = subscribeToSubjects(setSubjects);
+    return () => { unsubA(); unsubS(); unsubSub(); };
+  }, []);
+
+  const gradeRows: GradeRow[] = useMemo(() => {
+    // Map assessments to table rows; restrict teacher to own assessments
+    const items = assessments
+      .filter(a => (userRole === 'teacher' ? a.teacherId === currentUser?.id : true))
+      .map(a => ({
+        id: a.id!,
+        studentName: a.studentName,
+        studentId: a.studentId,
+        grade: students.find(s => s.id === a.studentId)?.grade || "",
+        subject: a.subjectId,
+        assessment: a.assessmentType,
+        score: a.score,
+        maxScore: a.maxScore,
+        teacherName: currentUser?.displayName || a.teacherId,
+        date: a.date,
+      }));
+    return items;
+  }, [assessments, students, currentUser?.id, currentUser?.displayName, userRole]);
+
+  const filteredGrades = gradeRows.filter((grade) => {
     const matchesSearch = grade.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          grade.studentId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGrade = selectedGrade === "all" || grade.grade.includes(selectedGrade);
@@ -106,9 +101,17 @@ export function GradesPage() {
     return Math.round((score / maxScore) * 100);
   };
 
-  const averageScore = mockGrades.reduce((sum, grade) => 
-    sum + (grade.score / grade.maxScore) * 100, 0
-  ) / mockGrades.length;
+  const averageScore = filteredGrades.length
+    ? filteredGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 100, 0) / filteredGrades.length
+    : 0;
+
+  const availableGrades = useMemo(() => {
+    return Array.from(new Set(students.map(s => s.grade))).sort();
+  }, [students]);
+
+  const availableSubjects = useMemo(() => {
+    return subjects;
+  }, [subjects]);
 
   return (
     <div className="space-y-6">
@@ -218,10 +221,9 @@ export function GradesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Grades</SelectItem>
-                  <SelectItem value="7">Grade 7</SelectItem>
-                  <SelectItem value="8">Grade 8</SelectItem>
-                  <SelectItem value="9">Grade 9</SelectItem>
-                  <SelectItem value="10">Grade 10</SelectItem>
+                  {availableGrades.map(g => (
+                    <SelectItem key={g} value={g}>{`Grade ${g}`}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -231,10 +233,9 @@ export function GradesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
+                  {availableSubjects.map(s => (
+                    <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -259,6 +260,7 @@ export function GradesPage() {
                 <TableHead>Percentage</TableHead>
                 <TableHead>Teacher</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -271,9 +273,9 @@ export function GradesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{grade.grade}</Badge>
+                    <Badge variant="outline">{grade.grade || '-'}</Badge>
                   </TableCell>
-                  <TableCell>{grade.subject}</TableCell>
+                  <TableCell>{subjects.find(s => s.id === grade.subject)?.name || grade.subject}</TableCell>
                   <TableCell>{grade.assessment}</TableCell>
                   <TableCell className="font-mono">
                     <span className={getGradeColor(grade.score, grade.maxScore)}>
@@ -295,6 +297,32 @@ export function GradesPage() {
                   </TableCell>
                   <TableCell>{grade.teacherName}</TableCell>
                   <TableCell>{grade.date}</TableCell>
+                  <TableCell className="text-right">
+                    {userRole === 'teacher' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon"><MoreHorizontal className="w-4 h-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={async () => {
+                            const newScore = prompt('Enter new score', String(grade.score));
+                            if (!newScore) return;
+                            const parsed = parseInt(newScore, 10);
+                            if (Number.isNaN(parsed)) return;
+                            await updateAssessmentRecord(grade.id, { score: parsed });
+                          }}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Score
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={async () => {
+                            if (!confirm('Delete this record?')) return;
+                            await deleteAssessmentRecord(grade.id);
+                          }}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

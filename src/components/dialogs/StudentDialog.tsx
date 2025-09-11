@@ -5,22 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { createStudent, updateStudent, Student } from "@/lib/database-operations";
+import { createStudent, updateStudent, Student, subscribeToStudents } from "@/lib/database-operations";
 import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  student?: Student | null;
+  student?: Student;
   mode: "create" | "edit";
 }
 
 export function StudentDialog({ open, onOpenChange, student, mode }: StudentDialogProps) {
-  const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const { toast } = useToast();
-  
+  const [existingStudents, setExistingStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -37,6 +37,11 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     status: "active" as "active" | "inactive" | "graduated",
     photoUrl: "",
   });
+
+  useEffect(() => {
+    const unsub = subscribeToStudents(setExistingStudents);
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (student && mode === "edit") {
@@ -80,60 +85,41 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   }, [student, mode, open]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setPhotoFile(file);
-      
-      // Create preview URL
+    const file = e.target.files?.[0] || null;
+    setPhotoFile(file);
+    if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setPhotoPreview(result);
-        setFormData(prev => ({ ...prev, photoUrl: result }));
-      };
+      reader.onload = (ev) => setPhotoPreview(String(ev.target?.result || ""));
       reader.readAsDataURL(file);
     } else {
-      toast({
-        title: "Error",
-        description: "Please select a valid image file",
-        variant: "destructive",
-      });
+      setPhotoPreview("");
     }
+  };
+
+  const handleChange = (field: keyof typeof formData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
     try {
+      setLoading(true);
       if (mode === "create") {
-        await createStudent(formData);
-        toast({
-          title: "Success",
-          description: "Student created successfully",
-        });
-      } else if (mode === "edit" && student?.id) {
-        await updateStudent(student.id, formData);
-        toast({
-          title: "Success", 
-          description: "Student updated successfully",
-        });
+        await createStudent({ ...formData });
+        toast({ title: "Student created" });
+      } else if (student?.id) {
+        await updateStudent(student.id, { ...formData });
+        toast({ title: "Student updated" });
       }
       onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to ${mode} student`,
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || String(error), variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const uniqueGrades = Array.from(new Set(existingStudents.map(s => s.grade))).sort();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,6 +175,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                 id="firstName"
                 value={formData.firstName}
                 onChange={(e) => handleChange("firstName", e.target.value)}
+                placeholder="e.g., Michael"
                 required
               />
             </div>
@@ -198,6 +185,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                 id="lastName"
                 value={formData.lastName}
                 onChange={(e) => handleChange("lastName", e.target.value)}
+                placeholder="e.g., Agyei"
                 required
               />
             </div>
@@ -205,13 +193,13 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                required
+                placeholder="student@example.com"
               />
             </div>
             <div className="space-y-2">
@@ -220,6 +208,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
+                placeholder="e.g., +233 20 123 4567"
               />
             </div>
           </div>
@@ -242,12 +231,13 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7">Grade 7</SelectItem>
-                  <SelectItem value="8">Grade 8</SelectItem>
-                  <SelectItem value="9">Grade 9</SelectItem>
-                  <SelectItem value="10">Grade 10</SelectItem>
-                  <SelectItem value="11">Grade 11</SelectItem>
-                  <SelectItem value="12">Grade 12</SelectItem>
+                  {uniqueGrades.length === 0 ? (
+                    <SelectItem value="7">Grade 7</SelectItem>
+                  ) : (
+                    uniqueGrades.map(g => (
+                      <SelectItem key={g} value={g}>{`Grade ${g}`}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -260,38 +250,42 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                 id="parentName"
                 value={formData.parentName}
                 onChange={(e) => handleChange("parentName", e.target.value)}
+                placeholder="e.g., Sarah Owusu"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="parentPhone">Parent/Guardian Phone</Label>
+              <Label htmlFor="parentPhone">Parent/Guardian Phone *</Label>
               <Input
                 id="parentPhone"
                 value={formData.parentPhone}
                 onChange={(e) => handleChange("parentPhone", e.target.value)}
+                placeholder="e.g., +233 24 987 6543"
+                required
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="parentWhatsApp">Parent/Guardian WhatsApp Number *</Label>
-            <Input
-              id="parentWhatsApp"
-              value={formData.parentWhatsApp}
-              onChange={(e) => handleChange("parentWhatsApp", e.target.value)}
-              placeholder="+233XXXXXXXXX"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="parentEmail">Parent/Guardian Email</Label>
-            <Input
-              id="parentEmail"
-              type="email"
-              value={formData.parentEmail}
-              onChange={(e) => handleChange("parentEmail", e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="parentWhatsApp">Parent WhatsApp</Label>
+              <Input
+                id="parentWhatsApp"
+                value={formData.parentWhatsApp}
+                onChange={(e) => handleChange("parentWhatsApp", e.target.value)}
+                placeholder="Optional WhatsApp number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="parentEmail">Parent Email</Label>
+              <Input
+                id="parentEmail"
+                type="email"
+                value={formData.parentEmail}
+                onChange={(e) => handleChange("parentEmail", e.target.value)}
+                placeholder="parent@example.com"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -300,33 +294,8 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
               id="address"
               value={formData.address}
               onChange={(e) => handleChange("address", e.target.value)}
+              placeholder="Residential address"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="enrollmentDate">Enrollment Date *</Label>
-              <Input
-                id="enrollmentDate"
-                type="date"
-                value={formData.enrollmentDate}
-                onChange={(e) => handleChange("enrollmentDate", e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="graduated">Graduated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="flex justify-end gap-3">
@@ -334,8 +303,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {mode === "create" ? "Create Student" : "Update Student"}
+              {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : (mode === "create" ? "Create Student" : "Save Changes")}
             </Button>
           </div>
         </form>

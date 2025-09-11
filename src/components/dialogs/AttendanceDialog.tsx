@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { getAllClasses, getAllStudents, Class, Student } from "@/lib/database-operations";
+import { getAllClasses, getAllStudents, Class, Student, recordAttendance } from "@/lib/database-operations";
 import { Calendar as CalendarIcon, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/CustomAuthContext";
 
 interface AttendanceDialogProps {
   open: boolean;
@@ -29,12 +30,19 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const { toast } = useToast();
+  const { currentUser, userRole } = useAuth();
 
   useEffect(() => {
     const loadClasses = async () => {
       try {
         const classesData = await getAllClasses();
-        setClasses(classesData);
+        // Restrict teachers to only their assigned classes if teacher role
+        if (userRole === 'teacher' && currentUser?.id) {
+          const teacherClasses = classesData.filter(c => (c.teacherIds || []).includes(currentUser.id));
+          setClasses(teacherClasses);
+        } else {
+          setClasses(classesData);
+        }
       } catch (error) {
         console.error('Error loading classes:', error);
       }
@@ -43,7 +51,7 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
     if (open) {
       loadClasses();
     }
-  }, [open]);
+  }, [open, userRole, currentUser?.id]);
 
   useEffect(() => {
     const loadStudents = async () => {
@@ -91,8 +99,13 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
 
     setLoading(true);
     try {
-      // In a real app, you'd save attendance to Firebase
-      // For now, we'll just show a success message
+      const teacherId = currentUser?.id || 'unknown';
+      await recordAttendance({
+        classId: selectedClass,
+        teacherId,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        entries: attendance,
+      });
       toast({
         title: "Success",
         description: "Attendance recorded successfully",

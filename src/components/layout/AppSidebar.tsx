@@ -100,7 +100,8 @@ function buildNavigation(userRole?: string | null) {
   // Filter items by role
   const visible = baseItems.filter((item) => {
     if (userRole === 'teacher') {
-      return ["Dashboard","Classes & Subjects","Students","Grades & Records","Reports & Analytics","Settings"].includes(item.title);
+      // Teachers: allow Students, Grades, and Settings
+      return ["Dashboard","Students","Grades & Records","Settings"].includes(item.title);
     }
     if (userRole === 'accountant') {
       return ["Dashboard","Fees & Billing","Reports & Analytics","Settings"].includes(item.title);

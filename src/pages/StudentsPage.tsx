@@ -37,27 +37,44 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
+import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, Class } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 
 export function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const { toast } = useToast();
+  const { userRole, currentUser } = useAuth();
 
   useEffect(() => {
     const unsubscribe = subscribeToStudents((studentsData) => {
-      setStudents(studentsData);
+      // If teacher, approximate by filtering grade that matches teacher classes
+      if (userRole === 'teacher' && currentUser?.id) {
+        const teacherClassGrades = new Set(classes.map(c => c.grade).filter(Boolean) as string[]);
+        const scoped = studentsData.filter(s => s.status === 'active' && (teacherClassGrades.size === 0 || teacherClassGrades.has(s.grade)));
+        setStudents(scoped);
+      } else {
+        setStudents(studentsData);
+      }
+    });
+    const unsubClasses = subscribeToClasses((cls) => {
+      if (userRole === 'teacher' && currentUser?.id) {
+        setClasses(cls.filter(c => (c.teacherIds || []).includes(currentUser.id)));
+      } else {
+        setClasses(cls);
+      }
     });
     
-    return () => unsubscribe();
-  }, []);
+    return () => { unsubscribe(); unsubClasses(); };
+  }, [userRole, currentUser?.id, classes.length]);
 
   const filteredStudents = students.filter((student) => {
     const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
@@ -164,10 +181,12 @@ export function StudentsPage() {
             <p className="text-muted-foreground">Manage student information and records</p>
           </div>
         </div>
-        <Button className="gap-2 bg-gradient-primary" onClick={handleAddStudent}>
-          <Plus className="w-4 h-4" />
-          Add Student
-        </Button>
+        {userRole !== 'teacher' && (
+          <Button className="gap-2 bg-gradient-primary" onClick={handleAddStudent}>
+            <Plus className="w-4 h-4" />
+            Add Student
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -336,17 +355,14 @@ export function StudentsPage() {
                           <Mail className="w-4 h-4" />
                           Send Report via WhatsApp
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2" onClick={() => handleEditStudent(student)}>
-                          <Edit className="w-4 h-4" />
-                          Edit Student
+                        <DropdownMenuItem onClick={() => handleEditStudent(student)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="gap-2 text-destructive" 
-                          onClick={() => student.id && handleDeleteStudent(student.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete Student
-                        </DropdownMenuItem>
+                        {userRole !== 'teacher' && (
+                          <DropdownMenuItem onClick={() => handleDeleteStudent(student.id!)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -11,28 +11,53 @@ import {
   Plus,
   Eye
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAssessments, AssessmentRecord } from "@/lib/database-operations";
+import { useAuth } from "@/contexts/CustomAuthContext";
+import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
 
 export function TeacherDashboard() {
-  // Mock data for teacher dashboard
+  const { currentUser } = useAuth();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
+  const [openAssessment, setOpenAssessment] = useState(false);
+
+  useEffect(() => {
+    const unsubClasses = subscribeToClasses((cls) => {
+      const mine = currentUser?.id ? cls.filter(c => (c.teacherIds || []).includes(currentUser.id)) : cls;
+      setClasses(mine);
+    });
+    const unsubStudents = subscribeToStudents(setStudents);
+    const unsubAssess = subscribeToAssessments((items) => {
+      const mine = currentUser?.id ? items.filter(a => a.teacherId === currentUser.id) : items;
+      setAssessments(mine);
+    });
+    return () => { unsubClasses(); unsubStudents(); unsubAssess(); };
+  }, [currentUser?.id]);
+
+  const classCount = classes.length;
+  const studentCount = useMemo(() => {
+    // Approximate: count active students in same grades as teacher classes
+    const grades = new Set(classes.map(c => c.grade).filter(Boolean) as string[]);
+    return students.filter(s => s.status === 'active' && (grades.size === 0 || grades.has(s.grade))).length;
+  }, [classes, students]);
+  const pendingGrades = assessments.filter(a => a.score === 0).length;
+
   const teacherStats = [
-    { title: "My Classes", value: "5", icon: BookOpen, color: "text-blue-600" },
-    { title: "Total Students", value: "127", icon: Users, color: "text-green-600" },
-    { title: "Today's Classes", value: "3", icon: Calendar, color: "text-purple-600" },
-    { title: "Pending Grades", value: "12", icon: Clock, color: "text-orange-600" },
+    { title: "My Classes", value: String(classCount), icon: BookOpen, color: "text-blue-600" },
+    { title: "Total Students", value: String(studentCount), icon: Users, color: "text-green-600" },
+    { title: "Today's Classes", value: "-", icon: Calendar, color: "text-purple-600" },
+    { title: "Pending Grades", value: String(pendingGrades), icon: Clock, color: "text-orange-600" },
   ];
 
-  const todayClasses = [
-    { time: "08:00 AM", subject: "Mathematics", class: "Grade 9A", room: "Room 101" },
-    { time: "10:30 AM", subject: "Physics", class: "Grade 11B", room: "Lab 2" },
-    { time: "02:00 PM", subject: "Mathematics", class: "Grade 10C", room: "Room 103" },
-  ];
-
-  const recentActivities = [
-    { action: "Graded Quiz - Mathematics", class: "Grade 9A", time: "2 hours ago", status: "completed" },
-    { action: "Posted Assignment - Physics", class: "Grade 11B", time: "4 hours ago", status: "completed" },
-    { action: "Attendance Marked", class: "Grade 10C", time: "1 day ago", status: "completed" },
-    { action: "Grade Entry Pending", class: "Grade 9B", time: "2 days ago", status: "pending" },
-  ];
+  const todayClasses: { time: string; subject: string; class: string; room: string }[] = [];
+  const recentActivities = assessments.slice(0, 4).map(a => ({
+    action: `${a.assessmentType} - ${a.subjectId}`,
+    class: a.classId,
+    time: a.date,
+    status: a.score > 0 ? "completed" : "pending"
+  }));
 
   return (
     <div className="space-y-6">
@@ -47,7 +72,7 @@ export function TeacherDashboard() {
             <Calendar className="w-4 h-4 mr-2" />
             View Schedule
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setOpenAssessment(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Grade
           </Button>
@@ -82,7 +107,9 @@ export function TeacherDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {todayClasses.map((cls, index) => (
+              {todayClasses.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No classes scheduled</div>
+              ) : todayClasses.map((cls, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="text-sm font-medium text-primary">{cls.time}</div>
@@ -152,13 +179,15 @@ export function TeacherDashboard() {
               <Calendar className="w-6 h-6" />
               <span>Mark Attendance</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
               <Plus className="w-6 h-6" />
               <span>Create Assignment</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <AssessmentDialog open={openAssessment} onOpenChange={setOpenAssessment} />
     </div>
   );
 }

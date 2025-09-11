@@ -729,3 +729,126 @@ export const subscribeToStudentBalances = (callback: (balances: StudentBalance[]
   
   return unsubscribe;
 };
+
+// ===== ASSESSMENTS / GRADES =====
+export type AssessmentType = 'assignment' | 'exercise' | 'exam';
+
+export interface AssessmentRecord {
+	id?: string;
+	studentId: string;
+	studentName: string;
+	classId: string;
+	subjectId: string;
+	teacherId: string;
+	assessmentType: AssessmentType;
+	description?: string;
+	score: number;
+	maxScore: number;
+	date: string; // ISO date
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+export const createAssessmentRecord = async (record: Omit<AssessmentRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+	try {
+		const assessmentsRef = ref(rtdb, 'assessments');
+		const newRef = push(assessmentsRef);
+		const data = {
+			...record,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+		await set(newRef, data);
+		return newRef.key!;
+	} catch (error) {
+		console.error('Error creating assessment record:', error);
+		throw error;
+	}
+};
+
+export const subscribeToAssessments = (callback: (assessments: AssessmentRecord[]) => void): (() => void) => {
+	const assessmentsRef = ref(rtdb, 'assessments');
+	const unsubscribe = onValue(assessmentsRef, (snapshot) => {
+		if (snapshot.exists()) {
+			const data = snapshot.val();
+			const items = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+			callback(items);
+		} else {
+			callback([]);
+		}
+	});
+	return unsubscribe;
+};
+
+export const updateAssessmentRecord = async (assessmentId: string, updates: Partial<AssessmentRecord>): Promise<void> => {
+	try {
+		const assessmentRef = ref(rtdb, `assessments/${assessmentId}`);
+		await update(assessmentRef, { ...updates, updatedAt: new Date().toISOString() });
+	} catch (error) {
+		console.error('Error updating assessment record:', error);
+		throw error;
+	}
+};
+
+export const deleteAssessmentRecord = async (assessmentId: string): Promise<void> => {
+	try {
+		const assessmentRef = ref(rtdb, `assessments/${assessmentId}`);
+		await remove(assessmentRef);
+	} catch (error) {
+		console.error('Error deleting assessment record:', error);
+		throw error;
+	}
+};
+
+// ===== ATTENDANCE =====
+export interface AttendanceEntry {
+	studentId: string;
+	status: 'present' | 'absent' | 'late';
+}
+
+export interface AttendanceRecordDoc {
+	id?: string;
+	classId: string;
+	teacherId: string;
+	date: string; // yyyy-mm-dd
+	entries: AttendanceEntry[];
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+export const recordAttendance = async (record: Omit<AttendanceRecordDoc, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+	try {
+		const attendanceRef = ref(rtdb, 'attendance');
+		const newRef = push(attendanceRef);
+		const data = { ...record, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+		await set(newRef, data);
+		return newRef.key!;
+	} catch (error) {
+		console.error('Error recording attendance:', error);
+		throw error;
+	}
+};
+
+export const subscribeToAttendance = (callback: (records: AttendanceRecordDoc[]) => void): (() => void) => {
+	const attendanceRef = ref(rtdb, 'attendance');
+	const unsubscribe = onValue(attendanceRef, (snapshot) => {
+		if (snapshot.exists()) {
+			const data = snapshot.val();
+			const items = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+			callback(items);
+		} else {
+			callback([]);
+		}
+	});
+	return unsubscribe;
+};
+
+// ===== UTIL HELPERS FOR FILTERING =====
+export const getStudentsByClassApprox = async (classItem: Class): Promise<Student[]> => {
+	// Approximates membership by matching grade when available
+	const all = await getAllStudents();
+	if (classItem.grade) {
+		return all.filter(s => s.grade === classItem.grade && s.status === 'active');
+	}
+	return all.filter(s => s.status === 'active');
+};
