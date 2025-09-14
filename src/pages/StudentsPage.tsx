@@ -37,7 +37,7 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, Class } from "@/lib/database-operations";
+import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +45,6 @@ import { sendWhatsAppText } from "@/lib/whatsapp";
 
 export function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -56,25 +55,10 @@ export function StudentsPage() {
 
   useEffect(() => {
     const unsubscribe = subscribeToStudents((studentsData) => {
-      // If teacher, approximate by filtering grade that matches teacher classes
-      if (userRole === 'teacher' && currentUser?.id) {
-        const teacherClassGrades = new Set(classes.map(c => c.grade).filter(Boolean) as string[]);
-        const scoped = studentsData.filter(s => s.status === 'active' && (teacherClassGrades.size === 0 || teacherClassGrades.has(s.grade)));
-        setStudents(scoped);
-      } else {
-        setStudents(studentsData);
-      }
+      setStudents(studentsData);
     });
-    const unsubClasses = subscribeToClasses((cls) => {
-      if (userRole === 'teacher' && currentUser?.id) {
-        setClasses(cls.filter(c => (c.teacherIds || []).includes(currentUser.id)));
-      } else {
-        setClasses(cls);
-      }
-    });
-    
-    return () => { unsubscribe(); unsubClasses(); };
-  }, [userRole, currentUser?.id, classes.length]);
+    return () => unsubscribe();
+  }, []);
 
   const filteredStudents = students.filter((student) => {
     const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();

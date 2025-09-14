@@ -28,16 +28,17 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
-import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord } from "@/lib/database-operations";
+import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord, Class, subscribeToClasses } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { GradeDialog } from '@/components/dialogs/GradeDialog';
 
 type GradeRow = {
   id: string;
   studentName: string;
   studentId: string;
-  grade: string;
+  className: string;
   subject: string;
   assessment: string;
   score: number;
@@ -48,18 +49,27 @@ type GradeRow = {
 
 export function GradesPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGrade, setSelectedGrade] = useState("all");
+  const [selectedClass, setSelectedClass] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { currentUser, userRole } = useAuth();
 
   useEffect(() => {
-    const unsubA = subscribeToAssessments(setAssessments);
-    const unsubS = subscribeToStudents(setStudents);
-    const unsubSub = subscribeToSubjects(setSubjects);
-    return () => { unsubA(); unsubS(); unsubSub(); };
+    setLoading(true);
+    const unsubA = subscribeToAssessments(data => { setAssessments(data); });
+    const unsubS = subscribeToStudents(data => { setStudents(data); });
+    const unsubSub = subscribeToSubjects(data => { setSubjects(data); });
+    const unsubC = subscribeToClasses(data => {
+      setClasses(data);
+      setLoading(false); // Assume classes is the last to load
+    });
+
+    return () => { unsubA(); unsubS(); unsubSub(); unsubC(); };
   }, []);
 
   const gradeRows: GradeRow[] = useMemo(() => {
@@ -70,7 +80,7 @@ export function GradesPage() {
         id: a.id!,
         studentName: a.studentName,
         studentId: a.studentId,
-        grade: students.find(s => s.id === a.studentId)?.grade || "",
+        className: classes.find(c => c.id === a.classId)?.name || students.find(s => s.id === a.studentId)?.grade || "",
         subject: a.subjectId,
         assessment: a.assessmentType,
         score: a.score,
@@ -79,14 +89,14 @@ export function GradesPage() {
         date: a.date,
       }));
     return items;
-  }, [assessments, students, currentUser?.id, currentUser?.displayName, userRole]);
+  }, [assessments, students, classes, currentUser?.id, currentUser?.displayName, userRole]);
 
   const filteredGrades = gradeRows.filter((grade) => {
     const matchesSearch = grade.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          grade.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGrade = selectedGrade === "all" || grade.grade.includes(selectedGrade);
+    const matchesClass = selectedClass === "all" || classes.find(c => c.name === grade.className)?.id === selectedClass;
     const matchesSubject = selectedSubject === "all" || grade.subject === selectedSubject;
-    return matchesSearch && matchesGrade && matchesSubject;
+    return matchesSearch && matchesClass && matchesSubject;
   });
 
   const getGradeColor = (score: number, maxScore: number) => {
@@ -105,13 +115,17 @@ export function GradesPage() {
     ? filteredGrades.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 100, 0) / filteredGrades.length
     : 0;
 
-  const availableGrades = useMemo(() => {
-    return Array.from(new Set(students.map(s => s.grade))).sort();
-  }, [students]);
+  const availableClasses = useMemo(() => {
+    return [...classes].sort((a, b) => a.name.localeCompare(b.name));
+  }, [classes]);
 
   const availableSubjects = useMemo(() => {
     return subjects;
   }, [subjects]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
 
   return (
     <div className="space-y-6">
@@ -131,9 +145,9 @@ export function GradesPage() {
             <Download className="w-4 h-4" />
             Export Report Cards
           </Button>
-          <Button className="gap-2 bg-gradient-primary">
+          <Button className="gap-2 bg-gradient-primary" onClick={() => setDialogOpen(true)} >
             <Plus className="w-4 h-4" />
-            Add Grade
+            Add Score
           </Button>
         </div>
       </div>
@@ -215,14 +229,14 @@ export function GradesPage() {
               />
             </div>
             <div className="flex gap-4">
-              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Grade" />
+                  <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Grades</SelectItem>
-                  {availableGrades.map(g => (
-                    <SelectItem key={g} value={g}>{`Grade ${g}`}</SelectItem>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {availableClasses.map(c => (
+                    <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -246,14 +260,14 @@ export function GradesPage() {
       {/* Grades Table */}
       <Card className="shadow-soft border-border/50">
         <CardHeader>
-          <CardTitle>Recent Grades ({filteredGrades.length} entries)</CardTitle>
+          <CardTitle>Recent Scores ({filteredGrades.length} entries)</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
-                <TableHead>Grade/Class</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Assessment</TableHead>
                 <TableHead>Score</TableHead>
@@ -273,7 +287,7 @@ export function GradesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{grade.grade || '-'}</Badge>
+                    <Badge variant="outline">{grade.className || '-'}</Badge>
                   </TableCell>
                   <TableCell>{subjects.find(s => s.id === grade.subject)?.name || grade.subject}</TableCell>
                   <TableCell>{grade.assessment}</TableCell>
@@ -329,6 +343,13 @@ export function GradesPage() {
           </Table>
         </CardContent>
       </Card>
+      <GradeDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+        students={students} 
+        classes={classes} 
+        subjects={subjects} 
+      />
     </div>
   );
 }
