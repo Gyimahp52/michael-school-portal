@@ -65,7 +65,7 @@ export function StudentsPage() {
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                          student.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGrade = selectedGrade === "All" || student.grade === selectedGrade;
+    const matchesGrade = selectedGrade === "All" || student.className === selectedGrade;
     return matchesSearch && matchesGrade;
   });
 
@@ -109,7 +109,7 @@ export function StudentsPage() {
         });
         return;
       }
-      const message = `Hello ${student.parentName}, your child's latest report is ready. Student: ${student.firstName} ${student.lastName} (Grade ${student.grade}).`;
+      const message = `Hello ${student.parentName}, your child's latest report is ready. Student: ${student.firstName} ${student.lastName} (Class ${student.className}).`;
       await sendWhatsAppText(student.parentWhatsApp, message);
       toast({
         title: "Sent",
@@ -302,7 +302,7 @@ export function StudentsPage() {
                   </TableCell>
                   <TableCell className="font-mono text-sm">{student.id || "N/A"}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">Grade {student.grade}</Badge>
+                    <Badge variant="outline">Class {student.className}</Badge>
                   </TableCell>
                   <TableCell>{student.parentName}</TableCell>
                   <TableCell>{getStatusBadge(student.status)}</TableCell>

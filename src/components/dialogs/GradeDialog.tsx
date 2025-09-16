@@ -28,15 +28,15 @@ export function GradeDialog({ open, onOpenChange, students, classes, subjects }:
   const { toast } = useToast();
 
   useEffect(() => {
-    if (selectedClass) {
-      const targetClass = classes.find(c => c.id === selectedClass);
-      if (targetClass) {
-        setFilteredStudents(students.filter(s => s.grade === targetClass.grade));
+      if (selectedClass) {
+        const targetClass = classes.find(c => c.id === selectedClass);
+        if (targetClass) {
+          setFilteredStudents(students.filter(s => s.className === targetClass.className));
+        }
+      } else {
+        setFilteredStudents([]);
       }
-    } else {
-      setFilteredStudents([]);
-    }
-    setSelectedStudent('');
+      setSelectedStudent('');
   }, [selectedClass, students, classes]);
 
   const handleSubmit = async () => {

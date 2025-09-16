@@ -262,7 +262,7 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
                               {student.firstName} {student.lastName}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Grade {student.grade} • {student.email}
+                              Class {student.className} • {student.email}
                             </div>
                           </div>
                         </div>

@@ -59,9 +59,9 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
   const classStudents = useMemo(() => {
     const classItem = classes.find(c => c.id === selectedClassId);
     if (!classItem) return [] as Student[];
-    // Prefer quick local filter by grade; for accuracy we also have helper if needed
-    const grade = classItem.grade;
-    const list = grade ? students.filter(s => s.grade === grade && s.status === 'active') : students.filter(s => s.status === 'active');
+    // Prefer quick local filter by className; for accuracy we also have helper if needed
+    const className = classItem.className;
+    const list = className ? students.filter(s => s.className === className && s.status === 'active') : students.filter(s => s.status === 'active');
     return list;
   }, [classes, students, selectedClassId]);
 
@@ -139,7 +139,7 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
                 <SelectContent>
                   {classes.map(cls => (
                     <SelectItem key={cls.id} value={cls.id!}>
-                      {cls.className || cls.name || `${cls.grade || ''} ${cls.section || ''}`.trim() || cls.id}
+                      {cls.className || cls.name || cls.id}
                     </SelectItem>
                   ))}
                 </SelectContent>

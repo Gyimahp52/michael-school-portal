@@ -27,7 +27,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     email: "",
     phone: "",
     dateOfBirth: "",
-    grade: "",
+    className: "",
     parentName: "",
     parentPhone: "",
     parentWhatsApp: "",
@@ -51,7 +51,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         email: student.email,
         phone: student.phone,
         dateOfBirth: student.dateOfBirth,
-        grade: student.grade,
+        className: student.className,
         parentName: student.parentName,
         parentPhone: student.parentPhone,
         parentWhatsApp: student.parentWhatsApp || "",
@@ -69,7 +69,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         email: "",
         phone: "",
         dateOfBirth: "",
-        grade: "",
+        className: "",
         parentName: "",
         parentPhone: "",
         parentWhatsApp: "",
@@ -105,10 +105,10 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     try {
       setLoading(true);
       if (mode === "create") {
-        await createStudent({ ...formData });
+        await createStudent(formData);
         toast({ title: "Student created" });
       } else if (student?.id) {
-        await updateStudent(student.id, { ...formData });
+        await updateStudent(student.id, formData);
         toast({ title: "Student updated" });
       }
       onOpenChange(false);
@@ -119,7 +119,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     }
   };
 
-  const uniqueGrades = Array.from(new Set(existingStudents.map(s => s.grade))).sort();
+  const uniqueGrades = Array.from(new Set(existingStudents.map(s => s.className))).sort();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,17 +225,17 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="grade">Grade *</Label>
-              <Select value={formData.grade} onValueChange={(value) => handleChange("grade", value)}>
+              <Label htmlFor="className">Class *</Label>
+              <Select value={formData.className} onValueChange={(value) => handleChange("className", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select grade" />
+                  <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
                   {uniqueGrades.length === 0 ? (
-                    <SelectItem value="7">Grade 7</SelectItem>
+                    <SelectItem value="7">Class 7</SelectItem>
                   ) : (
                     uniqueGrades.map(g => (
-                      <SelectItem key={g} value={g}>{`Grade ${g}`}</SelectItem>
+                      <SelectItem key={g} value={g}>{`Class ${g}`}</SelectItem>
                     ))
                   )}
                 </SelectContent>

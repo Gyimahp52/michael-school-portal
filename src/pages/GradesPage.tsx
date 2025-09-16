@@ -80,7 +80,7 @@ export function GradesPage() {
         id: a.id!,
         studentName: a.studentName,
         studentId: a.studentId,
-        className: classes.find(c => c.id === a.classId)?.name || students.find(s => s.id === a.studentId)?.grade || "",
+        className: classes.find(c => c.id === a.classId)?.name || students.find(s => s.id === a.studentId)?.className || "",
         subject: a.subjectId,
         assessment: a.assessmentType,
         score: a.score,

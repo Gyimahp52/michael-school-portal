@@ -9,7 +9,7 @@ export interface Student {
   email: string;
   phone: string;
   dateOfBirth: string;
-  grade: string;
+  className: string;
   parentName: string;
   parentPhone: string;
   parentWhatsApp: string;
@@ -222,7 +222,6 @@ export interface Class {
   id?: string;
   className: string;
   name?: string;
-  grade?: string;
   section?: string;
   academicYear?: string;
   // Subject is optional now
@@ -588,7 +587,7 @@ export const updateReportStats = async (updates: Partial<ReportStats>): Promise<
 // ===== SCHOOL FEES MANAGEMENT =====
 export interface SchoolFees {
   id?: string;
-  grade: string;
+  className: string;
   tuitionFees: number;
   examFees: number;
   activityFees: number;
@@ -603,7 +602,7 @@ export interface StudentBalance {
   id?: string;
   studentId: string;
   studentName: string;
-  grade: string;
+  className: string;
   totalFees: number;
   amountPaid: number;
   balance: number;
@@ -866,10 +865,10 @@ export const subscribeToAttendance = (callback: (records: AttendanceRecordDoc[])
 
 // ===== UTIL HELPERS FOR FILTERING =====
 export const getStudentsByClassApprox = async (classItem: Class): Promise<Student[]> => {
-	// Approximates membership by matching grade when available
+	// Approximates membership by matching className when available
 	const all = await getAllStudents();
-	if (classItem.grade) {
-		return all.filter(s => s.grade === classItem.grade && s.status === 'active');
+	if (classItem.className) {
+		return all.filter(s => s.className === classItem.className && s.status === 'active');
 	}
 	return all.filter(s => s.status === 'active');
 };

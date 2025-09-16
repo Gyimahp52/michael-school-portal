@@ -39,8 +39,8 @@ export function TeacherDashboard() {
   const classCount = classes.length;
   const studentCount = useMemo(() => {
     // Approximate: count active students in same grades as teacher classes
-    const grades = new Set(classes.map(c => c.grade).filter(Boolean) as string[]);
-    return students.filter(s => s.status === 'active' && (grades.size === 0 || grades.has(s.grade))).length;
+    const grades = new Set(classes.map(c => c.className).filter(Boolean) as string[]);
+    return students.filter(s => s.status === 'active' && (grades.size === 0 || grades.has(s.className))).length;
   }, [classes, students]);
   const pendingGrades = assessments.filter(a => a.score === 0).length;
 

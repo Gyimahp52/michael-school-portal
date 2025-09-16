@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,9 @@ import {
   subscribeToSchoolFees,
   createSchoolFees,
   updateSchoolFees,
-  SchoolFees
+  SchoolFees,
+  subscribeToStudents,
+  Student
 } from "@/lib/database-operations";
 import {
   DollarSign,
@@ -29,11 +31,12 @@ import {
 
 export default function SchoolFeesPage() {
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFees, setEditingFees] = useState<SchoolFees | null>(null);
   const [formData, setFormData] = useState({
-    grade: "",
+    className: "",
     tuitionFees: "",
     examFees: "",
     activityFees: "",
@@ -43,18 +46,23 @@ export default function SchoolFeesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = subscribeToSchoolFees((feesData) => {
+    const unsubscribeFees = subscribeToSchoolFees((feesData) => {
       setSchoolFees(feesData);
       setLoading(false);
     });
+    
+    const unsubscribeStudents = subscribeToStudents(setStudents);
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeFees();
+      unsubscribeStudents();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.grade || !formData.tuitionFees || !formData.examFees || !formData.activityFees || !formData.otherFees) {
+    if (!formData.className || !formData.tuitionFees || !formData.examFees || !formData.activityFees || !formData.otherFees) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -70,7 +78,7 @@ export default function SchoolFeesPage() {
       const other = parseFloat(formData.otherFees);
       
       const feesData = {
-        grade: formData.grade,
+        className: formData.className,
         tuitionFees: tuition,
         examFees: exam,
         activityFees: activity,
@@ -83,19 +91,19 @@ export default function SchoolFeesPage() {
         await updateSchoolFees(editingFees.id!, feesData);
         toast({
           title: "Success",
-          description: `School fees updated for Grade ${formData.grade}`,
+          description: `School fees updated for Class ${formData.className}`,
         });
       } else {
         await createSchoolFees(feesData);
         toast({
           title: "Success",
-          description: `School fees created for Grade ${formData.grade}`,
+          description: `School fees created for Class ${formData.className}`,
         });
       }
 
       // Reset form
       setFormData({
-        grade: "",
+        className: "",
         tuitionFees: "",
         examFees: "",
         activityFees: "",
@@ -116,7 +124,7 @@ export default function SchoolFeesPage() {
   const handleEdit = (fees: SchoolFees) => {
     setEditingFees(fees);
     setFormData({
-      grade: fees.grade,
+      className: fees.className,
       tuitionFees: fees.tuitionFees.toString(),
       examFees: fees.examFees.toString(),
       activityFees: fees.activityFees.toString(),
@@ -128,7 +136,7 @@ export default function SchoolFeesPage() {
 
   const handleCancel = () => {
     setFormData({
-      grade: "",
+      className: "",
       tuitionFees: "",
       examFees: "",
       activityFees: "",
@@ -139,8 +147,15 @@ export default function SchoolFeesPage() {
     setEditingFees(null);
   };
 
-  const grades = ["7", "8", "9", "10", "11", "12"];
-  const totalFees = schoolFees.reduce((sum, fees) => sum + fees.totalFees, 0);
+  const classes = ["7", "8", "9", "10", "11", "12"];
+  
+  // Calculate total expected revenue based on students in each class
+  const totalExpectedRevenue = useMemo(() => {
+    return schoolFees.reduce((sum, fees) => {
+      const studentsInClass = students.filter(s => s.className === fees.className).length;
+      return sum + (fees.totalFees * studentsInClass);
+    }, 0);
+  }, [schoolFees, students]);
 
   if (loading) {
     return (
@@ -173,24 +188,24 @@ export default function SchoolFeesPage() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
-                {editingFees ? `Edit School Fees - Grade ${editingFees.grade}` : "Set School Fees"}
+                {editingFees ? `Edit School Fees - Class ${editingFees.className}` : "Set School Fees"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="grade">Grade</Label>
+                  <Label htmlFor="className">Class</Label>
                   <Select 
-                    value={formData.grade} 
-                    onValueChange={(value) => setFormData({...formData, grade: value})}
+                    value={formData.className} 
+                    onValueChange={(value) => setFormData({...formData, className: value})}
                     disabled={!!editingFees}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select grade" />
+                      <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {grades.map(grade => (
-                        <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                      {classes.map(cls => (
+                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -293,7 +308,7 @@ export default function SchoolFeesPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Classes</p>
                 <h3 className="text-2xl font-bold mt-1">{schoolFees.length}</h3>
-                <p className="text-xs text-muted-foreground mt-1">Grades with fees set</p>
+                <p className="text-xs text-muted-foreground mt-1">Classes with fees set</p>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
                 <GraduationCap className="w-6 h-6 text-primary" />
@@ -306,9 +321,9 @@ export default function SchoolFeesPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Fees</p>
-                <h3 className="text-2xl font-bold mt-1">₵{totalFees.toLocaleString()}</h3>
-                <p className="text-xs text-muted-foreground mt-1">All grades combined</p>
+                <p className="text-sm font-medium text-muted-foreground">Expected Revenue</p>
+                <h3 className="text-2xl font-bold mt-1">₵{totalExpectedRevenue.toLocaleString()}</h3>
+                <p className="text-xs text-muted-foreground mt-1">Total with all students</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
                 <DollarSign className="w-6 h-6 text-green-600" />
@@ -323,9 +338,9 @@ export default function SchoolFeesPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Fees</p>
                 <h3 className="text-2xl font-bold mt-1">
-                  ₵{schoolFees.length > 0 ? (totalFees / schoolFees.length).toFixed(0) : "0"}
+                  ₵{schoolFees.length > 0 ? (schoolFees.reduce((sum, f) => sum + f.totalFees, 0) / schoolFees.length).toFixed(0) : "0"}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">Per grade</p>
+                <p className="text-xs text-muted-foreground mt-1">Per class</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-lg">
                 <Calculator className="w-6 h-6 text-blue-600" />
@@ -355,14 +370,14 @@ export default function SchoolFeesPage() {
       {/* School Fees Table */}
       <Card className="shadow-soft border-border/50">
         <CardHeader>
-          <CardTitle>School Fees by Grade</CardTitle>
+          <CardTitle>School Fees by Class</CardTitle>
         </CardHeader>
         <CardContent>
           {schoolFees.length === 0 ? (
             <div className="text-center py-8">
               <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground mb-2">No School Fees Set</h3>
-              <p className="text-muted-foreground mb-4">Set school fees for each grade to get started.</p>
+              <p className="text-muted-foreground mb-4">Set school fees for each class to get started.</p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Set School Fees
@@ -370,61 +385,69 @@ export default function SchoolFeesPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {schoolFees.map((fees) => (
-                <Card key={fees.id} className="shadow-sm border-border/30">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <GraduationCap className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-foreground">Grade {fees.grade}</h4>
-                          <p className="text-sm text-muted-foreground">Academic Year {fees.academicYear}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <div className="grid grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Tuition</p>
-                              <p className="font-medium">₵{fees.tuitionFees.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Exam</p>
-                              <p className="font-medium">₵{fees.examFees.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Activity</p>
-                              <p className="font-medium">₵{fees.activityFees.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Other</p>
-                              <p className="font-medium">₵{fees.otherFees.toLocaleString()}</p>
-                            </div>
+              {schoolFees.map((fees) => {
+                const studentsInClass = students.filter(s => s.className === fees.className).length;
+                const expectedRevenue = fees.totalFees * studentsInClass;
+                
+                return (
+                  <Card key={fees.id} className="shadow-sm border-border/30">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <GraduationCap className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-foreground">Class {fees.className}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Academic Year {fees.academicYear} • {studentsInClass} students
+                            </p>
                           </div>
                         </div>
                         
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="text-xl font-bold text-primary">₵{fees.totalFees.toLocaleString()}</p>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <div className="grid grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <p className="text-muted-foreground">Tuition</p>
+                                <p className="font-medium">₵{fees.tuitionFees.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Exam</p>
+                                <p className="font-medium">₵{fees.examFees.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Activity</p>
+                                <p className="font-medium">₵{fees.activityFees.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Other</p>
+                                <p className="font-medium">₵{fees.otherFees.toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Total per student</p>
+                            <p className="text-xl font-bold text-primary">₵{fees.totalFees.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Expected: ₵{expectedRevenue.toLocaleString()}</p>
+                          </div>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(fees)}
+                            className="gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit
+                          </Button>
                         </div>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(fees)}
-                          className="gap-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

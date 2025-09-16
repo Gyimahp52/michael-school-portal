@@ -145,7 +145,7 @@ export default function ReportsPage() {
     setSendingReports(true);
     
     try {
-      const classStudents = students.filter(student => student.grade === selectedClass);
+      const classStudents = students.filter(student => student.className === selectedClass);
       
       if (classStudents.length === 0) {
         toast({
@@ -219,9 +219,9 @@ export default function ReportsPage() {
         status: 'Paid' // Mark as paid since we're recording a payment
       });
 
-      // Get school fees for the student's grade
-      const gradeFees = schoolFees.find(f => f.grade === student.grade);
-      const totalFees = gradeFees?.totalFees || 0;
+      // Get school fees for the student's class
+      const classFees = schoolFees.find(f => f.className === student.className);
+      const totalFees = classFees?.totalFees || 0;
 
       // Check if student balance exists
       const existingBalance = studentBalances.find(b => b.studentId === selectedStudent);
@@ -234,7 +234,7 @@ export default function ReportsPage() {
         await createStudentBalance({
           studentId: selectedStudent,
           studentName: `${student.firstName} ${student.lastName}`,
-          grade: student.grade,
+          className: student.className,
           totalFees: totalFees,
           amountPaid: paymentAmountNum,
           balance: totalFees - paymentAmountNum,
@@ -409,8 +409,8 @@ export default function ReportsPage() {
     }
   };
 
-  // Get unique grades from students
-  const availableGrades = [...new Set(students.map(s => s.grade))].sort();
+  // Get unique classes from students
+  const availableGrades = [...new Set(students.map(s => s.className))].sort();
 
   return (
     <div className="space-y-6 p-6">
@@ -463,7 +463,7 @@ export default function ReportsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {students
-                          .filter(s => s.grade === selectedClass)
+                          .filter(s => s.className === selectedClass)
                           .map(student => (
                             <SelectItem key={student.id} value={student.id!}>
                               {student.firstName} {student.lastName}
@@ -685,9 +685,9 @@ export default function ReportsPage() {
               {selectedClass && (
                 <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    {students.filter(s => s.grade === selectedClass).length} students found in Grade {selectedClass}
+                    {students.filter(s => s.className === selectedClass).length} students found in Class {selectedClass}
                     {" - "}
-                    {students.filter(s => s.grade === selectedClass && s.parentWhatsApp).length} parents have WhatsApp numbers
+                    {students.filter(s => s.className === selectedClass && s.parentWhatsApp).length} parents have WhatsApp numbers
                   </p>
                 </div>
               )}
