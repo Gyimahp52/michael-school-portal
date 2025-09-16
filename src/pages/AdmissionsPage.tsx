@@ -20,10 +20,24 @@ import {
   Eye,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Application, subscribeToApplications } from "@/lib/database-operations";
+import { Application, subscribeToApplications, createApplication } from "@/lib/database-operations";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function AdmissionsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    studentName: "",
+    parentName: "",
+    email: "",
+    phone: "",
+    grade: "",
+    previousSchool: "",
+    reason: ""
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = subscribeToApplications(setApplications);
@@ -52,6 +66,49 @@ export default function AdmissionsPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.studentName || !formData.parentName || !formData.email || !formData.grade) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createApplication({
+        ...formData,
+        appliedDate: new Date().toLocaleDateString(),
+        status: "pending"
+      });
+      
+      toast({
+        title: "Success",
+        description: "Application submitted successfully",
+      });
+      
+      setFormData({
+        studentName: "",
+        parentName: "",
+        email: "",
+        phone: "",
+        grade: "",
+        previousSchool: "",
+        reason: ""
+      });
+      setDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit application",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -68,7 +125,10 @@ export default function AdmissionsPage() {
             <span className="hidden sm:inline">Filter Applications</span>
             <span className="sm:hidden">Filter</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
+          <Button 
+            className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto"
+            onClick={() => setDialogOpen(true)}
+          >
             <UserPlus className="w-4 h-4" />
             <span className="hidden sm:inline">New Application</span>
             <span className="sm:hidden">New</span>
@@ -77,47 +137,17 @@ export default function AdmissionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         <Card className="shadow-soft border-border/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Applications</p>
-                <h3 className="text-2xl font-bold mt-1">127</h3>
+                <h3 className="text-2xl font-bold mt-1">{applications.length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">This academic year</p>
               </div>
               <div className="bg-primary/10 p-3 rounded-lg">
                 <UserPlus className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft border-border/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
-                <h3 className="text-2xl font-bold mt-1">23</h3>
-                <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
-              </div>
-              <div className="bg-warning/10 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-warning" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft border-border/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Approved This Week</p>
-                <h3 className="text-2xl font-bold mt-1">12</h3>
-                <p className="text-xs text-muted-foreground mt-1">85% approval rate</p>
-              </div>
-              <div className="bg-success/10 p-3 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -193,6 +223,104 @@ export default function AdmissionsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* New Application Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>New Student Application</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="studentName">Student Name *</Label>
+                <Input
+                  id="studentName"
+                  value={formData.studentName}
+                  onChange={(e) => setFormData({...formData, studentName: e.target.value})}
+                  placeholder="Enter student's full name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="grade">Grade *</Label>
+                <Input
+                  id="grade"
+                  value={formData.grade}
+                  onChange={(e) => setFormData({...formData, grade: e.target.value})}
+                  placeholder="e.g., Grade 7"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="parentName">Parent/Guardian Name *</Label>
+                <Input
+                  id="parentName"
+                  value={formData.parentName}
+                  onChange={(e) => setFormData({...formData, parentName: e.target.value})}
+                  placeholder="Enter parent's full name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="Enter email address"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="previousSchool">Previous School</Label>
+              <Input
+                id="previousSchool"
+                value={formData.previousSchool}
+                onChange={(e) => setFormData({...formData, previousSchool: e.target.value})}
+                placeholder="Enter previous school name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason for Application</Label>
+              <textarea
+                id="reason"
+                value={formData.reason}
+                onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                placeholder="Why do you want to join our school?"
+                className="w-full p-2 border rounded-md resize-none h-20"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Submit Application
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

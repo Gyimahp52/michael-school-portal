@@ -64,12 +64,18 @@ export default function SchoolFeesPage() {
     }
 
     try {
+      const tuition = parseFloat(formData.tuitionFees);
+      const exam = parseFloat(formData.examFees);
+      const activity = parseFloat(formData.activityFees);
+      const other = parseFloat(formData.otherFees);
+      
       const feesData = {
         grade: formData.grade,
-        tuitionFees: parseFloat(formData.tuitionFees),
-        examFees: parseFloat(formData.examFees),
-        activityFees: parseFloat(formData.activityFees),
-        otherFees: parseFloat(formData.otherFees),
+        tuitionFees: tuition,
+        examFees: exam,
+        activityFees: activity,
+        otherFees: other,
+        totalFees: tuition + exam + activity + other,
         academicYear: formData.academicYear
       };
 

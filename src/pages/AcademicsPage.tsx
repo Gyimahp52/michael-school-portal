@@ -89,15 +89,19 @@ export default function AcademicsPage() {
     return subject ? subject.name : 'Unknown Subject';
   };
 
-  const getTeacherName = (teacherId: string) => {
-    const teacher = teachers.find(t => t.id === teacherId);
-    return teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Unassigned';
+  const getTeacherNames = (teacherIds: string[] = []) => {
+    if (!teacherIds || teacherIds.length === 0) return 'Unassigned';
+    const teacherNames = teacherIds.map(id => {
+      const teacher = teachers.find(t => t.id === id);
+      return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+    }).filter(Boolean);
+    return teacherNames.length > 0 ? teacherNames.join(', ') : 'Unassigned';
   };
 
   const getSubjectStats = () => {
     return subjects.map(subject => {
       const subjectClasses = classes.filter(c => c.subjectId === subject.id);
-      const subjectTeachers = [...new Set(subjectClasses.map(c => c.teacherId).filter(Boolean))];
+      const subjectTeachers = [...new Set(subjectClasses.flatMap(c => c.teacherIds || []).filter(Boolean))];
       const subjectStudents = students.filter(s => s.status === 'active').length; // Simplified for demo
       
       return {
@@ -112,7 +116,7 @@ export default function AcademicsPage() {
   const filteredClasses = classes.filter(classItem =>
     classItem.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     getSubjectName(classItem.subjectId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getTeacherName(classItem.teacherId || '').toLowerCase().includes(searchTerm.toLowerCase())
+    getTeacherNames(classItem.teacherIds).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -313,7 +317,7 @@ export default function AcademicsPage() {
                   <TableCell className="font-medium">{classItem.id}</TableCell>
                   <TableCell>{classItem.className}</TableCell>
                   <TableCell>{getSubjectName(classItem.subjectId)}</TableCell>
-                  <TableCell>{getTeacherName(classItem.teacherId || '')}</TableCell>
+                  <TableCell>{getTeacherNames(classItem.teacherIds)}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{classItem.capacity || 30}</Badge>
                   </TableCell>

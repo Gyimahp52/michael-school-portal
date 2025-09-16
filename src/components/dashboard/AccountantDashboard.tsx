@@ -282,9 +282,9 @@ export function AccountantDashboard() {
                   </div>
                   <div>
                     <p className="font-medium">{transaction.type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {transaction.student || transaction.description} • {transaction.date}
-                    </p>
+                     <p className="text-sm text-muted-foreground">
+                       {transaction.student} • {transaction.date}
+                     </p>
                   </div>
                 </div>
                 <div className="text-right">

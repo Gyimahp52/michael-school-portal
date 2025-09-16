@@ -392,6 +392,8 @@ export interface Application {
   status: 'pending' | 'approved' | 'rejected';
   phone?: string;
   email?: string;
+  previousSchool?: string;
+  reason?: string;
 }
 
 export const subscribeToApplications = (callback: (apps: Application[]) => void): (() => void) => {
@@ -406,6 +408,25 @@ export const subscribeToApplications = (callback: (apps: Application[]) => void)
     }
   });
   return unsubscribe;
+};
+
+export const createApplication = async (application: Omit<Application, 'id'>): Promise<string> => {
+  try {
+    const applicationsRef = ref(rtdb, 'applications');
+    const newApplicationRef = push(applicationsRef);
+    
+    const applicationData = {
+      ...application,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newApplicationRef, applicationData);
+    return newApplicationRef.key!;
+  } catch (error) {
+    console.error('Error creating application:', error);
+    throw error;
+  }
 };
 
 // ===== BILLING/INVOICES =====

@@ -23,18 +23,8 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
   
   const [formData, setFormData] = useState({
     className: "",
-    subjectId: "",
-    teacherId: "",
+    teacherIds: [] as string[],
     room: "",
-    capacity: 30,
-    schedule: {
-      monday: "",
-      tuesday: "",
-      wednesday: "",
-      thursday: "",
-      friday: "",
-    },
-    status: "active" as "active" | "inactive",
   });
 
   useEffect(() => {
@@ -60,34 +50,14 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
     if (classItem && mode === "edit") {
       setFormData({
         className: classItem.className,
-        subjectId: classItem.subjectId,
-        teacherId: classItem.teacherId || "",
+        teacherIds: classItem.teacherIds || [],
         room: classItem.room || "",
-        capacity: classItem.capacity || 30,
-        schedule: {
-          monday: classItem.schedule?.monday || "",
-          tuesday: classItem.schedule?.tuesday || "",
-          wednesday: classItem.schedule?.wednesday || "",
-          thursday: classItem.schedule?.thursday || "",
-          friday: classItem.schedule?.friday || "",
-        },
-        status: classItem.status || "active",
       });
     } else if (mode === "create") {
       setFormData({
         className: "",
-        subjectId: "",
-        teacherId: "",
+        teacherIds: [],
         room: "",
-        capacity: 30,
-        schedule: {
-          monday: "",
-          tuesday: "",
-          wednesday: "",
-          thursday: "",
-          friday: "",
-        },
-        status: "active",
       });
     }
   }, [classItem, mode, open]);
@@ -122,14 +92,16 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
     }
   };
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleScheduleChange = (day: string, value: string) => {
+  const handleTeacherChange = (teacherId: string) => {
     setFormData(prev => ({
       ...prev,
-      schedule: { ...prev.schedule, [day]: value }
+      teacherIds: prev.teacherIds.includes(teacherId) 
+        ? prev.teacherIds.filter(id => id !== teacherId)
+        : [...prev.teacherIds, teacherId]
     }));
   };
 
@@ -165,114 +137,29 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="subjectId">Subject *</Label>
-              <Select value={formData.subjectId} onValueChange={(value) => handleChange("subjectId", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id!}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <Label>Assign Teachers</Label>
+            <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+              {teachers.map((teacher) => (
+                <div key={teacher.id} className="flex items-center space-x-2 p-2 border rounded">
+                  <input
+                    type="checkbox"
+                    id={`teacher-${teacher.id}`}
+                    checked={formData.teacherIds.includes(teacher.id!)}
+                    onChange={() => handleTeacherChange(teacher.id!)}
+                    className="rounded"
+                  />
+                  <label htmlFor={`teacher-${teacher.id}`} className="text-sm font-medium cursor-pointer">
+                    {teacher.firstName} {teacher.lastName} - {teacher.department}
+                  </label>
+                </div>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="teacherId">Assigned Teacher</Label>
-              <Select value={formData.teacherId} onValueChange={(value) => handleChange("teacherId", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id!}>
-                      {teacher.firstName} {teacher.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacity</Label>
-              <Input
-                id="capacity"
-                type="number"
-                value={formData.capacity}
-                onChange={(e) => handleChange("capacity", parseInt(e.target.value))}
-                min="1"
-                max="50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Label>Weekly Schedule (Optional)</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="monday">Monday</Label>
-                <Input
-                  id="monday"
-                  value={formData.schedule.monday}
-                  onChange={(e) => handleScheduleChange("monday", e.target.value)}
-                  placeholder="e.g., 9:00 AM - 10:00 AM"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tuesday">Tuesday</Label>
-                <Input
-                  id="tuesday"
-                  value={formData.schedule.tuesday}
-                  onChange={(e) => handleScheduleChange("tuesday", e.target.value)}
-                  placeholder="e.g., 9:00 AM - 10:00 AM"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="wednesday">Wednesday</Label>
-                <Input
-                  id="wednesday"
-                  value={formData.schedule.wednesday}
-                  onChange={(e) => handleScheduleChange("wednesday", e.target.value)}
-                  placeholder="e.g., 9:00 AM - 10:00 AM"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="thursday">Thursday</Label>
-                <Input
-                  id="thursday"
-                  value={formData.schedule.thursday}
-                  onChange={(e) => handleScheduleChange("thursday", e.target.value)}
-                  placeholder="e.g., 9:00 AM - 10:00 AM"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="friday">Friday</Label>
-                <Input
-                  id="friday"
-                  value={formData.schedule.friday}
-                  onChange={(e) => handleScheduleChange("friday", e.target.value)}
-                  placeholder="e.g., 9:00 AM - 10:00 AM"
-                />
-              </div>
-            </div>
+            {formData.teacherIds.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {formData.teacherIds.length} teacher(s) assigned
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3">
