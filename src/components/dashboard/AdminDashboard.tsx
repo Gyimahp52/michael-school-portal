@@ -158,7 +158,7 @@ export function AdminDashboard() {
     {
       title: "Active Classes",
       value: dashboardStats.activeClasses.toString(),
-      change: "Across all grades",
+      change: "Across all classes",
       icon: BookOpen,
       color: "text-accent",
       bgColor: "bg-accent/10",

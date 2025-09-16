@@ -33,7 +33,7 @@ export default function AdmissionsPage() {
     parentName: "",
     email: "",
     phone: "",
-    grade: "",
+    className: "",
     previousSchool: "",
     reason: ""
   });
@@ -69,7 +69,7 @@ export default function AdmissionsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.studentName || !formData.parentName || !formData.email || !formData.grade) {
+    if (!formData.studentName || !formData.parentName || !formData.email || !formData.className) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -95,7 +95,7 @@ export default function AdmissionsPage() {
         parentName: "",
         email: "",
         phone: "",
-        grade: "",
+        className: "",
         previousSchool: "",
         reason: ""
       });
@@ -175,7 +175,7 @@ export default function AdmissionsPage() {
                 <TableHead>Application ID</TableHead>
                 <TableHead>Student Name</TableHead>
                 <TableHead>Parent/Guardian</TableHead>
-                <TableHead>Grade</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Applied Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -192,7 +192,7 @@ export default function AdmissionsPage() {
                       <div className="text-xs text-muted-foreground">{app.email}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{app.grade}</TableCell>
+                  <TableCell>{app.className}</TableCell>
                   <TableCell>{app.appliedDate}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -244,12 +244,12 @@ export default function AdmissionsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="grade">Grade *</Label>
+                <Label htmlFor="className">Class *</Label>
                 <Input
-                  id="grade"
-                  value={formData.grade}
-                  onChange={(e) => setFormData({...formData, grade: e.target.value})}
-                  placeholder="e.g., Grade 7"
+                  id="className"
+                  value={formData.className}
+                  onChange={(e) => setFormData({...formData, className: e.target.value})}
+                  placeholder="e.g., Class 7"
                   required
                 />
               </div>

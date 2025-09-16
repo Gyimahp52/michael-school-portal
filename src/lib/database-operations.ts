@@ -386,7 +386,7 @@ export interface Application {
   id?: string;
   studentName: string;
   parentName: string;
-  grade: string;
+  className: string;
   appliedDate: string;
   status: 'pending' | 'approved' | 'rejected';
   phone?: string;
