@@ -28,7 +28,6 @@ import {
   TrendingUp,
   TrendingDown,
   CreditCard,
-  Clock,
 } from "lucide-react";
 import { Invoice, subscribeToInvoices } from "@/lib/database-operations";
 
@@ -70,9 +69,7 @@ export function BillingPage() {
     .filter(inv => inv.status === "Paid")
     .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const pendingAmount = invoices
-    .filter(inv => inv.status === "Pending")
-    .reduce((sum, inv) => sum + inv.amount, 0);
+  // Removed Pending Payments card and calculation
 
   const overdueAmount = invoices
     .filter(inv => inv.status === "Overdue")
@@ -104,7 +101,7 @@ export function BillingPage() {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="shadow-soft border-border/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -123,23 +120,7 @@ export function BillingPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-soft border-border/50">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Payments</p>
-                <h3 className="text-2xl font-bold text-warning">{formatCurrency(pendingAmount)}</h3>
-                <div className="flex items-center gap-1 mt-1">
-                  <Clock className="w-3 h-3 text-warning" />
-                  <span className="text-xs text-warning">Due this week</span>
-                </div>
-              </div>
-              <div className="p-3 bg-warning/10 rounded-lg">
-                <Clock className="w-6 h-6 text-warning" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Pending Payments card removed */}
 
         <Card className="shadow-soft border-border/50">
           <CardContent className="p-6">

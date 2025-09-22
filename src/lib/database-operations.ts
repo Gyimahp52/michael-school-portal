@@ -685,8 +685,8 @@ export const subscribeToSchoolFees = (callback: (fees: SchoolFees[]) => void): (
 
 export const createStudentBalance = async (balance: Omit<StudentBalance, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   try {
-    const balanceRef = ref(rtdb, 'studentBalances');
-    const newBalanceRef = push(balanceRef);
+    // Use studentId as the record key to ensure updates are simple and idempotent
+    const balanceRef = ref(rtdb, `studentBalances/${balance.studentId}`);
     
     const balanceData = {
       ...balance,
@@ -697,8 +697,8 @@ export const createStudentBalance = async (balance: Omit<StudentBalance, 'id' | 
       updatedAt: new Date().toISOString()
     };
     
-    await set(newBalanceRef, balanceData);
-    return newBalanceRef.key!;
+    await set(balanceRef, balanceData);
+    return balance.studentId;
   } catch (error) {
     console.error('Error creating student balance:', error);
     throw error;
@@ -724,6 +724,28 @@ export const updateStudentBalance = async (studentId: string, paymentAmount: num
         lastPaymentDate: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
+    } else {
+      // Fallback: handle legacy records created with push() by searching for the student's balance
+      const balancesRootRef = ref(rtdb, 'studentBalances');
+      const allSnapshot = await get(balancesRootRef);
+      if (allSnapshot.exists()) {
+        const data = allSnapshot.val();
+        const legacyKey = Object.keys(data).find(key => data[key]?.studentId === studentId);
+        if (legacyKey) {
+          const legacyRef = ref(rtdb, `studentBalances/${legacyKey}`);
+          const current = data[legacyKey];
+          const newAmountPaid = (current.amountPaid || 0) + paymentAmount;
+          const newBalance = (current.totalFees || 0) - newAmountPaid;
+          const newStatus = newAmountPaid >= (current.totalFees || 0) ? 'paid' : newAmountPaid > 0 ? 'partial' : 'overdue';
+          await update(legacyRef, {
+            amountPaid: newAmountPaid,
+            balance: newBalance,
+            status: newStatus,
+            lastPaymentDate: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
     }
   } catch (error) {
     console.error('Error updating student balance:', error);
