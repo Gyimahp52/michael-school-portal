@@ -18,7 +18,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+let analytics: ReturnType<typeof getAnalytics> | null = null;
+try {
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
+  }
+} catch (_) {
+  analytics = null;
+}
 const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app);

@@ -92,6 +92,23 @@ export function GradesPage() {
     return items;
   }, [assessments, students, classes, currentUser?.id, currentUser?.displayName, userRole]);
 
+  // Aggregate stats for cards, respecting role visibility
+  const { totalAssessments, studentsGraded, reportCardsReady } = useMemo(() => {
+    const visibleAssessments = assessments.filter(a => (userRole === 'teacher' ? a.teacherId === currentUser?.id : true));
+    const total = visibleAssessments.length;
+    const uniqueStudents = new Set<string>();
+    const examStudents = new Set<string>();
+    for (const a of visibleAssessments) {
+      if (a.studentId) uniqueStudents.add(a.studentId);
+      if (a.assessmentType === 'exam' && a.studentId) examStudents.add(a.studentId);
+    }
+    return {
+      totalAssessments: total,
+      studentsGraded: uniqueStudents.size,
+      reportCardsReady: examStudents.size,
+    };
+  }, [assessments, userRole, currentUser?.id]);
+
   const filteredGrades = gradeRows.filter((grade) => {
     const studentNameLc = (grade.studentName || '').toLowerCase();
     const studentIdLc = (grade.studentId || '').toLowerCase();
@@ -122,7 +139,11 @@ export function GradesPage() {
     : 0;
 
   const availableClasses = useMemo(() => {
-    return [...classes].sort((a, b) => a.name.localeCompare(b.name));
+    return [...classes].sort((a, b) => {
+      const an = (a.name || a.className || '').toString();
+      const bn = (b.name || b.className || '').toString();
+      return an.localeCompare(bn);
+    });
   }, [classes]);
 
   const availableSubjects = useMemo(() => {
@@ -180,7 +201,7 @@ export function GradesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Assessments</p>
-                <h3 className="text-2xl font-bold">156</h3>
+                <h3 className="text-2xl font-bold">{totalAssessments}</h3>
                 <p className="text-xs text-muted-foreground mt-1">This term</p>
               </div>
               <div className="p-3 bg-secondary/10 rounded-lg">
@@ -195,8 +216,8 @@ export function GradesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Students Graded</p>
-                <h3 className="text-2xl font-bold text-success">1,198</h3>
-                <p className="text-xs text-muted-foreground mt-1">96% completion</p>
+                <h3 className="text-2xl font-bold text-success">{studentsGraded}</h3>
+                <p className="text-xs text-muted-foreground mt-1">Unique students with scores</p>
               </div>
               <div className="p-3 bg-success/10 rounded-lg">
                 <Users className="w-6 h-6 text-success" />
@@ -210,8 +231,8 @@ export function GradesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Report Cards</p>
-                <h3 className="text-2xl font-bold text-accent">45</h3>
-                <p className="text-xs text-muted-foreground mt-1">Ready for review</p>
+                <h3 className="text-2xl font-bold text-accent">{reportCardsReady}</h3>
+                <p className="text-xs text-muted-foreground mt-1">Students with exam scores</p>
               </div>
               <div className="p-3 bg-accent/10 rounded-lg">
                 <Calendar className="w-6 h-6 text-accent" />
