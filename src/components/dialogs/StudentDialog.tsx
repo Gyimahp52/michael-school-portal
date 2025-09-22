@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { createStudent, updateStudent, Student, subscribeToStudents } from "@/lib/database-operations";
+import { createStudent, updateStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
 import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
@@ -20,6 +20,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const { toast } = useToast();
   const [existingStudents, setExistingStudents] = useState<Student[]>([]);
+  const [classesFromDb, setClassesFromDb] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -39,8 +40,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   });
 
   useEffect(() => {
-    const unsub = subscribeToStudents(setExistingStudents);
-    return () => unsub();
+    const unsubStudents = subscribeToStudents(setExistingStudents);
+    const unsubClasses = subscribeToClasses(setClassesFromDb);
+    return () => { unsubStudents(); unsubClasses(); };
   }, []);
 
   useEffect(() => {
@@ -119,7 +121,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     }
   };
 
-  const uniqueGrades = Array.from(new Set(existingStudents.map(s => s.className))).sort();
+  // Class options come directly from classes table
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -231,13 +233,11 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {uniqueGrades.length === 0 ? (
-                    <SelectItem value="7">Class 7</SelectItem>
-                  ) : (
-                    uniqueGrades.map(g => (
-                      <SelectItem key={g} value={g}>{`Class ${g}`}</SelectItem>
-                    ))
-                  )}
+                  {classesFromDb.map(c => (
+                    <SelectItem key={c.id} value={c.className}>
+                      {c.className}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

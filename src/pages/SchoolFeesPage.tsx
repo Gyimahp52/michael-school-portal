@@ -12,6 +12,8 @@ import {
   createSchoolFees,
   updateSchoolFees,
   SchoolFees,
+    subscribeToClasses,
+    Class,
   subscribeToStudents,
   Student
 } from "@/lib/database-operations";
@@ -31,6 +33,7 @@ import {
 
 export default function SchoolFeesPage() {
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
+  const [classesFromDb, setClassesFromDb] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,10 +54,12 @@ export default function SchoolFeesPage() {
       setLoading(false);
     });
     
+    const unsubscribeClasses = subscribeToClasses(setClassesFromDb);
     const unsubscribeStudents = subscribeToStudents(setStudents);
 
     return () => {
       unsubscribeFees();
+      unsubscribeClasses();
       unsubscribeStudents();
     };
   }, []);
@@ -147,7 +152,7 @@ export default function SchoolFeesPage() {
     setEditingFees(null);
   };
 
-  const classes = ["7", "8", "9", "10", "11", "12"];
+  // Classes now fetched from database via subscribeToClasses
   
   // Calculate total expected revenue based on students in each class
   const totalExpectedRevenue = useMemo(() => {
@@ -204,8 +209,10 @@ export default function SchoolFeesPage() {
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {classes.map(cls => (
-                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
+                      {classesFromDb.map(cls => (
+                        <SelectItem key={cls.id} value={cls.className}>
+                          {cls.className}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

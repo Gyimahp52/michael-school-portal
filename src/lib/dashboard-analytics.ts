@@ -62,15 +62,17 @@ export interface FinancialRecord {
 // Dashboard Analytics Functions
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const [studentsSnapshot, teachersSnapshot, classesSnapshot, financialSnapshot] = await Promise.all([
+    const [studentsSnapshot, teachersSnapshot, classesSnapshot, financialSnapshot, usersSnapshot] = await Promise.all([
       get(ref(rtdb, 'students')),
       get(ref(rtdb, 'teachers')),
       get(ref(rtdb, 'classes')),
-      get(ref(rtdb, 'financial'))
+      get(ref(rtdb, 'financial')),
+      get(ref(rtdb, 'users'))
     ]);
 
     const students = studentsSnapshot.exists() ? Object.values(studentsSnapshot.val()) : [];
     const teachers = teachersSnapshot.exists() ? Object.values(teachersSnapshot.val()) : [];
+    const users = usersSnapshot.exists() ? Object.values(usersSnapshot.val()) as any[] : [];
     const classes = classesSnapshot.exists() ? Object.values(classesSnapshot.val()) : [];
     const financial = financialSnapshot.exists() ? Object.values(financialSnapshot.val()) as FinancialRecord[] : [];
 
@@ -90,7 +92,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
     return {
       totalStudents: students.length,
-      totalTeachers: teachers.length,
+      totalTeachers: users.filter((u: any) => u.role === 'teacher').length || teachers.length,
       activeClasses: classes.length,
       activeEnrollments,
       totalRevenue,
@@ -277,6 +279,7 @@ export const subscribeToDashboardStats = (callback: (stats: DashboardStats) => v
   const teachersRef = ref(rtdb, 'teachers');
   const classesRef = ref(rtdb, 'classes');
   const financialRef = ref(rtdb, 'financial');
+  const usersRef = ref(rtdb, 'users');
 
   const updateStats = async () => {
     const stats = await getDashboardStats();
@@ -287,12 +290,14 @@ export const subscribeToDashboardStats = (callback: (stats: DashboardStats) => v
   onValue(teachersRef, updateStats);
   onValue(classesRef, updateStats);
   onValue(financialRef, updateStats);
+  onValue(usersRef, updateStats);
 
   return () => {
     off(studentsRef);
     off(teachersRef);
     off(classesRef);
     off(financialRef);
+    off(usersRef);
   };
 };
 
