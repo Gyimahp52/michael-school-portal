@@ -11,7 +11,6 @@ import { StudentsPage } from "./pages/StudentsPage";
 import { BillingPage } from "./pages/BillingPage";
 import { GradesPage } from "./pages/GradesPage";
 import { LoginPage } from "./pages/LoginPage";
-import AdmissionsPage from "./pages/AdmissionsPage";
 import AcademicsPage from "./pages/AcademicsPage";
 import ReportsPage from "./pages/ReportsPage";
 import UserManagementPage from "./pages/UserManagementPage";
@@ -56,7 +55,7 @@ const AppContent = () => {
           <Route path="students" element={<StudentsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="grades" element={<GradesPage />} />
-          <Route path="admissions" element={<AdmissionsPage />} />
+          {/* Admissions route removed */}
           <Route path="classes" element={<AcademicsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<UserManagementPage />} />
