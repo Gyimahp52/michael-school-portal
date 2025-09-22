@@ -51,9 +51,6 @@ const baseItems = [
     group: "Academic",
   },
   {
-    // Admissions removed: adding new student covers the flow
-  },
-  {
     title: "Grades & Records", 
     suffix: "/grades",
     icon: FileText,

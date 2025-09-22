@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { createClass, updateClass, getAllSubjects, getAllTeachers, Class, Subject, Teacher } from "@/lib/database-operations";
+import { createClass, updateClass, getAllSubjects, Class, Subject } from "@/lib/database-operations";
+import { getAllUsers, type User } from "@/lib/custom-auth";
 import { Loader2 } from "lucide-react";
 
 interface ClassDialogProps {
@@ -18,7 +19,7 @@ interface ClassDialogProps {
 export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialogProps) {
   const [loading, setLoading] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<User[]>([]);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -30,12 +31,12 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [subjectsData, teachersData] = await Promise.all([
+        const [subjectsData, users] = await Promise.all([
           getAllSubjects(),
-          getAllTeachers()
+          getAllUsers()
         ]);
         setSubjects(subjectsData);
-        setTeachers(teachersData);
+        setTeachers(users.filter(u => u.role === 'teacher'));
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -138,28 +139,23 @@ export function ClassDialog({ open, onOpenChange, classItem, mode }: ClassDialog
           </div>
 
           <div className="space-y-2">
-            <Label>Assign Teachers</Label>
-            <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-              {teachers.map((teacher) => (
-                <div key={teacher.id} className="flex items-center space-x-2 p-2 border rounded">
-                  <input
-                    type="checkbox"
-                    id={`teacher-${teacher.id}`}
-                    checked={formData.teacherIds.includes(teacher.id!)}
-                    onChange={() => handleTeacherChange(teacher.id!)}
-                    className="rounded"
-                  />
-                  <label htmlFor={`teacher-${teacher.id}`} className="text-sm font-medium cursor-pointer">
-                    {teacher.firstName} {teacher.lastName} - {teacher.department}
-                  </label>
-                </div>
-              ))}
-            </div>
-            {formData.teacherIds.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {formData.teacherIds.length} teacher(s) assigned
-              </p>
-            )}
+            <Label htmlFor="assignTeacher">Assign Teacher</Label>
+            <Select
+              value={formData.teacherIds[0] || ""}
+              onValueChange={(value) => handleChange("teacherIds", value ? [value] : [])}
+            >
+              <SelectTrigger id="assignTeacher">
+                <SelectValue placeholder="Select a teacher" />
+              </SelectTrigger>
+              <SelectContent>
+                {teachers.map((teacher) => (
+                  <SelectItem key={teacher.id} value={teacher.id}>
+                    {teacher.displayName || teacher.username}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Choose one teacher to assign to this class.</p>
           </div>
 
           <div className="flex justify-end gap-3">
