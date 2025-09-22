@@ -31,7 +31,14 @@ export function GradeDialog({ open, onOpenChange, students, classes, subjects }:
       if (selectedClass) {
         const targetClass = classes.find(c => c.id === selectedClass);
         if (targetClass) {
-          setFilteredStudents(students.filter(s => s.className === targetClass.className));
+          const className = targetClass.name || targetClass.className;
+          if (className) {
+            setFilteredStudents(students.filter(s => s.className === className));
+          } else {
+            setFilteredStudents([]);
+          }
+        } else {
+          setFilteredStudents([]);
         }
       } else {
         setFilteredStudents([]);
@@ -80,7 +87,7 @@ export function GradeDialog({ open, onOpenChange, students, classes, subjects }:
           <Select onValueChange={setSelectedClass} value={selectedClass}>
             <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
             <SelectContent>
-              {classes.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>)}
+              {classes.map(c => <SelectItem key={c.id} value={c.id!}>{c.name || c.className}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select onValueChange={setSelectedStudent} value={selectedStudent} disabled={!selectedClass}>

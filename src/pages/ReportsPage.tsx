@@ -216,7 +216,8 @@ export default function ReportsPage() {
         description: paymentDescription,
         amount: paymentAmountNum,
         dueDate: paymentDueDate,
-        status: 'Paid' // Mark as paid since we're recording a payment
+        status: 'Paid', // Mark as paid since we're recording a payment
+        paymentDate: new Date().toISOString()
       });
 
       // Get school fees for the student's class
@@ -409,8 +410,8 @@ export default function ReportsPage() {
     }
   };
 
-  // Get unique classes from students
-  const availableGrades = [...new Set(students.map(s => s.className))].sort();
+  // Use classes from DB for grade/class selection
+  const availableClassNames = classes.map(c => c.className).filter(Boolean).sort();
 
   return (
     <div className="space-y-6 p-6">
@@ -449,8 +450,8 @@ export default function ReportsPage() {
                         <SelectValue placeholder="Choose a class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableGrades.map(grade => (
-                          <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                        {availableClassNames.map(cls => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -656,8 +657,8 @@ export default function ReportsPage() {
                       <SelectValue placeholder="Choose a class to send reports" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableGrades.map(grade => (
-                        <SelectItem key={grade} value={grade}>Grade {grade}</SelectItem>
+                      {availableClassNames.map(cls => (
+                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

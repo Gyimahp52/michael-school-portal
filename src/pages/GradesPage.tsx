@@ -78,28 +78,33 @@ export function GradesPage() {
       .filter(a => (userRole === 'teacher' ? a.teacherId === currentUser?.id : true))
       .map(a => ({
         id: a.id!,
-        studentName: a.studentName,
-        studentId: a.studentId,
-        className: classes.find(c => c.id === a.classId)?.name || students.find(s => s.id === a.studentId)?.className || "",
-        subject: a.subjectId,
-        assessment: a.assessmentType,
-        score: a.score,
-        maxScore: a.maxScore,
-        teacherName: currentUser?.displayName || a.teacherId,
-        date: a.date,
+        studentName: a.studentName || '',
+        studentId: a.studentId || '',
+        className: (classes.find(c => c.id === a.classId)?.name || classes.find(c => c.id === a.classId)?.className || "") ||
+                   (students.find(s => s.id === a.studentId)?.className || ""),
+        subject: a.subjectId || '',
+        assessment: a.assessmentType || '',
+        score: typeof a.score === 'number' ? a.score : 0,
+        maxScore: typeof a.maxScore === 'number' ? a.maxScore : 0,
+        teacherName: currentUser?.displayName || a.teacherId || '',
+        date: a.date || '',
       }));
     return items;
   }, [assessments, students, classes, currentUser?.id, currentUser?.displayName, userRole]);
 
   const filteredGrades = gradeRows.filter((grade) => {
-    const matchesSearch = grade.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         grade.studentId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesClass = selectedClass === "all" || classes.find(c => c.name === grade.className)?.id === selectedClass;
+    const studentNameLc = (grade.studentName || '').toLowerCase();
+    const studentIdLc = (grade.studentId || '').toLowerCase();
+    const queryLc = (searchQuery || '').toLowerCase();
+    const matchesSearch = studentNameLc.includes(queryLc) || studentIdLc.includes(queryLc);
+    const matchesClass = selectedClass === "all" ||
+      classes.find(c => (c.name || c.className) === grade.className)?.id === selectedClass;
     const matchesSubject = selectedSubject === "all" || grade.subject === selectedSubject;
     return matchesSearch && matchesClass && matchesSubject;
   });
 
   const getGradeColor = (score: number, maxScore: number) => {
+    if (!maxScore || maxScore <= 0) return "text-muted-foreground";
     const percentage = (score / maxScore) * 100;
     if (percentage >= 90) return "text-success";
     if (percentage >= 80) return "text-primary";
@@ -108,6 +113,7 @@ export function GradesPage() {
   };
 
   const getPercentage = (score: number, maxScore: number) => {
+    if (!maxScore || maxScore <= 0) return 0;
     return Math.round((score / maxScore) * 100);
   };
 
@@ -236,7 +242,7 @@ export function GradesPage() {
                 <SelectContent>
                   <SelectItem value="all">All Classes</SelectItem>
                   {availableClasses.map(c => (
-                    <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id!}>{c.name || c.className}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
