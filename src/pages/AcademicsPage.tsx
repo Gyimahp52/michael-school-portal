@@ -32,6 +32,7 @@ import {
   Teacher, 
   Student 
 } from "@/lib/database-operations";
+import { getAllUsers, type User } from "@/lib/custom-auth";
 import { ClassDialog } from "@/components/dialogs/ClassDialog";
 import { SubjectDialog } from "@/components/dialogs/SubjectDialog";
 import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";
@@ -41,6 +42,7 @@ export default function AcademicsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   
   // Dialog states
@@ -60,6 +62,9 @@ export default function AcademicsPage() {
       subscribeToTeachers(setTeachers),
       subscribeToStudents(setStudents)
     ];
+
+    // Load users once for mapping teacherIds -> names (teacher role)
+    getAllUsers().then((u) => setUsers(u)).catch(() => {});
 
     return () => {
       unsubscribes.forEach(unsubscribe => unsubscribe());
@@ -91,11 +96,13 @@ export default function AcademicsPage() {
 
   const getTeacherNames = (teacherIds: string[] = []) => {
     if (!teacherIds || teacherIds.length === 0) return 'Unassigned';
-    const teacherNames = teacherIds.map(id => {
+    const names = teacherIds.map(id => {
+      const user = users.find(u => u.id === id);
+      if (user && user.role === 'teacher') return user.displayName || user.username;
       const teacher = teachers.find(t => t.id === id);
       return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
-    }).filter(Boolean);
-    return teacherNames.length > 0 ? teacherNames.join(', ') : 'Unassigned';
+    }).filter(Boolean) as string[];
+    return names.length > 0 ? names.join(', ') : 'Unassigned';
   };
 
   const getSubjectStats = () => {
@@ -115,7 +122,6 @@ export default function AcademicsPage() {
 
   const filteredClasses = classes.filter(classItem =>
     classItem.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getSubjectName(classItem.subjectId).toLowerCase().includes(searchTerm.toLowerCase()) ||
     getTeacherNames(classItem.teacherIds).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -303,10 +309,8 @@ export default function AcademicsPage() {
               <TableRow>
                 <TableHead>Class ID</TableHead>
                 <TableHead>Class Name</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Teacher</TableHead>
+                <TableHead>Assigned Teacher</TableHead>
                 <TableHead>Students</TableHead>
-                <TableHead>Schedule</TableHead>
                 <TableHead>Room</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -316,19 +320,9 @@ export default function AcademicsPage() {
                 <TableRow key={classItem.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">{classItem.id}</TableCell>
                   <TableCell>{classItem.className}</TableCell>
-                  <TableCell>{getSubjectName(classItem.subjectId)}</TableCell>
                   <TableCell>{getTeacherNames(classItem.teacherIds)}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{classItem.capacity || 30}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {classItem.schedule ? 
-                      Object.entries(classItem.schedule)
-                        .filter(([_, time]) => time)
-                        .map(([day, time]) => `${day.charAt(0).toUpperCase() + day.slice(1)}: ${time}`)
-                        .join(', ') || 'Not scheduled'
-                      : 'Not scheduled'
-                    }
                   </TableCell>
                   <TableCell>{classItem.room || 'Not assigned'}</TableCell>
                   <TableCell>
