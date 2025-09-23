@@ -154,6 +154,42 @@ export function GradesPage() {
     return <div>Loading...</div>; // Or a spinner component
   }
 
+  const handleExport = () => {
+    const headers = [
+      'Student Name',
+      'Student ID',
+      'Class',
+      'Subject',
+      'Assessment',
+      'Score',
+      'Max Score',
+      'Percentage',
+      'Teacher',
+      'Date',
+    ];
+    const rows = filteredGrades.map(g => [
+      g.studentName,
+      g.studentId,
+      g.className,
+      subjects.find(s => s.id === g.subject)?.name || g.subject,
+      g.assessment,
+      String(g.score),
+      String(g.maxScore),
+      String(getPercentage(g.score, g.maxScore)),
+      g.teacherName,
+      g.date,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const classLabel = selectedClass === 'all' ? 'all-classes' : (availableClasses.find(c => c.id === selectedClass)?.name || availableClasses.find(c => c.id === selectedClass)?.className || 'class');
+    a.href = url;
+    a.download = `report-cards-${classLabel}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -168,7 +204,7 @@ export function GradesPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExport}>
             <Download className="w-4 h-4" />
             Export Report Cards
           </Button>
