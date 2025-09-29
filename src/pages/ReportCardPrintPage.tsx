@@ -207,9 +207,9 @@ export default function ReportCardPrintPage() {
                 <h2 className="text-2xl font-extrabold leading-tight">Michael Agyei School</h2>
                 <p className="text-[13px] text-muted-foreground">Academic Report Card</p>
                 <div className="text-[12px] text-muted-foreground flex flex-wrap gap-2">
-                  <span>Term & Year: __________</span>
-                  <span className="hidden sm:inline">•</span>
-                  <span>Class Teacher: {classTeacherName}</span>
+                 {/* <span>Term & Year: __________</span> 
+                  <span className="hidden sm:inline">•</span>*/}
+                  {/* <span>Class Teacher: {classTeacherName}</span> */}
                 </div>
               </div>
             </div>
@@ -229,8 +229,9 @@ export default function ReportCardPrintPage() {
                 ) : null}
               </div>
               <div>
-              <p><span className="font-semibold">Teacher:</span> {classTeacherName}</p>
+             {/* <p><span className="font-semibold">Teacher:</span> {classTeacherName}</p> 
               <p><span className="font-semibold">Term Dates:</span> {termStart} — {termEnd}</p>
+              */}
               </div>
             </div>
           </div>
