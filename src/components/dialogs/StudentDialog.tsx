@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { createStudent, updateStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
+import { createStudent, updateStudent, upsertStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
+import { storage } from "@/firebase";
+import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
@@ -106,15 +108,73 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     e.preventDefault();
     try {
       setLoading(true);
+      const withTimeout = async <T,>(p: Promise<T>, ms = 20000): Promise<T> => {
+        return await Promise.race([
+          p,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please check your internet connection and try again.')), ms))
+        ]) as T;
+      };
+
+      // Helper: lightweight client-side compression to speed up uploads
+      const compressImage = (file: File, maxSize = 640): Promise<Blob> => new Promise((resolve) => {
+        try {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(file); return; }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.82);
+          };
+          img.onerror = () => resolve(file);
+          const reader = new FileReader();
+          reader.onload = ev => { img.src = String(ev.target?.result || ''); };
+          reader.readAsDataURL(file);
+        } catch {
+          resolve(file);
+        }
+      });
+
+      const uploadPhotoInBackground = async (id: string) => {
+        if (!photoFile) return;
+        try {
+          const blob = await compressImage(photoFile);
+          const safeName = `${(id || `${formData.firstName}-${formData.lastName}`).replace(/[^a-z0-9-_]/gi, '_')}-${Date.now()}.jpg`;
+          const path = `student-photos/${safeName}`;
+          const fileRef = sRef(storage, path);
+          await uploadBytes(fileRef, blob, { contentType: 'image/jpeg' });
+          const url = await getDownloadURL(fileRef);
+          await upsertStudent(id, { photoUrl: String(url) });
+        } catch (uploadErr: any) {
+          console.error('Photo upload failed:', uploadErr);
+          toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
+        }
+      };
+
       if (mode === "create") {
-        await createStudent(formData);
-        toast({ title: "Student created" });
+        // Save core data first for instant response; photo uploads after
+        const newId = await withTimeout(createStudent({ ...formData, photoUrl: formData.photoUrl || '' }));
+        if (photoFile) {
+          void uploadPhotoInBackground(newId);
+          toast({ title: "Student created", description: "Uploading photo in background..." });
+        } else {
+          toast({ title: "Student created" });
+        }
       } else if (student?.id) {
-        await updateStudent(student.id, formData);
-        toast({ title: "Student updated" });
+        await withTimeout(upsertStudent(student.id, { ...formData }));
+        if (photoFile) {
+          void uploadPhotoInBackground(student.id);
+          toast({ title: "Student updated", description: "Uploading new photo in background..." });
+        } else {
+          toast({ title: "Student updated" });
+        }
       }
       onOpenChange(false);
     } catch (error: any) {
+      console.error('Student save failed:', error);
       toast({ title: "Error", description: error?.message || String(error), variant: "destructive" });
     } finally {
       setLoading(false);

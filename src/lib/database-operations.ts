@@ -72,6 +72,26 @@ export const updateStudent = async (studentId: string, updates: Partial<Student>
   }
 };
 
+export const upsertStudent = async (studentId: string, data: Partial<Student>): Promise<void> => {
+  try {
+    const studentRef = ref(rtdb, `students/${studentId}`);
+    const snap = await get(studentRef);
+    if (snap.exists()) {
+      await update(studentRef, { ...data, updatedAt: new Date().toISOString() });
+    } else {
+      const payload = {
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as Student;
+      await set(studentRef, payload);
+    }
+  } catch (error) {
+    console.error('Error upserting student:', error);
+    throw error;
+  }
+};
+
 export const deleteStudent = async (studentId: string): Promise<void> => {
   try {
     const studentRef = ref(rtdb, `students/${studentId}`);

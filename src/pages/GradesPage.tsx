@@ -33,6 +33,7 @@ import { useAuth } from "@/contexts/CustomAuthContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { GradeDialog } from '@/components/dialogs/GradeDialog';
+import { useNavigate } from 'react-router-dom';
 
 type GradeRow = {
   id: string;
@@ -58,6 +59,7 @@ export function GradesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { currentUser, userRole } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
@@ -211,6 +213,14 @@ export function GradesPage() {
           <Button className="gap-2 bg-gradient-primary" onClick={() => setDialogOpen(true)} >
             <Plus className="w-4 h-4" />
             Add Score
+          </Button>
+          <Button variant="secondary" className="gap-2" onClick={() => {
+            const cid = selectedClass === 'all' ? (availableClasses[0]?.id || '') : selectedClass;
+            if (!cid) return;
+            navigate(`/admin/grades/print/${cid}`);
+          }}>
+            <FileText className="w-4 h-4" />
+            Print Report Cards
           </Button>
         </div>
       </div>
