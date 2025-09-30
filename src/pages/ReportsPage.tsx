@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +48,7 @@ import {
 
 export default function ReportsPage() {
   const { userRole } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [reportStats, setReportStats] = useState<ReportStats>({
     reportsGenerated: 0,
@@ -68,6 +70,10 @@ export default function ReportsPage() {
   const [paymentDescription, setPaymentDescription] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState("");
   const { toast } = useToast();
+
+  // Print single student controls
+  const [printClassId, setPrintClassId] = useState<string>("");
+  const [printStudentId, setPrintStudentId] = useState<string>("");
 
   useEffect(() => {
     // Subscribe to real-time data
@@ -412,6 +418,16 @@ export default function ReportsPage() {
 
   // Use classes from DB for grade/class selection
   const availableClassNames = classes.map(c => c.className).filter(Boolean).sort();
+  const classIdByName = new Map(classes.map(c => [c.className, c.id!]).filter(([_, id]) => Boolean(id)) as Array<[string, string]>);
+
+  const handlePrintSingleStudent = () => {
+    const classId = classIdByName.get(printClassId);
+    if (!classId || !printStudentId) {
+      toast({ title: "Missing selection", description: "Choose class and student to print.", variant: "destructive" });
+      return;
+    }
+    navigate(`/admin/grades/print/${classId}?studentId=${encodeURIComponent(printStudentId)}`);
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -548,6 +564,52 @@ export default function ReportsPage() {
 
       {/* Report Categories */}
       <div className={`grid gap-6 ${userRole === 'accountant' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'}`}>
+        {/* Print single student section */}
+        <Card className="shadow-soft border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-primary" />
+              Print Only This Student
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label>Select Class</Label>
+                <Select value={printClassId} onValueChange={(v) => { setPrintClassId(v); setPrintStudentId(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableClassNames.map(cls => (
+                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Select Student</Label>
+                <Select value={printStudentId} onValueChange={setPrintStudentId} disabled={!printClassId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students
+                      .filter(s => s.className === printClassId)
+                      .map(s => (
+                        <SelectItem key={s.id} value={s.id!}>{s.firstName} {s.lastName}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handlePrintSingleStudent} disabled={!printClassId || !printStudentId} className="gap-2">
+                  Print
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="shadow-soft border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

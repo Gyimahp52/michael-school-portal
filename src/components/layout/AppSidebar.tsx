@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/CustomAuthContext";
+import { getSchoolSettings, SchoolSettings } from "@/lib/school-settings";
 
 const baseItems = [
   {
@@ -120,6 +122,10 @@ export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const { userRole } = useAuth();
+  const [settings, setSettings] = useState<SchoolSettings | null>(null);
+  useEffect(() => {
+    getSchoolSettings().then(setSettings).catch(() => {});
+  }, []);
   
   const isCollapsed = state === "collapsed";
 
@@ -135,13 +141,17 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-medium">
-            <GraduationCap className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-medium overflow-hidden">
+            {settings?.logoUrl ? (
+              <img src={settings.logoUrl} alt="School Logo" className="w-full h-full object-cover" />
+            ) : (
+              <GraduationCap className="w-5 h-5 text-white" />
+            )}
           </div>
           {!isCollapsed && (
             <div>
               <h2 className="text-lg font-semibold text-sidebar-foreground">
-                Michael Agyei School
+                {settings?.schoolName || 'Michael Agyei School'}
               </h2>
               <p className="text-sm text-sidebar-foreground/70">
                 Management System

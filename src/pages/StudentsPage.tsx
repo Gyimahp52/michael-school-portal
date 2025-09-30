@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
@@ -48,6 +49,7 @@ export function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const { toast } = useToast();
@@ -79,6 +81,11 @@ export function StudentsPage() {
     setSelectedStudent(student);
     setDialogMode("edit");
     setDialogOpen(true);
+  };
+
+  const handleViewProfile = (student: Student) => {
+    setSelectedStudent(student);
+    setProfileOpen(true);
   };
 
   const handleDeleteStudent = async (studentId: string) => {
@@ -290,6 +297,9 @@ export function StudentsPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
+                        {student.photoUrl && (
+                          <AvatarImage src={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} />
+                        )}
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                           {student.firstName[0]}{student.lastName[0]}
                         </AvatarFallback>
@@ -331,7 +341,7 @@ export function StudentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem className="gap-2" onClick={() => handleViewProfile(student)}>
                           <Eye className="w-4 h-4" />
                           View Profile
                         </DropdownMenuItem>
@@ -364,6 +374,51 @@ export function StudentsPage() {
         student={selectedStudent}
         mode={dialogMode}
       />
+
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Student Profile</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted border">
+                  {selectedStudent.photoUrl ? (
+                    <img src={selectedStudent.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">No Photo</div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-lg font-semibold">{selectedStudent.firstName} {selectedStudent.lastName}</div>
+                  <div className="text-sm text-muted-foreground">ID: {selectedStudent.id || 'N/A'}</div>
+                  <div className="text-sm text-muted-foreground">Class: {selectedStudent.className}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-muted-foreground">Email</div>
+                  <div>{selectedStudent.email || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Phone</div>
+                  <div>{selectedStudent.phone || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Guardian</div>
+                  <div>{selectedStudent.parentName || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Guardian Phone</div>
+                  <div>{selectedStudent.parentPhone || '-'}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -76,6 +76,12 @@ export default function ReportCardPrintPage() {
     return onlyId ? list.filter(s => s.id === onlyId) : list;
   }, [students, targetClass, searchParams]);
 
+  // All students in the class (without filtering by studentId) for position calculations
+  const allClassStudents = useMemo(() => {
+    const clsName = targetClass?.name || targetClass?.className;
+    return students.filter(s => clsName ? s.className === clsName : false);
+  }, [students, targetClass]);
+
   const subjectById = useMemo(() => Object.fromEntries(subjects.map(s => [s.id!, s])), [subjects]);
 
   const reports: StudentReport[] = useMemo(() => {
@@ -126,6 +132,46 @@ export default function ReportCardPrintPage() {
     });
   }, [assessments, classStudents, subjectById, attendance, targetClass?.id]);
 
+  // Build full reports for the entire class (used to compute positions over the full class)
+  const fullClassReports: StudentReport[] = useMemo(() => {
+    return allClassStudents.map(student => {
+      const aForStudent = assessments.filter(a => a.studentId === student.id);
+      const subjectIds = Array.from(new Set(aForStudent.map(a => a.subjectId).filter(Boolean)));
+      const rows = subjectIds.map(sid => {
+        const items = aForStudent.filter(a => a.subjectId === sid);
+        const classwork = items.filter(i => i.assessmentType !== 'exam').reduce((sum, i) => sum + (i.score || 0), 0);
+        const exam = items.filter(i => i.assessmentType === 'exam').reduce((sum, i) => sum + (i.score || 0), 0);
+        const totalMax = items.reduce((sum, i) => sum + (i.maxScore || 0), 0) || 100;
+        const total = classwork + exam;
+        const percentage = totalMax > 0 ? (total / totalMax) * 100 : 0;
+        const grade = computeGrade(percentage);
+        return {
+          subjectId: sid,
+          subjectName: subjectById[sid]?.name || sid,
+          classwork,
+          exam,
+          total,
+          grade,
+          remarks: computeRemark(grade),
+        };
+      });
+
+      const totalMarks = rows.reduce((sum, r) => sum + r.total, 0);
+      const totalMax = aForStudent.reduce((sum, i) => sum + (i.maxScore || 0), 0) || (rows.length * 100);
+      const averageMarks = rows.length ? totalMarks / rows.length : 0;
+      const overallPercent = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
+      const overallGrade = computeGrade(overallPercent);
+
+      const classAttendance = attendance.filter(r => r.classId === (targetClass?.id || ''));
+      const attForStudent = classAttendance.flatMap(r => r.entries.filter(e => e.studentId === student.id));
+      const opened = classAttendance.length;
+      const present = attForStudent.filter(e => e.status === 'present').length;
+      const absent = Math.max(0, opened - present);
+
+      return { student, subjects: rows, totalMarks, averageMarks, overallGrade, attendance: opened ? { opened, present, absent } : undefined };
+    });
+  }, [assessments, allClassStudents, subjectById, attendance, targetClass?.id]);
+
   const classAverage = useMemo(() => {
     if (!reports.length) return 0;
     const averages = reports.map(r => r.averageMarks || 0);
@@ -134,11 +180,11 @@ export default function ReportCardPrintPage() {
 
   // Determine positions by total marks
   const positions = useMemo(() => {
-    const sorted = [...reports].sort((a, b) => b.totalMarks - a.totalMarks);
+    const sorted = [...fullClassReports].sort((a, b) => b.totalMarks - a.totalMarks);
     const map = new Map<string, number>();
     sorted.forEach((r, idx) => map.set(r.student.id!, idx + 1));
     return map;
-  }, [reports]);
+  }, [fullClassReports]);
 
   const classLabel = targetClass ? (targetClass.name || targetClass.className) : '';
   const classTeacherName = useMemo(() => {
@@ -165,7 +211,7 @@ export default function ReportCardPrintPage() {
       <div className="mb-4 flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-2xl font-bold">Termly Report Cards – {classLabel}</h1>
-          <p className="text-sm text-muted-foreground">Michael Agyei School</p>
+          <p className="text-sm text-muted-foreground">Michael Adjei Educational Complex</p>
         </div>
         <div className="flex gap-2">
           <button className="px-3 py-2 rounded border" onClick={() => navigate(-1)}>Back</button>
@@ -193,8 +239,8 @@ export default function ReportCardPrintPage() {
             <div className="text-[9rem] font-extrabold tracking-widest text-blue-700">MACL</div>
           </div>
 
-          {/* Header */}
-          <div className="relative z-10 flex items-start justify-between p-6">
+         {/* Header */}
+          <div className="relative z-10 flex items-center justify-center p-6">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200">
                 {settings?.logoUrl ? (
@@ -203,14 +249,19 @@ export default function ReportCardPrintPage() {
                   <div className="w-full h-full bg-blue-600" />
                 )}
               </div>
-              <div>
-                <h2 className="text-2xl font-extrabold leading-tight">Michael Agyei School</h2>
+              <div className="text-center">
+                <h2 className="text-2xl font-extrabold leading-tight">Michael Adjei Educational Complex</h2>
                 <p className="text-[13px] text-muted-foreground">Academic Report Card</p>
-                <div className="text-[12px] text-muted-foreground flex flex-wrap gap-2">
-                 {/* <span>Term & Year: __________</span> 
-                  <span className="hidden sm:inline">•</span>*/}
-                  {/* <span>Class Teacher: {classTeacherName}</span> */}
+                <div className="text-[12px] text-muted-foreground flex flex-wrap gap-2 justify-center">
+                
                 </div>
+              </div>
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                {settings?.logoUrl ? (
+                  <img src={settings.logoUrl} alt="School Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-blue-600" />
+                )}
               </div>
             </div>
           </div>

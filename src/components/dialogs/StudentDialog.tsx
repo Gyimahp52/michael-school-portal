@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { createStudent, updateStudent, upsertStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
 import { storage } from "@/firebase";
-import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
@@ -138,39 +138,76 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         }
       });
 
-      const uploadPhotoInBackground = async (id: string) => {
-        if (!photoFile) return;
-        try {
-          const blob = await compressImage(photoFile);
-          const safeName = `${(id || `${formData.firstName}-${formData.lastName}`).replace(/[^a-z0-9-_]/gi, '_')}-${Date.now()}.jpg`;
-          const path = `student-photos/${safeName}`;
-          const fileRef = sRef(storage, path);
-          await uploadBytes(fileRef, blob, { contentType: 'image/jpeg' });
-          const url = await getDownloadURL(fileRef);
-          await upsertStudent(id, { photoUrl: String(url) });
-        } catch (uploadErr: any) {
-          console.error('Photo upload failed:', uploadErr);
-          toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
+      const uploadPhotoAndGetUrl = async (proposedId: string) => {
+        if (!photoFile) return '';
+        const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+        if (photoFile.size > MAX_BYTES) {
+          throw new Error('Image too large. Please select a file under 10MB.');
         }
+        // Inactivity watchdog: reset on progress, fail if no progress for 60s
+        const createInactivityWatchdog = (ms: number, onTimeout: () => void) => {
+          let timer: ReturnType<typeof setTimeout> | null = setTimeout(onTimeout, ms);
+          return {
+            tick: () => { if (timer) { clearTimeout(timer); timer = setTimeout(onTimeout, ms); } },
+            clear: () => { if (timer) { clearTimeout(timer); timer = null; } }
+          };
+        };
+        const blob = await compressImage(photoFile);
+        const safeName = `${(proposedId || `${formData.firstName}-${formData.lastName}`).replace(/[^a-z0-9-_]/gi, '_')}-${Date.now()}.jpg`;
+        const path = `student-photos/${safeName}`;
+        const fileRef = sRef(storage, path);
+        const url: string = await new Promise((resolve, reject) => {
+          const task = uploadBytesResumable(fileRef, blob, { contentType: 'image/jpeg' });
+          const watchdog = createInactivityWatchdog(60000, () => {
+            try { task.cancel(); } catch {}
+            reject(new Error('Upload timed out. Please try again.'));
+          });
+          task.on('state_changed', () => {
+            watchdog.tick();
+          }, (err) => {
+            watchdog.clear();
+            reject(err);
+          }, async () => {
+            watchdog.clear();
+            try {
+              const downloadUrl = await getDownloadURL(fileRef);
+              resolve(String(downloadUrl));
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+        return url;
       };
 
       if (mode === "create") {
-        // Save core data first for instant response; photo uploads after
-        const newId = await withTimeout(createStudent({ ...formData, photoUrl: formData.photoUrl || '' }));
+        let photoUrl = '';
         if (photoFile) {
-          void uploadPhotoInBackground(newId);
-          toast({ title: "Student created", description: "Uploading photo in background..." });
-        } else {
-          toast({ title: "Student created" });
+          try {
+            // Use a temporary name based on names; final ID not known yet
+            photoUrl = await uploadPhotoAndGetUrl(`${formData.firstName}-${formData.lastName}`);
+          } catch (uploadErr: any) {
+            console.error('Photo upload failed:', uploadErr);
+            toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
+            // Abort create if user selected a photo but upload failed
+            throw uploadErr;
+          }
         }
+        await withTimeout(createStudent({ ...formData, photoUrl }));
+        toast({ title: "Student created" });
       } else if (student?.id) {
-        await withTimeout(upsertStudent(student.id, { ...formData }));
+        let updates = { ...formData } as typeof formData;
         if (photoFile) {
-          void uploadPhotoInBackground(student.id);
-          toast({ title: "Student updated", description: "Uploading new photo in background..." });
-        } else {
-          toast({ title: "Student updated" });
+          try {
+            const photoUrl = await uploadPhotoAndGetUrl(student.id);
+            updates = { ...updates, photoUrl };
+          } catch (uploadErr: any) {
+            console.error('Photo upload failed:', uploadErr);
+            toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
+          }
         }
+        await withTimeout(upsertStudent(student.id, { ...updates }));
+        toast({ title: "Student updated" });
       }
       onOpenChange(false);
     } catch (error: any) {

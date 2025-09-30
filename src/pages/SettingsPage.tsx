@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,18 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { getSchoolSettings, updateSchoolSettings, SchoolSettings } from "@/lib/school-settings";
 import { useToast } from "@/hooks/use-toast";
+import { storage } from "@/firebase";
+import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("school");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SchoolSettings | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -84,6 +88,74 @@ export default function SettingsPage() {
         [key]: value
       }
     });
+  };
+
+  const handleSelectLogoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!settings) return;
+
+    const isImage = file.type.startsWith("image/");
+    if (!isImage) {
+      toast({ title: "Invalid file", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_BYTES) {
+      toast({ title: "File too large", description: "Please select an image under 10MB", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      const createInactivityWatchdog = (ms: number, onTimeout: () => void) => {
+        let timer: ReturnType<typeof setTimeout> | null = setTimeout(onTimeout, ms);
+        return {
+          tick: () => { if (timer) { clearTimeout(timer); timer = setTimeout(onTimeout, ms); } },
+          clear: () => { if (timer) { clearTimeout(timer); timer = null; } }
+        };
+      };
+      const safeName = `school-logo-${Date.now()}`;
+      const path = `branding/${safeName}`;
+      const fileRef = sRef(storage, path);
+      const url: string = await new Promise((resolve, reject) => {
+        const task = uploadBytesResumable(fileRef, file, { contentType: file.type });
+        const watchdog = createInactivityWatchdog(60000, () => {
+          try { task.cancel(); } catch {}
+          reject(new Error('Upload timed out. Please try again.'));
+        });
+        task.on('state_changed', () => {
+          watchdog.tick();
+        }, (err) => {
+          watchdog.clear();
+          reject(err);
+        }, async () => {
+          watchdog.clear();
+          try {
+            const downloadUrl = await getDownloadURL(fileRef);
+            resolve(String(downloadUrl));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+
+      setSettings({ ...settings, logoUrl: url });
+      await updateSchoolSettings({ logoUrl: url });
+
+      toast({ title: "Logo updated", description: "School logo uploaded successfully" });
+    } catch (err: any) {
+      console.error("Logo upload failed", err);
+      toast({ title: "Upload failed", description: err?.message || "Unable to upload logo", variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (loading || !settings) {
@@ -207,13 +279,27 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="logo">School Logo</Label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
-                    <School className="w-8 h-8 text-muted-foreground" />
+                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                    {settings.logoUrl ? (
+                      <img src={settings.logoUrl} alt="School logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <School className="w-8 h-8 text-muted-foreground" />
+                    )}
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload Logo
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoSelected}
+                    />
+                    <Button variant="outline" className="gap-2" onClick={handleSelectLogoClick} disabled={uploadingLogo}>
+                      {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin" />}
+                      <Upload className="w-4 h-4" />
+                      {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
