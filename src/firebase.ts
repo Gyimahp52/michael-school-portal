@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyB1Rn0z9qmGtIGrdYkE8n7bXPqq06QlT7c",
   authDomain: "macl-school.firebaseapp.com",
   projectId: "macl-school",
-  storageBucket: "macl-school.appspot.com",
+  storageBucket: "macl-school.firebasestorage.app",
   messagingSenderId: "198394118967",
   appId: "1:198394118967:web:defe2198c8f3dad33290b2",
   measurementId: "G-NF31NQEBYY"

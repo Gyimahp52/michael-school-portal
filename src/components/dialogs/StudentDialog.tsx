@@ -108,7 +108,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     e.preventDefault();
     try {
       setLoading(true);
-      const withTimeout = async <T,>(p: Promise<T>, ms = 20000): Promise<T> => {
+      const withTimeout = async <T,>(p: Promise<T>, ms = 90000): Promise<T> => {
         return await Promise.race([
           p,
           new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Please check your internet connection and try again.')), ms))
@@ -116,7 +116,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       };
 
       // Helper: lightweight client-side compression to speed up uploads
-      const compressImage = (file: File, maxSize = 640): Promise<Blob> => new Promise((resolve) => {
+      const compressImage = (file: File, maxSize = 800): Promise<Blob> => new Promise((resolve) => {
         try {
           const img = new Image();
           img.onload = () => {
@@ -127,7 +127,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
             const ctx = canvas.getContext('2d');
             if (!ctx) { resolve(file); return; }
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.82);
+            canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.7);
           };
           img.onerror = () => resolve(file);
           const reader = new FileReader();
@@ -144,7 +144,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         if (photoFile.size > MAX_BYTES) {
           throw new Error('Image too large. Please select a file under 10MB.');
         }
-        // Inactivity watchdog: reset on progress, fail if no progress for 60s
+        // Inactivity watchdog: reset on progress, fail if no progress for 45s
         const createInactivityWatchdog = (ms: number, onTimeout: () => void) => {
           let timer: ReturnType<typeof setTimeout> | null = setTimeout(onTimeout, ms);
           return {
@@ -158,9 +158,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         const fileRef = sRef(storage, path);
         const url: string = await new Promise((resolve, reject) => {
           const task = uploadBytesResumable(fileRef, blob, { contentType: 'image/jpeg' });
-          const watchdog = createInactivityWatchdog(60000, () => {
+          const watchdog = createInactivityWatchdog(45000, () => {
             try { task.cancel(); } catch {}
-            reject(new Error('Upload timed out. Please try again.'));
+            reject(new Error('Upload stalled. Please check your connection and try again.'));
           });
           task.on('state_changed', () => {
             watchdog.tick();
