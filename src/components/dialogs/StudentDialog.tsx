@@ -186,27 +186,34 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
           try {
             // Use a temporary name based on names; final ID not known yet
             photoUrl = await uploadPhotoAndGetUrl(`${formData.firstName}-${formData.lastName}`);
+            console.log('✅ Photo uploaded successfully, URL:', photoUrl);
           } catch (uploadErr: any) {
-            console.error('Photo upload failed:', uploadErr);
+            console.error('❌ Photo upload failed:', uploadErr);
             toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
             // Abort create if user selected a photo but upload failed
             throw uploadErr;
           }
         }
-        await withTimeout(createStudent({ ...formData, photoUrl }));
+        const studentData = { ...formData, photoUrl };
+        console.log('📝 Creating student with data:', { ...studentData, photoUrl: photoUrl || '(no photo)' });
+        await withTimeout(createStudent(studentData));
+        console.log('✅ Student created successfully');
         toast({ title: "Student created" });
       } else if (student?.id) {
         let updates = { ...formData } as typeof formData;
         if (photoFile) {
           try {
             const photoUrl = await uploadPhotoAndGetUrl(student.id);
+            console.log('✅ Photo uploaded successfully for edit, URL:', photoUrl);
             updates = { ...updates, photoUrl };
           } catch (uploadErr: any) {
-            console.error('Photo upload failed:', uploadErr);
+            console.error('❌ Photo upload failed during edit:', uploadErr);
             toast({ title: 'Photo upload failed', description: uploadErr?.message || 'Unable to upload image', variant: 'destructive' });
           }
         }
-        await withTimeout(upsertStudent(student.id, { ...updates }));
+        console.log('📝 Updating student with data:', { ...updates, photoUrl: updates.photoUrl || '(unchanged)' });
+        await withTimeout(upsertStudent(student.id, updates));
+        console.log('✅ Student updated successfully');
         toast({ title: "Student updated" });
       }
       onOpenChange(false);
