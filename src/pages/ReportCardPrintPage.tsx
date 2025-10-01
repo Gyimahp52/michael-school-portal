@@ -232,144 +232,329 @@ export default function ReportCardPrintPage() {
       `}</style>
 
       {reports.map((rep, idx) => (
-        <div key={rep.student.id} className={`card bg-white border rounded-xl shadow-sm mb-10 relative overflow-hidden`}> 
-          <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-emerald-500 to-blue-600" />
+        <div key={rep.student.id} className={`card bg-white border-2 rounded-2xl shadow-lg mb-10 relative overflow-hidden ${idx < reports.length - 1 ? 'page-break' : ''}`}> 
+          <div className="h-3 w-full bg-gradient-to-r from-blue-600 via-emerald-500 to-blue-600" />
+          {/* Decorative Corner Elements */}
+          <div className="absolute top-0 left-0 w-32 h-32 opacity-10">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-transparent rounded-br-full"></div>
+          </div>
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+            <div className="absolute inset-0 bg-gradient-to-bl from-emerald-500 to-transparent rounded-bl-full"></div>
+          </div>
           {/* Watermark */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center">
-            <div className="text-[9rem] font-extrabold tracking-widest text-blue-700">MACL</div>
+          <div className="absolute inset-0 pointer-events-none opacity-[0.02] flex items-center justify-center">
+            <div className="text-[12rem] font-extrabold tracking-widest text-blue-700 transform rotate-[-15deg]">MAEC</div>
           </div>
 
          {/* Header */}
-          <div className="relative z-10 flex items-center justify-center p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+          <div className="relative z-10 flex items-center justify-center py-6 px-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-4 ring-blue-200 shadow-lg">
                 {settings?.logoUrl ? (
-                  <img src={settings.logoUrl} alt="School Logo" className="w-full h-full object-cover" />
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="School Logo" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>';
+                      }
+                    }}
+                  />
                 ) : (
-                  <div className="w-full h-full bg-blue-600" />
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>
                 )}
               </div>
               <div className="text-center">
-                <h2 className="text-2xl font-extrabold leading-tight">Michael Adjei Educational Complex</h2>
-                <p className="text-[13px] text-muted-foreground">Academic Report Card</p>
-                <div className="text-[12px] text-muted-foreground flex flex-wrap gap-2 justify-center">
-                
+                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
+                  Michael Adjei Educational Complex
+                </h2>
+                <div className="mt-2 inline-block">
+                  <p className="text-sm font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-4 py-1 rounded-full">
+                    Academic Report Card
+                  </p>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">Excellence in Education</p>
               </div>
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-4 ring-emerald-200 shadow-lg">
                 {settings?.logoUrl ? (
-                  <img src={settings.logoUrl} alt="School Logo" className="w-full h-full object-cover" />
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="School Logo" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>';
+                      }
+                    }}
+                  />
                 ) : (
-                  <div className="w-full h-full bg-blue-600" />
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Student Info */}
-          <div className="relative z-10 grid grid-cols-2 gap-4 text-sm mb-4 px-6">
-            <div>
-              <p><span className="font-semibold">Student Name:</span> {rep.student.firstName} {rep.student.lastName}</p>
-              <p><span className="font-semibold">Admission No.:</span> {rep.student.id}</p>
-              <p><span className="font-semibold">Class & Year:</span> {classLabel} • {settings?.academicYear || '__________'}</p>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 border">
-                {rep.student.photoUrl ? (
-                  <img src={rep.student.photoUrl} alt="Student" className="w-full h-full object-cover" />
-                ) : null}
-              </div>
-              <div>
-             {/* <p><span className="font-semibold">Teacher:</span> {classTeacherName}</p> 
-              <p><span className="font-semibold">Term Dates:</span> {termStart} — {termEnd}</p>
-              */}
+          {/* Student Info Section */}
+          <div className="relative z-10 px-6 mb-6">
+            <div className="bg-gradient-to-r from-blue-50 via-white to-emerald-50 rounded-xl p-6 border-2 border-blue-100">
+              <div className="flex items-start justify-between">
+                {/* Student Details */}
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Student Name</p>
+                    <p className="text-xl font-bold text-blue-800">{rep.student.firstName} {rep.student.lastName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Admission No.</p>
+                      <p className="text-sm font-semibold text-gray-700">{rep.student.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Class & Year</p>
+                      <p className="text-sm font-semibold text-gray-700">{classLabel} • {settings?.academicYear || '__________'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Date of Birth</p>
+                      <p className="text-sm font-medium text-gray-700">{rep.student.dateOfBirth || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Parent/Guardian</p>
+                      <p className="text-sm font-medium text-gray-700">{rep.student.parentName || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Student Photo */}
+                <div className="ml-6">
+                  <div className="w-32 h-32 rounded-xl overflow-hidden bg-white border-4 border-white shadow-lg ring-2 ring-blue-200">
+                    {rep.student.photoUrl ? (
+                      <img 
+                        src={rep.student.photoUrl} 
+                        alt={`${rep.student.firstName} ${rep.student.lastName}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-blue-100"><span class="text-4xl font-bold text-blue-600">${rep.student.firstName[0]}${rep.student.lastName[0]}</span></div>`;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-blue-100">
+                        <span className="text-4xl font-bold text-blue-600">{rep.student.firstName[0]}{rep.student.lastName[0]}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Scores Table */}
-          <div className="relative z-10 px-6">
-            <table className="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
-              <thead className="bg-gradient-to-r from-blue-50 to-emerald-50">
-                <tr>
-                  <th className="border border-gray-200 px-3 py-2 text-left">Subject</th>
-                  <th className="border border-gray-200 px-3 py-2 text-right">Classwork</th>
-                  <th className="border border-gray-200 px-3 py-2 text-right">Exam</th>
-                  <th className="border border-gray-200 px-3 py-2 text-right">Total</th>
-                  <th className="border border-gray-200 px-3 py-2 text-center">Grade</th>
-                  <th className="border border-gray-200 px-3 py-2 text-left">Remarks</th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:nth-child(even)]:bg-gray-50/60">
-                {rep.subjects.map(row => (
-                  <tr key={row.subjectId}>
-                    <td className="border border-gray-200 px-3 py-2">{row.subjectName}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{row.classwork}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{row.exam}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-right">{row.total}</td>
-                    <td className="border border-gray-200 px-3 py-2 text-center"><span className={`inline-block px-2 py-[2px] text-xs rounded-full border ${getGradeBadgeClass(row.grade)}`}>{row.grade}</span></td>
-                    <td className="border border-gray-200 px-3 py-2">{row.remarks}</td>
+          {/* Academic Performance Section */}
+          <div className="relative z-10 px-6 mb-6">
+            <div className="mb-3">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-emerald-500 rounded-full"></div>
+                Academic Performance
+              </h3>
+            </div>
+            <div className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 text-white">
+                    <th className="px-4 py-3 text-left font-semibold">Subject</th>
+                    <th className="px-4 py-3 text-center font-semibold">Classwork</th>
+                    <th className="px-4 py-3 text-center font-semibold">Exam</th>
+                    <th className="px-4 py-3 text-center font-semibold">Total</th>
+                    <th className="px-4 py-3 text-center font-semibold">Grade</th>
+                    <th className="px-4 py-3 text-left font-semibold">Remarks</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rep.subjects.map((row, idx) => (
+                    <tr key={row.subjectId} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
+                      <td className="px-4 py-3 font-medium text-gray-800">{row.subjectName}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{row.classwork}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{row.exam}</td>
+                      <td className="px-4 py-3 text-center font-semibold text-gray-900">{row.total}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${getGradeBadgeClass(row.grade)}`}>
+                          {row.grade}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 italic">{row.remarks}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Summary */}
-          <div className="relative z-10 grid grid-cols-2 gap-6 mt-5 text-sm px-6">
-            <div className="space-y-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-md border border-gray-200 p-3 bg-white/70"><div className="text-[11px] text-muted-foreground">Total Marks</div><div className="text-lg font-semibold">{rep.totalMarks}</div></div>
-                <div className="rounded-md border border-gray-200 p-3 bg-white/70"><div className="text-[11px] text-muted-foreground">Average Marks</div><div className="text-lg font-semibold">{rep.averageMarks.toFixed(1)}</div></div>
-                <div className="rounded-md border border-gray-200 p-3 bg-white/70"><div className="text-[11px] text-muted-foreground">Position in Class</div><div className="text-lg font-semibold">{positions.get(rep.student.id!) || '-'} / {reports.length}</div></div>
-                <div className="rounded-md border border-gray-200 p-3 bg-white/70"><div className="text-[11px] text-muted-foreground">Class Average</div><div className="text-lg font-semibold">{classAverage.toFixed(1)}</div></div>
+          {/* Performance Summary & Comments */}
+          <div className="relative z-10 px-6 mb-6">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Left: Stats */}
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border-2 border-blue-100">
+                  <h4 className="text-xs uppercase tracking-wide text-blue-600 font-semibold mb-3">Performance Metrics</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Marks</div>
+                      <div className="text-2xl font-bold text-blue-700">{rep.totalMarks}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Average</div>
+                      <div className="text-2xl font-bold text-emerald-600">{rep.averageMarks.toFixed(1)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Position</div>
+                      <div className="text-2xl font-bold text-purple-600">{positions.get(rep.student.id!) || '-'} / {fullClassReports.length}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Class Avg</div>
+                      <div className="text-2xl font-bold text-orange-600">{classAverage.toFixed(1)}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-4 border-2 border-emerald-100">
+                  <p className="text-xs text-gray-600"><span className="font-bold text-gray-800">Class Teacher:</span> {classTeacherName}</p>
+                  <p className="text-xs text-gray-600 mt-2"><span className="font-bold text-gray-800">Academic Year:</span> {settings?.academicYear || '__________'}</p>
+                </div>
               </div>
-              <p className="mt-2"><span className="font-semibold">Class Teacher:</span> {classTeacherName}</p>
+
+              {/* Right: Comments */}
+              <div className="space-y-4">
+                {(() => {
+                  const overallPercent = (() => {
+                    const totalMax = assessments.filter(a => a.studentId === rep.student.id).reduce((sum, i) => sum + (i.maxScore || 0), 0);
+                    return totalMax > 0 ? (rep.totalMarks / totalMax) * 100 : 0;
+                  })();
+                  let teacherAuto = '';
+                  if (overallPercent >= 90) teacherAuto = 'Excellent performance. Keep it up!';
+                  else if (overallPercent >= 70) teacherAuto = 'Good work, but there is room for improvement.';
+                  else if (overallPercent >= 50) teacherAuto = 'Fair performance. More effort is required.';
+                  else teacherAuto = 'Needs serious improvement. Encourage more study habits.';
+                  const headAuto = overallPercent >= 70 ? 'Keep striving for excellence.' : overallPercent >= 50 ? 'Work harder next term.' : 'Parent/guardian should support learning at home.';
+                  return (
+                    <>
+                      <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 border-2 border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
+                            <span className="text-amber-600 text-xs">👨‍🏫</span>
+                          </div>
+                          <div className="text-xs font-bold text-amber-800 uppercase tracking-wide">Class Teacher's Comment</div>
+                        </div>
+                        <div className="text-sm text-gray-700 leading-relaxed pl-10">{teacherAuto}</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border-2 border-purple-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <span className="text-purple-600 text-xs">👔</span>
+                          </div>
+                          <div className="text-xs font-bold text-purple-800 uppercase tracking-wide">Head Teacher's Comment</div>
+                        </div>
+                        <div className="text-sm text-gray-700 leading-relaxed pl-10">{headAuto}</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
-            <div className="space-y-1">
-              {(() => {
-                const overallPercent = (() => {
-                  const totalMax = assessments.filter(a => a.studentId === rep.student.id).reduce((sum, i) => sum + (i.maxScore || 0), 0);
-                  return totalMax > 0 ? (rep.totalMarks / totalMax) * 100 : 0;
-                })();
-                let teacherAuto = '';
-                if (overallPercent >= 90) teacherAuto = 'Excellent performance. Keep it up!';
-                else if (overallPercent >= 70) teacherAuto = 'Good work, but there is room for improvement.';
-                else if (overallPercent >= 50) teacherAuto = 'Fair performance. More effort is required.';
-                else teacherAuto = 'Needs serious improvement. Encourage more study habits.';
-                const headAuto = overallPercent >= 70 ? 'Keep striving for excellence.' : overallPercent >= 50 ? 'Work harder next term.' : 'Parent/guardian should support learning at home.';
-                return (
-                  <>
-                    <div className="rounded-md border border-gray-200 p-3 bg-white/70"><div className="text-[11px] text-muted-foreground mb-1">Teacher's Comment</div><div>{teacherAuto}</div></div>
-                    <div className="rounded-md border border-gray-200 p-3 bg-white/70 mt-2"><div className="text-[11px] text-muted-foreground mb-1">Head Teacher's Comment</div><div>{headAuto}</div></div>
-                  </>
-                );
-              })()}
+          </div>
+
+          {/* Attendance Section */}
+          <div className="relative z-10 px-6 mb-6">
+            <div className="bg-gradient-to-r from-indigo-50 via-white to-indigo-50 rounded-xl p-4 border-2 border-indigo-100">
+              <h4 className="text-xs uppercase tracking-wide text-indigo-600 font-semibold mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
+                Attendance Record
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-gray-100">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Opened</div>
+                  <div className="text-2xl font-bold text-gray-800">{rep.attendance?.opened ?? '-'}</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-green-100">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Present</div>
+                  <div className="text-2xl font-bold text-green-600">{rep.attendance?.present ?? '-'}</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-red-100">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Absent</div>
+                  <div className="text-2xl font-bold text-red-600">{rep.attendance?.absent ?? '-'}</div>
+                </div>
+              </div>
+              {rep.attendance && rep.attendance.opened > 0 && (
+                <div className="mt-3 text-center">
+                  <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-indigo-200">
+                    <span className="text-xs text-gray-600">Attendance Rate:</span>
+                    <span className="text-sm font-bold text-indigo-700">
+                      {((rep.attendance.present / rep.attendance.opened) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Attendance */}
-          <div className="relative z-10 grid grid-cols-3 gap-4 mt-5 text-sm px-6">
-            <div className="rounded-md border border-gray-200 p-3 bg-white/70"><span className="font-semibold">Days Opened:</span> {rep.attendance?.opened ?? '-'}</div>
-            <div className="rounded-md border border-gray-200 p-3 bg-white/70"><span className="font-semibold">Days Present:</span> {rep.attendance?.present ?? '-'}</div>
-            <div className="rounded-md border border-gray-200 p-3 bg-white/70"><span className="font-semibold">Days Absent:</span> {rep.attendance?.absent ?? '-'}</div>
+          {/* Signatures & Stamp */}
+          <div className="relative z-10 px-6 mb-6">
+            <div className="grid grid-cols-3 gap-6 text-sm">
+              <div className="text-center">
+                <div className="h-16 flex items-end justify-center">
+                  <div className="w-full h-px bg-gray-300"></div>
+                </div>
+                <p className="mt-2 font-semibold text-gray-700">Class Teacher</p>
+                <p className="text-xs text-gray-500">Signature & Date</p>
+              </div>
+              <div className="text-center">
+                <div className="h-16 flex items-end justify-center">
+                  <div className="w-full h-px bg-gray-300"></div>
+                </div>
+                <p className="mt-2 font-semibold text-gray-700">Head Teacher</p>
+                <p className="text-xs text-gray-500">Signature & Date</p>
+              </div>
+              <div className="text-center">
+                <div className="h-16 flex items-end justify-center">
+                  <div className="w-full h-px bg-gray-300"></div>
+                </div>
+                <p className="mt-2 font-semibold text-gray-700">Parent / Guardian</p>
+                <p className="text-xs text-gray-500">Signature & Date</p>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-center">
+              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-gray-500 uppercase">School Stamp</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Signatures */}
-          <div className="relative z-10 grid grid-cols-3 gap-6 mt-10 text-sm px-6">
-            <div className="pt-6"><div className="h-10" /><div className="border-t pt-2 text-center">Class Teacher</div></div>
-            <div className="pt-6"><div className="h-10" /><div className="border-t pt-2 text-center">Head Teacher</div></div>
-            <div className="pt-6"><div className="h-10" /><div className="border-t pt-2 text-center">Parent / Guardian</div></div>
+          {/* Footer */}
+          <div className="relative z-10 border-t-2 border-gray-200 mt-2 pt-4 px-6 pb-4">
+            <p className="text-center text-xs text-gray-500">
+              This is an official document from Michael Adjei Educational Complex • Keep this report card for your records
+            </p>
           </div>
 
-          <div className="relative z-10 grid grid-cols-3 gap-6 mt-4 text-sm px-6">
-            <div className="border pt-6 text-center">School Stamp</div>
-          </div>
-
-          <div className="page-break" />
           {/* Per-student action */}
-          <div className="print:hidden mt-4 flex justify-end px-6">
-            <button className="px-3 py-1 rounded border text-sm" onClick={() => setSearchParams({ studentId: rep.student.id! })}>Print Only This Student</button>
+          <div className="print:hidden mt-4 flex justify-end gap-2 px-6 pb-4">
+            <button className="px-4 py-2 rounded-lg border-2 border-blue-200 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors" onClick={() => setSearchParams({ studentId: rep.student.id! })}>
+              Print Only This Student
+            </button>
           </div>
 
         </div>
