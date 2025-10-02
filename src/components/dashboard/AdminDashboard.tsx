@@ -16,6 +16,7 @@ import {
   CreditCard,
   AlertTriangle,
   Calculator,
+  Plus,
 } from "lucide-react";
 import {
   LineChart,
@@ -50,6 +51,16 @@ import {
   type RecentActivity,
   type PendingTask
 } from "@/lib/dashboard-analytics";
+import { 
+  subscribeToStudents,
+  subscribeToStudentBalances,
+  subscribeToSchoolFees,
+  Student,
+  StudentBalance,
+  SchoolFees
+} from "@/lib/database-operations";
+import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
+import { StudentBalancesByClass } from "./StudentBalancesByClass";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -70,7 +81,11 @@ export function AdminDashboard() {
   const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdownData[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
+  const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // Load initial data and set up real-time subscriptions
   useEffect(() => {
@@ -104,10 +119,16 @@ export function AdminDashboard() {
     // Set up real-time subscriptions
     const unsubscribeStats = subscribeToDashboardStats(setDashboardStats);
     const unsubscribeActivities = subscribeToRecentActivities(setRecentActivities);
+    const unsubscribeStudents = subscribeToStudents(setStudents);
+    const unsubscribeBalances = subscribeToStudentBalances(setStudentBalances);
+    const unsubscribeFees = subscribeToSchoolFees(setSchoolFees);
 
     return () => {
       unsubscribeStats();
       unsubscribeActivities();
+      unsubscribeStudents();
+      unsubscribeBalances();
+      unsubscribeFees();
     };
   }, []);
 
@@ -508,6 +529,24 @@ export function AdminDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Student Balances by Class */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Student Fees by Class</h2>
+          <Button size="sm" onClick={() => setPaymentDialogOpen(true)} className="bg-gradient-primary">
+            <Plus className="w-4 h-4 mr-2" />
+            Record Payment
+          </Button>
+        </div>
+        <StudentBalancesByClass
+          students={students}
+          studentBalances={studentBalances}
+          schoolFees={schoolFees}
+        />
+      </div>
+
+      <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
     </div>
   );
 }

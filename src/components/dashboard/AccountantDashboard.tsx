@@ -19,16 +19,22 @@ import {
   subscribeToInvoices, 
   subscribeToStudentBalances,
   subscribeToStudents,
+  subscribeToSchoolFees,
   Invoice, 
   StudentBalance, 
-  Student 
+  Student,
+  SchoolFees
 } from "@/lib/database-operations";
+import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
+import { StudentBalancesByClass } from "./StudentBalancesByClass";
 
 export function AccountantDashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
@@ -43,12 +49,17 @@ export function AccountantDashboard() {
       setStudents(studentsData);
     });
 
+    const unsubscribeFees = subscribeToSchoolFees((feesData) => {
+      setSchoolFees(feesData);
+    });
+
     setLoading(false);
 
     return () => {
       unsubscribeInvoices();
       unsubscribeBalances();
       unsubscribeStudents();
+      unsubscribeFees();
     };
   }, []);
 
@@ -153,9 +164,9 @@ export function AccountantDashboard() {
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
-          <Button size="sm">
+          <Button size="sm" className="bg-gradient-primary" onClick={() => setPaymentDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            New Transaction
+            Record Payment
           </Button>
         </div>
       </div>
@@ -299,6 +310,22 @@ export function AccountantDashboard() {
         </CardContent>
       </Card>
 
+      {/* Student Balances by Class */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Student Fees by Class</h2>
+          <Button size="sm" onClick={() => setPaymentDialogOpen(true)} className="bg-gradient-primary">
+            <Plus className="w-4 h-4 mr-2" />
+            Record Payment
+          </Button>
+        </div>
+        <StudentBalancesByClass
+          students={students}
+          studentBalances={studentBalances}
+          schoolFees={schoolFees}
+        />
+      </div>
+
       {/* Quick Actions */}
       <Card className="shadow-sm">
         <CardHeader>
@@ -310,7 +337,7 @@ export function AccountantDashboard() {
               <Receipt className="w-6 h-6" />
               <span>Generate Invoice</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setPaymentDialogOpen(true)}>
               <DollarSign className="w-6 h-6" />
               <span>Record Payment</span>
             </Button>
@@ -325,6 +352,8 @@ export function AccountantDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
     </div>
   );
 }

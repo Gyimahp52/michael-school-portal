@@ -30,10 +30,12 @@ import {
   CreditCard,
 } from "lucide-react";
 import { Invoice, subscribeToInvoices } from "@/lib/database-operations";
+import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 
 export function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToInvoices(setInvoices);
@@ -93,9 +95,9 @@ export function BillingPage() {
             <FileText className="w-4 h-4" />
             Financial Report
           </Button>
-          <Button className="gap-2 bg-gradient-primary">
+          <Button className="gap-2 bg-gradient-primary" onClick={() => setPaymentDialogOpen(true)}>
             <Plus className="w-4 h-4" />
-            Create Invoice
+            Record Payment
           </Button>
         </div>
       </div>
@@ -250,6 +252,8 @@ export function BillingPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
     </div>
   );
 }
