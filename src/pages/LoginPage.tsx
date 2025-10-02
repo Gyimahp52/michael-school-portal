@@ -80,7 +80,7 @@ export function LoginPage() {
                 <GraduationCap className="w-12 h-12 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground text-center">Michael Agyei School</h1>
+                <h1 className="text-2xl font-bold text-foreground text-center">Michael Adjei Educational Complex</h1>
                 <p className="text-muted-foreground text-center">School Management System</p>
               </div>
             </div>
