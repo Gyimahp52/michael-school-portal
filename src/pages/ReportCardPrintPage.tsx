@@ -246,60 +246,52 @@ export default function ReportCardPrintPage() {
             <div className="text-[12rem] font-extrabold tracking-widest text-blue-700 transform rotate-[-15deg]">MAEC</div>
           </div>
 
-         {/* Header */}
-          <div className="relative z-10 flex items-center justify-center py-6 px-6">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-4 ring-blue-200 shadow-lg">
-                {settings?.logoUrl ? (
-                  <img 
-                    src={settings.logoUrl} 
-                    alt="School Logo" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>';
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>
-                )}
+        {/* Header */}
+        <div className="relative z-10 flex items-center justify-center py-6 px-6">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-4 ring-blue-200 shadow-lg">
+              <img 
+                src="/public/favicon.ico" 
+                alt="School Logo" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>';
+                  }
+                }}
+              />
+            </div>
+            <div className="text-center">
+              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
+                Michael Adjei Educational Complex
+              </h2>
+              <div className="mt-2 inline-block">
+                <p className="text-sm font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-4 py-1 rounded-full">
+                  Academic Report Card
+                </p>
               </div>
-              <div className="text-center">
-                <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
-                  Michael Adjei Educational Complex
-                </h2>
-                <div className="mt-2 inline-block">
-                  <p className="text-sm font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-4 py-1 rounded-full">
-                    Academic Report Card
-                  </p>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Excellence in Education</p>
-              </div>
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-4 ring-emerald-200 shadow-lg">
-                {settings?.logoUrl ? (
-                  <img 
-                    src={settings.logoUrl} 
-                    alt="School Logo" 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>';
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>
-                )}
-              </div>
+              <p className="text-xs text-gray-500 mt-2">Excellence in Education</p>
+            </div>
+            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-4 ring-emerald-200 shadow-lg">
+              <img 
+                src="YOUR_LOGO_URL_HERE" 
+                alt="School Logo" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>';
+                  }
+                }}
+              />
             </div>
           </div>
+        </div>
 
           {/* Student Info Section */}
           <div className="relative z-10 px-6 mb-6">
