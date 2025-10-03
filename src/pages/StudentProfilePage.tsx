@@ -43,6 +43,7 @@ import {
   Subject,
 } from "@/lib/database-operations";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 interface PaymentRecord {
   id: string;
@@ -687,7 +688,7 @@ export function StudentProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Total Fees</p>
-                      <h3 className="text-2xl font-bold text-foreground">₦{balance.totalFees.toLocaleString()}</h3>
+                      <h3 className="text-2xl font-bold text-foreground">{formatCurrency(balance.totalFees)}</h3>
                     </div>
                     <CreditCard className="w-8 h-8 text-primary" />
                   </div>
@@ -698,7 +699,7 @@ export function StudentProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Amount Paid</p>
-                      <h3 className="text-2xl font-bold text-success">₦{balance.amountPaid.toLocaleString()}</h3>
+                      <h3 className="text-2xl font-bold text-success">{formatCurrency(balance.amountPaid)}</h3>
                     </div>
                     <DollarSign className="w-8 h-8 text-success" />
                   </div>
@@ -709,7 +710,7 @@ export function StudentProfilePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Outstanding</p>
-                      <h3 className="text-2xl font-bold text-warning">₦{balance.balance.toLocaleString()}</h3>
+                      <h3 className="text-2xl font-bold text-warning">{formatCurrency(balance.balance)}</h3>
                     </div>
                     <div className="w-8 h-8 bg-warning/20 rounded-full flex items-center justify-center">
                       <DollarSign className="w-5 h-5 text-warning" />
@@ -746,7 +747,7 @@ export function StudentProfilePage() {
                           <Badge variant="outline">{payment.paymentMethod}</Badge>
                         </TableCell>
                         <TableCell className="text-right font-semibold text-success">
-                          ₦{payment.amount.toLocaleString()}
+                          {formatCurrency(payment.amount)}
                         </TableCell>
                       </TableRow>
                     ))

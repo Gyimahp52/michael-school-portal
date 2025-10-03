@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Student, StudentBalance, SchoolFees } from "@/lib/database-operations";
 import { Users, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface StudentBalancesByClassProps {
   students: Student[];
@@ -128,21 +129,21 @@ export function StudentBalancesByClass({ students, studentBalances, schoolFees }
                   <DollarSign className="w-3 h-3" />
                   Expected
                 </div>
-                <div className="text-lg font-bold">₵{classSummary.totalExpected.toLocaleString()}</div>
+                <div className="text-lg font-bold">{formatCurrency(classSummary.totalExpected)}</div>
               </div>
               <div className="p-3 bg-success/10 rounded-lg">
                 <div className="flex items-center gap-2 text-xs text-success mb-1">
                   <TrendingUp className="w-3 h-3" />
                   Collected
                 </div>
-                <div className="text-lg font-bold text-success">₵{classSummary.totalCollected.toLocaleString()}</div>
+                <div className="text-lg font-bold text-success">{formatCurrency(classSummary.totalCollected)}</div>
               </div>
               <div className="p-3 bg-destructive/10 rounded-lg">
                 <div className="flex items-center gap-2 text-xs text-destructive mb-1">
                   <AlertCircle className="w-3 h-3" />
                   Outstanding
                 </div>
-                <div className="text-lg font-bold text-destructive">₵{classSummary.totalOutstanding.toLocaleString()}</div>
+                <div className="text-lg font-bold text-destructive">{formatCurrency(classSummary.totalOutstanding)}</div>
               </div>
               <div className="p-3 bg-muted/30 rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">Status</div>
@@ -173,10 +174,10 @@ export function StudentBalancesByClass({ students, studentBalances, schoolFees }
                       </div>
                       <div className="text-right ml-4">
                         <div className="text-xs text-muted-foreground">
-                          ₵{student.amountPaid.toLocaleString()} / ₵{student.totalFees.toLocaleString()}
+                          {formatCurrency(student.amountPaid)} / {formatCurrency(student.totalFees)}
                         </div>
                         <div className="text-sm font-bold text-destructive mt-1">
-                          ₵{student.balance.toLocaleString()} left
+                          {formatCurrency(student.balance)} left
                         </div>
                       </div>
                     </div>

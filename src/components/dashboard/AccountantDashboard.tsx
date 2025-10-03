@@ -27,6 +27,7 @@ import {
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
+import { formatCurrency } from "@/lib/utils";
 
 export function AccountantDashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -83,14 +84,14 @@ export function AccountantDashboard() {
   const financialStats = [
     { 
       title: "Fees Collected (This Month)", 
-      value: `₵${feesCollected.toLocaleString()}`, 
+      value: formatCurrency(feesCollected), 
       icon: DollarSign, 
       color: "text-green-600", 
       trend: "+12.5%" 
     },
     { 
       title: "Outstanding Fees", 
-      value: `₵${outstandingFees.toLocaleString()}`, 
+      value: formatCurrency(outstandingFees), 
       icon: AlertTriangle, 
       color: "text-red-600", 
       trend: `${overdueStudents} overdue` 
@@ -135,7 +136,7 @@ export function AccountantDashboard() {
     .map(invoice => ({
       type: "Fee Payment",
       student: invoice.studentName,
-      amount: `₵${invoice.amount.toLocaleString()}`,
+      amount: formatCurrency(invoice.amount),
       date: invoice.paymentDate ? new Date(invoice.paymentDate).toLocaleDateString() : "Pending",
       status: invoice.status.toLowerCase()
     }));

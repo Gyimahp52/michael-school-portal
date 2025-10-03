@@ -30,6 +30,7 @@ import {
   FileText,
   Loader2
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function SchoolFeesPage() {
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
@@ -231,7 +232,7 @@ export default function SchoolFeesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tuitionFees">Tuition Fees (₵)</Label>
+                  <Label htmlFor="tuitionFees">Tuition Fees (GHS)</Label>
                   <Input
                     id="tuitionFees"
                     type="number"
@@ -242,7 +243,7 @@ export default function SchoolFeesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="examFees">Exam Fees (₵)</Label>
+                  <Label htmlFor="examFees">Exam Fees (GHS)</Label>
                   <Input
                     id="examFees"
                     type="number"
@@ -256,7 +257,7 @@ export default function SchoolFeesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="activityFees">Activity Fees (₵)</Label>
+                  <Label htmlFor="activityFees">Activity Fees (GHS)</Label>
                   <Input
                     id="activityFees"
                     type="number"
@@ -267,7 +268,7 @@ export default function SchoolFeesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="otherFees">Other Fees (₵)</Label>
+                  <Label htmlFor="otherFees">Other Fees (GHS)</Label>
                   <Input
                     id="otherFees"
                     type="number"
@@ -284,12 +285,12 @@ export default function SchoolFeesPage() {
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 text-primary font-medium">
                     <Calculator className="w-4 h-4" />
-                    Total Fees: ₵{(
+                    Total Fees: {formatCurrency(
                       parseFloat(formData.tuitionFees || "0") +
                       parseFloat(formData.examFees || "0") +
                       parseFloat(formData.activityFees || "0") +
                       parseFloat(formData.otherFees || "0")
-                    ).toFixed(2)}
+                    )}
                   </div>
                 </div>
               )}
@@ -329,7 +330,7 @@ export default function SchoolFeesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Expected Revenue</p>
-                <h3 className="text-2xl font-bold mt-1">₵{totalExpectedRevenue.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold mt-1">{formatCurrency(totalExpectedRevenue)}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Total with all students</p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
@@ -345,7 +346,7 @@ export default function SchoolFeesPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Fees</p>
                 <h3 className="text-2xl font-bold mt-1">
-                  ₵{schoolFees.length > 0 ? (schoolFees.reduce((sum, f) => sum + f.totalFees, 0) / schoolFees.length).toFixed(0) : "0"}
+                  {schoolFees.length > 0 ? formatCurrency(schoolFees.reduce((sum, f) => sum + f.totalFees, 0) / schoolFees.length) : formatCurrency(0)}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">Per class</p>
               </div>
@@ -417,27 +418,27 @@ export default function SchoolFeesPage() {
                             <div className="grid grid-cols-4 gap-4 text-sm">
                               <div>
                                 <p className="text-muted-foreground">Tuition</p>
-                                <p className="font-medium">₵{fees.tuitionFees.toLocaleString()}</p>
+                                <p className="font-medium">{formatCurrency(fees.tuitionFees)}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Exam</p>
-                                <p className="font-medium">₵{fees.examFees.toLocaleString()}</p>
+                                <p className="font-medium">{formatCurrency(fees.examFees)}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Activity</p>
-                                <p className="font-medium">₵{fees.activityFees.toLocaleString()}</p>
+                                <p className="font-medium">{formatCurrency(fees.activityFees)}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Other</p>
-                                <p className="font-medium">₵{fees.otherFees.toLocaleString()}</p>
+                                <p className="font-medium">{formatCurrency(fees.otherFees)}</p>
                               </div>
                             </div>
                           </div>
                           
                           <div className="text-right">
                             <p className="text-sm text-muted-foreground">Total per student</p>
-                            <p className="text-xl font-bold text-primary">₵{fees.totalFees.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">Expected: ₵{expectedRevenue.toLocaleString()}</p>
+                            <p className="text-xl font-bold text-primary">{formatCurrency(fees.totalFees)}</p>
+                            <p className="text-xs text-muted-foreground">Expected: {formatCurrency(expectedRevenue)}</p>
                           </div>
                           
                           <Button

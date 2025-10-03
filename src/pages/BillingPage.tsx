@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Invoice, subscribeToInvoices } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
+import { formatCurrency } from "@/lib/utils";
 
 export function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -57,14 +58,6 @@ export function BillingPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GH', {
-      style: 'currency',
-      currency: 'GHS',
-      currencyDisplay: 'symbol'
-    }).format(amount);
   };
 
   const totalRevenue = invoices

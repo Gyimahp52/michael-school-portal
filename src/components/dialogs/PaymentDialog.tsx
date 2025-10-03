@@ -17,6 +17,7 @@ import {
   createInvoice
 } from "@/lib/database-operations";
 import { DollarSign, Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -102,7 +103,7 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
 
       toast({
         title: "Success",
-        description: `Payment of ₵${amount.toLocaleString()} recorded successfully`,
+        description: `Payment of ${formatCurrency(amount)} recorded successfully`,
       });
 
       // Reset form
@@ -162,21 +163,21 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Fees:</span>
-                <span className="font-medium">₵{(studentBalance?.totalFees || studentFees?.totalFees || 0).toLocaleString()}</span>
+                <span className="font-medium">{formatCurrency(studentBalance?.totalFees || studentFees?.totalFees || 0)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Amount Paid:</span>
-                <span className="font-medium text-success">₵{(studentBalance?.amountPaid || 0).toLocaleString()}</span>
+                <span className="font-medium text-success">{formatCurrency(studentBalance?.amountPaid || 0)}</span>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-border">
                 <span className="text-muted-foreground font-medium">Balance:</span>
-                <span className="font-bold text-destructive">₵{(studentBalance?.balance || studentFees?.totalFees || 0).toLocaleString()}</span>
+                <span className="font-bold text-destructive">{formatCurrency(studentBalance?.balance || studentFees?.totalFees || 0)}</span>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Payment Amount (₵)</Label>
+            <Label htmlFor="amount">Payment Amount (GHS)</Label>
             <Input
               id="amount"
               type="number"

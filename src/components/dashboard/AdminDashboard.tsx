@@ -61,6 +61,7 @@ import {
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
+import { formatCurrency } from "@/lib/utils";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -131,9 +132,6 @@ export function AdminDashboard() {
       unsubscribeFees();
     };
   }, []);
-
-  // Format currency
-  const formatCurrency = (amount: number) => `₵${amount.toLocaleString()}`;
 
   // Helper function to get activity icon
   const getActivityIcon = (type: string) => {
@@ -412,7 +410,7 @@ export function AdminDashboard() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value) => [`₵${value.toLocaleString()}`, 'Amount']}
+                  formatter={(value) => [formatCurrency(Number(value)), 'Amount']}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',

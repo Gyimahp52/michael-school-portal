@@ -45,6 +45,7 @@ import {
   CreditCard,
   Receipt,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function ReportsPage() {
   const { userRole } = useAuth();
@@ -252,7 +253,7 @@ export default function ReportsPage() {
 
       toast({
         title: "Payment Recorded",
-        description: `Payment of ₵${paymentAmountNum.toFixed(2)} recorded for ${student.firstName} ${student.lastName}`,
+        description: `Payment of ${formatCurrency(paymentAmountNum)} recorded for ${student.firstName} ${student.lastName}`,
       });
 
       // Reset form
@@ -490,7 +491,7 @@ export default function ReportsPage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="amount">Amount (₵)</Label>
+                    <Label htmlFor="amount">Amount (GHS)</Label>
                     <Input
                       id="amount"
                       type="number"
