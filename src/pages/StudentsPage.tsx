@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,17 +40,17 @@ import {
 } from "lucide-react";
 import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 
 export function StudentsPage() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const { toast } = useToast();
@@ -84,8 +85,7 @@ export function StudentsPage() {
   };
 
   const handleViewProfile = (student: Student) => {
-    setSelectedStudent(student);
-    setProfileOpen(true);
+    navigate(`/students/${student.id}`);
   };
 
   const handleDeleteStudent = async (studentId: string) => {
@@ -374,51 +374,6 @@ export function StudentsPage() {
         student={selectedStudent}
         mode={dialogMode}
       />
-
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Student Profile</DialogTitle>
-          </DialogHeader>
-          {selectedStudent && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted border">
-                  {selectedStudent.photoUrl ? (
-                    <img src={selectedStudent.photoUrl} alt="Student" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">No Photo</div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-lg font-semibold">{selectedStudent.firstName} {selectedStudent.lastName}</div>
-                  <div className="text-sm text-muted-foreground">ID: {selectedStudent.id || 'N/A'}</div>
-                  <div className="text-sm text-muted-foreground">Class: {selectedStudent.className}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="text-muted-foreground">Email</div>
-                  <div>{selectedStudent.email || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Phone</div>
-                  <div>{selectedStudent.phone || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Guardian</div>
-                  <div>{selectedStudent.parentName || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Guardian Phone</div>
-                  <div>{selectedStudent.parentPhone || '-'}</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

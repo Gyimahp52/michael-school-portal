@@ -8,6 +8,7 @@ import { AdminDashboard } from "./components/dashboard/AdminDashboard";
 import { TeacherDashboard } from "./components/dashboard/TeacherDashboard";
 import { AccountantDashboard } from "./components/dashboard/AccountantDashboard";
 import { StudentsPage } from "./pages/StudentsPage";
+import { StudentProfilePage } from "./pages/StudentProfilePage";
 import { BillingPage } from "./pages/BillingPage";
 import { GradesPage } from "./pages/GradesPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -55,6 +56,7 @@ const AppContent = () => {
         <Route path="/admin" element={<MainLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="students" element={<StudentsPage />} />
+          <Route path="students/:studentId" element={<StudentProfilePage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="grades/print/:classId" element={<ReportCardPrintPage />} />
@@ -72,6 +74,7 @@ const AppContent = () => {
         <Route path="/teacher" element={<MainLayout />}>
           <Route index element={<TeacherDashboard />} />
           <Route path="students" element={<StudentsPage />} />
+          <Route path="students/:studentId" element={<StudentProfilePage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
