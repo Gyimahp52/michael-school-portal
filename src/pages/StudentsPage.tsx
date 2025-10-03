@@ -85,7 +85,8 @@ export function StudentsPage() {
   };
 
   const handleViewProfile = (student: Student) => {
-    navigate(`/students/${student.id}`);
+    const basePath = userRole === 'admin' ? '/admin' : userRole === 'teacher' ? '/teacher' : '';
+    navigate(`${basePath}/students/${student.id}`);
   };
 
   const handleDeleteStudent = async (studentId: string) => {
