@@ -10,6 +10,7 @@ import {
   FileText,
   Settings,
   DollarSign,
+  ArrowUpCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,6 +60,12 @@ const baseItems = [
     group: "Management",
   },
   {
+    title: "Promotions",
+    suffix: "/promotions",
+    icon: ArrowUpCircle,
+    group: "Management",
+  },
+  {
     title: "Reports & Analytics",
     suffix: "/reports", 
     icon: FileText,
@@ -96,8 +103,8 @@ function buildNavigation(userRole?: string | null) {
   // Filter items by role
   const visible = baseItems.filter((item) => {
     if (userRole === 'teacher') {
-      // Teachers: allow Students, Grades, and Settings
-      return ["Dashboard","Students","Grades & Records","Settings"].includes(item.title);
+      // Teachers: allow Students, Grades, Promotions, and Settings
+      return ["Dashboard","Students","Grades & Records","Promotions","Settings"].includes(item.title);
     }
     if (userRole === 'accountant') {
       return ["Dashboard","Fees & Billing","Reports & Analytics","Settings"].includes(item.title);

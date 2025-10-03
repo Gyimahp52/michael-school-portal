@@ -905,6 +905,157 @@ export const subscribeToAttendance = (callback: (records: AttendanceRecordDoc[])
 	return unsubscribe;
 };
 
+// ===== PROMOTIONS =====
+export interface PromotionDecision {
+	studentId: string;
+	studentName: string;
+	currentClass: string;
+	decision: 'promote' | 'repeat';
+	comment?: string;
+}
+
+export interface PromotionRequest {
+	id: string;
+	teacherId: string;
+	teacherName: string;
+	classId: string;
+	className: string;
+	academicYear: string;
+	decisions: PromotionDecision[];
+	status: 'pending' | 'approved' | 'rejected';
+	submittedAt: string;
+	reviewedAt?: string;
+	reviewedBy?: string;
+	adminComments?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export const createPromotionRequest = async (
+	request: Omit<PromotionRequest, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> => {
+	try {
+		const requestsRef = ref(rtdb, 'promotionRequests');
+		const newRef = push(requestsRef);
+		const data = {
+			...request,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+		await set(newRef, data);
+		return newRef.key!;
+	} catch (error) {
+		console.error('Error creating promotion request:', error);
+		throw error;
+	}
+};
+
+export const subscribeToPromotionRequests = (
+	callback: (requests: PromotionRequest[]) => void
+): (() => void) => {
+	const requestsRef = ref(rtdb, 'promotionRequests');
+	const unsubscribe = onValue(requestsRef, (snapshot) => {
+		if (snapshot.exists()) {
+			const data = snapshot.val();
+			const items = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+			callback(items);
+		} else {
+			callback([]);
+		}
+	});
+	return unsubscribe;
+};
+
+export const updatePromotionRequest = async (
+	requestId: string,
+	updates: Partial<PromotionRequest>
+): Promise<void> => {
+	try {
+		const requestRef = ref(rtdb, `promotionRequests/${requestId}`);
+		const snapshot = await get(requestRef);
+		if (snapshot.exists()) {
+			await update(requestRef, {
+				...updates,
+				updatedAt: new Date().toISOString(),
+			});
+		}
+	} catch (error) {
+		console.error('Error updating promotion request:', error);
+		throw error;
+	}
+};
+
+export const executePromotion = async (
+	requestId: string,
+	decisions: PromotionDecision[],
+	newAcademicYear: string
+): Promise<void> => {
+	try {
+		// Helper function to determine next class
+		const getNextClass = (currentClass: string): string => {
+			const classMap: Record<string, string> = {
+				'Nursery 1': 'Nursery 2',
+				'Nursery 2': 'KG 1',
+				'KG 1': 'KG 2',
+				'KG 2': 'Primary 1',
+				'Primary 1': 'Primary 2',
+				'Primary 2': 'Primary 3',
+				'Primary 3': 'Primary 4',
+				'Primary 4': 'Primary 5',
+				'Primary 5': 'Primary 6',
+				'Primary 6': 'JHS 1',
+				'JHS 1': 'JHS 2',
+				'JHS 2': 'JHS 3',
+				'JHS 3': 'Graduated',
+			};
+			return classMap[currentClass] || currentClass;
+		};
+
+		// Update each student based on promotion decision
+		for (const decision of decisions) {
+			const studentRef = ref(rtdb, `students/${decision.studentId}`);
+			const snapshot = await get(studentRef);
+			
+			if (snapshot.exists()) {
+				const updates: any = {
+					updatedAt: new Date().toISOString(),
+				};
+
+				if (decision.decision === 'promote') {
+					const nextClass = getNextClass(decision.currentClass);
+					updates.className = nextClass;
+					updates[`promotionHistory/${new Date().getFullYear()}`] = {
+						from: decision.currentClass,
+						to: nextClass,
+						date: new Date().toISOString(),
+						comment: decision.comment || '',
+					};
+				} else {
+					// Student repeats - keep same class
+					updates[`repeatHistory/${new Date().getFullYear()}`] = {
+						class: decision.currentClass,
+						date: new Date().toISOString(),
+						comment: decision.comment || '',
+					};
+				}
+
+				await update(studentRef, updates);
+			}
+		}
+
+		// Mark request as approved
+		const requestRef = ref(rtdb, `promotionRequests/${requestId}`);
+		await update(requestRef, {
+			status: 'approved',
+			reviewedAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		});
+	} catch (error) {
+		console.error('Error executing promotion:', error);
+		throw error;
+	}
+};
+
 // ===== UTIL HELPERS FOR FILTERING =====
 export const getStudentsByClassApprox = async (classItem: Class): Promise<Student[]> => {
 	// Approximates membership by matching className when available

@@ -9,15 +9,18 @@ import {
   CheckCircle,
   AlertTriangle,
   Plus,
-  Eye
+  Eye,
+  ArrowUpCircle
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAssessments, AssessmentRecord } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
+import { useNavigate } from "react-router-dom";
 import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
 
 export function TeacherDashboard() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
@@ -182,6 +185,10 @@ export function TeacherDashboard() {
             <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
               <Plus className="w-6 h-6" />
               <span>Create Assignment</span>
+            </Button>
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/teacher/promotions')}>
+              <ArrowUpCircle className="w-6 h-6" />
+              <span>Student Promotions</span>
             </Button>
           </div>
         </CardContent>

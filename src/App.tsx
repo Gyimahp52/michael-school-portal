@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import ReportCardPrintPage from "./pages/ReportCardPrintPage";
+import PromotionsPage from "./pages/PromotionsPage";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const AppContent = () => {
           <Route path="billing" element={<BillingPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="grades/print/:classId" element={<ReportCardPrintPage />} />
+          <Route path="promotions" element={<PromotionsPage />} />
           {/* Admissions route removed */}
           <Route path="classes" element={<AcademicsPage />} />
           <Route path="reports" element={<ReportsPage />} />
@@ -71,6 +73,7 @@ const AppContent = () => {
           <Route index element={<TeacherDashboard />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="grades" element={<GradesPage />} />
+          <Route path="promotions" element={<PromotionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
