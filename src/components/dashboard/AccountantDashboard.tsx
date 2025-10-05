@@ -28,6 +28,10 @@ import {
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
 import { formatCurrency } from "@/lib/utils";
+import { FeesCollectedDialog } from "@/components/dialogs/FeesCollectedDialog";
+import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
+import { TotalStudentsDialog } from "@/components/dialogs/TotalStudentsDialog";
+import { PaymentStatusDialog } from "@/components/dialogs/PaymentStatusDialog";
 
 export function AccountantDashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -36,6 +40,10 @@ export function AccountantDashboard() {
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [feesCollectedDialogOpen, setFeesCollectedDialogOpen] = useState(false);
+  const [outstandingFeesDialogOpen, setOutstandingFeesDialogOpen] = useState(false);
+  const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
+  const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
@@ -174,25 +182,43 @@ export function AccountantDashboard() {
 
       {/* Financial Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {financialStats.map((stat, index) => (
-          <Card key={index} className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <span className={stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
-                  {stat.trend}
-                </span>
-                <span>vs last month</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {financialStats.map((stat, index) => {
+          const handleCardClick = () => {
+            if (stat.title === "Fees Collected (This Month)") {
+              setFeesCollectedDialogOpen(true);
+            } else if (stat.title === "Outstanding Fees") {
+              setOutstandingFeesDialogOpen(true);
+            } else if (stat.title === "Total Students") {
+              setTotalStudentsDialogOpen(true);
+            } else if (stat.title === "Payment Status") {
+              setPaymentStatusDialogOpen(true);
+            }
+          };
+
+          return (
+            <Card 
+              key={index} 
+              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" 
+              onClick={handleCardClick}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <span className={stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
+                    {stat.trend}
+                  </span>
+                  <span>vs last month</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -355,6 +381,25 @@ export function AccountantDashboard() {
       </Card>
 
       <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
+      <FeesCollectedDialog open={feesCollectedDialogOpen} onOpenChange={setFeesCollectedDialogOpen} />
+      <OutstandingFeesDialog 
+        open={outstandingFeesDialogOpen} 
+        onOpenChange={setOutstandingFeesDialogOpen}
+        studentBalances={studentBalances}
+        students={students}
+      />
+      <TotalStudentsDialog 
+        open={totalStudentsDialogOpen} 
+        onOpenChange={setTotalStudentsDialogOpen}
+        students={students}
+        studentBalances={studentBalances}
+      />
+      <PaymentStatusDialog 
+        open={paymentStatusDialogOpen} 
+        onOpenChange={setPaymentStatusDialogOpen}
+        students={students}
+        studentBalances={studentBalances}
+      />
     </div>
   );
 }
