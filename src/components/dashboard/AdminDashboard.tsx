@@ -61,6 +61,8 @@ import {
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
+import { TotalRevenueDialog } from "@/components/dialogs/TotalRevenueDialog";
+import { MonthlyExpensesDialog } from "@/components/dialogs/MonthlyExpensesDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
 import { formatCurrency } from "@/lib/utils";
 
@@ -89,6 +91,8 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [outstandingFeesDialogOpen, setOutstandingFeesDialogOpen] = useState(false);
+  const [totalRevenueDialogOpen, setTotalRevenueDialogOpen] = useState(false);
+  const [monthlyExpensesDialogOpen, setMonthlyExpensesDialogOpen] = useState(false);
 
   // Load initial data and set up real-time subscriptions
   useEffect(() => {
@@ -303,11 +307,15 @@ export function AdminDashboard() {
             <Card 
               key={index} 
               className={`shadow-soft border-border/50 hover:shadow-lg transition-shadow ${
-                stat.title === 'Outstanding Fees' ? 'cursor-pointer' : ''
+                stat.title !== 'Net Balance' ? 'cursor-pointer' : ''
               }`}
               onClick={() => {
-                if (stat.title === 'Outstanding Fees') {
+                if (stat.title === 'Total Revenue') {
+                  setTotalRevenueDialogOpen(true);
+                } else if (stat.title === 'Outstanding Fees') {
                   setOutstandingFeesDialogOpen(true);
+                } else if (stat.title === 'Monthly Expenses') {
+                  setMonthlyExpensesDialogOpen(true);
                 }
               }}
             >
@@ -562,6 +570,14 @@ export function AdminDashboard() {
         onOpenChange={setOutstandingFeesDialogOpen}
         studentBalances={studentBalances}
         students={students}
+      />
+      <TotalRevenueDialog 
+        open={totalRevenueDialogOpen} 
+        onOpenChange={setTotalRevenueDialogOpen}
+      />
+      <MonthlyExpensesDialog 
+        open={monthlyExpensesDialogOpen} 
+        onOpenChange={setMonthlyExpensesDialogOpen}
       />
     </div>
   );
