@@ -28,6 +28,7 @@ import {
   getAllClasses,
 } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
+import { getAllUsers } from "@/lib/custom-auth";
 
 interface Teacher {
   id: string;
@@ -57,22 +58,31 @@ export function ClassAssignmentsPage() {
     }
 
     const unsubClasses = subscribeToClasses(setClasses);
-    const unsubStudents = subscribeToStudents((studs) => {
-      // Extract unique teachers from students (teachers are stored as users)
-      const uniqueTeachers = new Map<string, Teacher>();
-      studs.forEach(s => {
-        // In a real system, you'd fetch from a teachers table
-        // For now, we'll use a mock list
-      });
-      setStudents(studs);
-    });
+    const unsubStudents = subscribeToStudents(setStudents);
 
-    // Mock teachers - in a real system, fetch from users where role='teacher'
-    setTeachers([
-      { id: 'teacher1', name: 'John Doe', email: 'john@school.com' },
-      { id: 'teacher2', name: 'Jane Smith', email: 'jane@school.com' },
-      { id: 'teacher3', name: 'Mike Johnson', email: 'mike@school.com' },
-    ]);
+    // Fetch real teachers from database
+    const loadTeachers = async () => {
+      try {
+        const allUsers = await getAllUsers();
+        const teacherUsers = allUsers
+          .filter(user => user.role === 'teacher')
+          .map(user => ({
+            id: user.id,
+            name: user.displayName,
+            email: user.username,
+          }));
+        setTeachers(teacherUsers);
+      } catch (error) {
+        console.error('Error loading teachers:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load teachers",
+          variant: "destructive",
+        });
+      }
+    };
+
+    loadTeachers();
 
     return () => {
       unsubClasses();
