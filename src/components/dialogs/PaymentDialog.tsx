@@ -9,9 +9,11 @@ import {
   Student, 
   StudentBalance,
   SchoolFees,
+  Class,
   subscribeToStudents,
   subscribeToStudentBalances,
   subscribeToSchoolFees,
+  subscribeToClasses,
   updateStudentBalance,
   createStudentBalance,
   createInvoice,
@@ -28,9 +30,11 @@ interface PaymentDialogProps {
 
 export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
   const { toast } = useToast();
+  const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -39,6 +43,7 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
   const [selectedTermData, setSelectedTermData] = useState<any>(null);
 
   useEffect(() => {
+    const unsubClasses = subscribeToClasses(setClasses);
     const unsubStudents = subscribeToStudents(setStudents);
     const unsubBalances = subscribeToStudentBalances(setStudentBalances);
     const unsubFees = subscribeToSchoolFees(setSchoolFees);
@@ -52,12 +57,18 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
     });
 
     return () => {
+      unsubClasses();
       unsubStudents();
       unsubBalances();
       unsubFees();
     };
   }, []);
 
+  const selectedClass = classes.find(c => c.id === selectedClassId);
+  const filteredStudents = selectedClassId 
+    ? students.filter(s => s.status === 'active' && s.className === selectedClass?.className)
+    : [];
+  
   const selectedStudent = students.find(s => s.id === selectedStudentId);
   const studentBalance = studentBalances.find(b => b.studentId === selectedStudentId);
   const studentFees = schoolFees.find(f => f.className === selectedStudent?.className);
@@ -123,6 +134,7 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
       });
 
       // Reset form
+      setSelectedClassId("");
       setSelectedStudentId("");
       setPaymentAmount("");
       setPaymentMethod("cash");
@@ -163,18 +175,45 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
           />
 
           <div className="space-y-2">
-            <Label htmlFor="student">Select Student</Label>
-            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+            <Label htmlFor="class">Select Class</Label>
+            <Select 
+              value={selectedClassId} 
+              onValueChange={(value) => {
+                setSelectedClassId(value);
+                setSelectedStudentId(""); // Reset student selection when class changes
+              }}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Choose a student" />
+                <SelectValue placeholder="Choose a class first" />
               </SelectTrigger>
               <SelectContent>
-                {students
-                  .filter(s => s.status === 'active')
+                {classes
+                  .sort((a, b) => a.className.localeCompare(b.className))
+                  .map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id!}>
+                      {classItem.className}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="student">Select Student</Label>
+            <Select 
+              value={selectedStudentId} 
+              onValueChange={setSelectedStudentId}
+              disabled={!selectedClassId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedClassId ? "Choose a student" : "Select a class first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredStudents
                   .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
                   .map((student) => (
                     <SelectItem key={student.id} value={student.id!}>
-                      {student.firstName} {student.lastName} - {student.className}
+                      {student.firstName} {student.lastName}
                     </SelectItem>
                   ))}
               </SelectContent>

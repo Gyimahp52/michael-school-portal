@@ -120,7 +120,7 @@ function buildNavigation(userRole?: string | null) {
       return ["Dashboard","Students","Grades & Records","Promotions","Settings"].includes(item.title);
     }
     if (userRole === 'accountant') {
-      return ["Dashboard","Fees & Billing","Reports & Analytics","Settings","Academic Terms"].includes(item.title);
+      return ["Dashboard","Fees & Billing","Reports & Analytics","Settings"].includes(item.title);
     }
     // default admin: show all
     return true;

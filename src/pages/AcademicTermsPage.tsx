@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,12 +31,18 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export default function AcademicTermsPage() {
+  const { userRole } = useAuth();
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [showYearDialog, setShowYearDialog] = useState(false);
   const [showTermDialog, setShowTermDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Restrict access to admin only
+  if (userRole === 'accountant' || userRole === 'teacher') {
+    return <Navigate to={`/${userRole}`} replace />;
+  }
 
   // Year form state
   const [yearName, setYearName] = useState("");
