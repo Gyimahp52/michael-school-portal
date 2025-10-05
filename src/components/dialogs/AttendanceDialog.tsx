@@ -59,16 +59,25 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
       if (selectedClass) {
         try {
           const studentsData = await getAllStudents();
-          // In a real app, you'd filter by class/grade
-          setStudents(studentsData.filter(s => s.status === 'active'));
-          // Initialize attendance records
-          setAttendance(studentsData
-            .filter(s => s.status === 'active')
-            .map(student => ({
-              studentId: student.id!,
-              status: 'present' as const
-            }))
+          // Find the selected class to get its className
+          const selectedClassObj = classes.find(c => c.id === selectedClass);
+          if (!selectedClassObj) {
+            setStudents([]);
+            setAttendance([]);
+            return;
+          }
+          
+          // Filter students by the selected class's className
+          const classStudents = studentsData.filter(
+            s => s.status === 'active' && s.className === selectedClassObj.className
           );
+          
+          setStudents(classStudents);
+          // Initialize attendance records
+          setAttendance(classStudents.map(student => ({
+            studentId: student.id!,
+            status: 'present' as const
+          })));
         } catch (error) {
           console.error('Error loading students:', error);
         }
@@ -76,7 +85,7 @@ export function AttendanceDialog({ open, onOpenChange }: AttendanceDialogProps) 
     };
 
     loadStudents();
-  }, [selectedClass]);
+  }, [selectedClass, classes]);
 
   const handleAttendanceChange = (studentId: string, status: 'present' | 'absent' | 'late') => {
     setAttendance(prev => 
