@@ -118,22 +118,37 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 
 export const getEnrollmentGrowthData = async (): Promise<EnrollmentData[]> => {
   try {
-    const enrollmentRef = ref(rtdb, 'enrollment-analytics');
-    const snapshot = await get(enrollmentRef);
+    const studentsSnapshot = await get(ref(rtdb, 'students'));
     
-    if (!snapshot.exists()) {
-      // Generate sample data for the last 6 months if none exists
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-      const data = months.map((month, index) => ({
-        month,
-        students: Math.floor(Math.random() * 100) + 1000 + (index * 20)
-      }));
-      
-      await set(enrollmentRef, data);
-      return data;
+    if (!studentsSnapshot.exists()) {
+      return [];
     }
     
-    return snapshot.val();
+    const students = Object.values(studentsSnapshot.val()) as any[];
+    
+    // Get last 6 months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const last6Months: EnrollmentData[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = monthNames[date.getMonth()];
+      
+      // Count students enrolled up to end of this month
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      const enrolledCount = students.filter(s => {
+        const enrollDate = new Date(s.enrollmentDate || s.createdAt);
+        return enrollDate <= endOfMonth;
+      }).length;
+      
+      last6Months.push({
+        month: monthName,
+        students: enrolledCount
+      });
+    }
+    
+    return last6Months;
   } catch (error) {
     console.error('Error fetching enrollment data:', error);
     return [];
@@ -142,23 +157,47 @@ export const getEnrollmentGrowthData = async (): Promise<EnrollmentData[]> => {
 
 export const getFeeCollectionData = async (): Promise<FeeCollectionData[]> => {
   try {
-    const feeAnalyticsRef = ref(rtdb, 'fee-analytics');
-    const snapshot = await get(feeAnalyticsRef);
+    const [invoicesSnapshot, balancesSnapshot] = await Promise.all([
+      get(ref(rtdb, 'invoices')),
+      get(ref(rtdb, 'studentBalances'))
+    ]);
     
-    if (!snapshot.exists()) {
-      // Generate sample data for the last 4 months if none exists
-      const months = ['Jan', 'Feb', 'Mar', 'Apr'];
-      const data = months.map(month => ({
-        month,
-        collected: Math.floor(Math.random() * 50000) + 200000,
-        outstanding: Math.floor(Math.random() * 20000) + 30000
-      }));
+    const invoices = invoicesSnapshot.exists() ? Object.values(invoicesSnapshot.val()) as any[] : [];
+    const balances = balancesSnapshot.exists() ? Object.values(balancesSnapshot.val()) as any[] : [];
+    
+    // Get last 6 months
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const last6Months: FeeCollectionData[] = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = monthNames[date.getMonth()];
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
       
-      await set(feeAnalyticsRef, data);
-      return data;
+      // Calculate collected fees for this month (paid invoices)
+      const collected = invoices
+        .filter(inv => {
+          if (inv.status !== 'Paid' || !inv.paymentDate) return false;
+          const paymentDate = new Date(inv.paymentDate);
+          return paymentDate >= startOfMonth && paymentDate <= endOfMonth;
+        })
+        .reduce((sum, inv) => sum + (inv.amount || 0), 0);
+      
+      // Calculate outstanding fees at end of this month
+      const outstanding = balances
+        .filter(bal => bal.status === 'partial' || bal.status === 'overdue')
+        .reduce((sum, bal) => sum + (bal.balance || 0), 0);
+      
+      last6Months.push({
+        month: monthName,
+        collected,
+        outstanding
+      });
     }
     
-    return snapshot.val();
+    return last6Months;
   } catch (error) {
     console.error('Error fetching fee collection data:', error);
     return [];
@@ -167,23 +206,50 @@ export const getFeeCollectionData = async (): Promise<FeeCollectionData[]> => {
 
 export const getFeeBreakdownData = async (): Promise<FeeBreakdownData[]> => {
   try {
-    const feeBreakdownRef = ref(rtdb, 'fee-breakdown');
-    const snapshot = await get(feeBreakdownRef);
+    const [schoolFeesSnapshot, balancesSnapshot] = await Promise.all([
+      get(ref(rtdb, 'schoolFees')),
+      get(ref(rtdb, 'studentBalances'))
+    ]);
     
-    if (!snapshot.exists()) {
-      // Generate sample breakdown if none exists
-      const data = [
-        { name: 'Tuition Fees', value: 185750, fill: 'hsl(var(--primary))' },
-        { name: 'Lab Fees', value: 45000, fill: 'hsl(var(--secondary))' },
-        { name: 'Library Fees', value: 25000, fill: 'hsl(var(--accent))' },
-        { name: 'Sports Fees', value: 30000, fill: 'hsl(var(--success))' },
-      ];
+    const schoolFees = schoolFeesSnapshot.exists() ? Object.values(schoolFeesSnapshot.val()) as any[] : [];
+    const balances = balancesSnapshot.exists() ? Object.values(balancesSnapshot.val()) as any[] : [];
+    
+    // Calculate total fees by type across all classes
+    const tuitionTotal = schoolFees.reduce((sum, fee) => sum + (fee.tuitionFees || 0), 0);
+    const examTotal = schoolFees.reduce((sum, fee) => sum + (fee.examFees || 0), 0);
+    const activityTotal = schoolFees.reduce((sum, fee) => sum + (fee.activityFees || 0), 0);
+    const otherTotal = schoolFees.reduce((sum, fee) => sum + (fee.otherFees || 0), 0);
+    
+    // Calculate actual collections (amount paid)
+    const totalCollected = balances.reduce((sum, bal) => sum + (bal.amountPaid || 0), 0);
+    const totalOutstanding = balances.reduce((sum, bal) => sum + (bal.balance || 0), 0);
+    
+    // If we have fee structure data, show breakdown by fee type
+    // Otherwise show collected vs outstanding
+    if (tuitionTotal > 0 || examTotal > 0 || activityTotal > 0 || otherTotal > 0) {
+      const breakdown: FeeBreakdownData[] = [];
       
-      await set(feeBreakdownRef, data);
-      return data;
+      if (tuitionTotal > 0) {
+        breakdown.push({ name: 'Tuition Fees', value: tuitionTotal, fill: 'hsl(var(--primary))' });
+      }
+      if (examTotal > 0) {
+        breakdown.push({ name: 'Exam Fees', value: examTotal, fill: 'hsl(var(--secondary))' });
+      }
+      if (activityTotal > 0) {
+        breakdown.push({ name: 'Activity Fees', value: activityTotal, fill: 'hsl(var(--accent))' });
+      }
+      if (otherTotal > 0) {
+        breakdown.push({ name: 'Other Fees', value: otherTotal, fill: 'hsl(142 71% 45%)' });
+      }
+      
+      return breakdown;
+    } else {
+      // Fallback: show collected vs outstanding
+      return [
+        { name: 'Collected', value: totalCollected, fill: 'hsl(var(--primary))' },
+        { name: 'Outstanding', value: totalOutstanding, fill: 'hsl(var(--destructive))' }
+      ];
     }
-    
-    return snapshot.val();
   } catch (error) {
     console.error('Error fetching fee breakdown:', error);
     return [];
