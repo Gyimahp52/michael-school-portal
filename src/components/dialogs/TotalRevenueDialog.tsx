@@ -43,15 +43,17 @@ export function TotalRevenueDialog({ open, onOpenChange }: TotalRevenueDialogPro
       ]);
 
       const invoicesData = invoicesSnapshot.exists() ? Object.entries(invoicesSnapshot.val()) : [];
-      const studentsData = studentsSnapshot.exists() ? Object.values(studentsSnapshot.val()) as any[] : [];
+      const studentsData = studentsSnapshot.exists() ? studentsSnapshot.val() : {};
 
       const paidInvoices = invoicesData
         .map(([id, invoice]: [string, any]) => {
-          const student = studentsData.find(s => s.id === invoice.studentId);
+          // Find student by matching the invoice's studentId with student records
+          const student = studentsData[invoice.studentId];
           return {
             id,
             ...invoice,
-            studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown Student'
+            studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown Student',
+            term: invoice.term || invoice.academicTerm || 'N/A'
           };
         })
         .filter(inv => inv.status === 'Paid')

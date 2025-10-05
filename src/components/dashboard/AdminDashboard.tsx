@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   Calculator,
   Plus,
+  Bell,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   LineChart,
   Line,
@@ -55,9 +57,11 @@ import {
   subscribeToStudents,
   subscribeToStudentBalances,
   subscribeToSchoolFees,
+  subscribeToPromotionRequests,
   Student,
   StudentBalance,
-  SchoolFees
+  SchoolFees,
+  PromotionRequest
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
@@ -93,6 +97,8 @@ export function AdminDashboard() {
   const [outstandingFeesDialogOpen, setOutstandingFeesDialogOpen] = useState(false);
   const [totalRevenueDialogOpen, setTotalRevenueDialogOpen] = useState(false);
   const [monthlyExpensesDialogOpen, setMonthlyExpensesDialogOpen] = useState(false);
+  const [promotionRequests, setPromotionRequests] = useState<PromotionRequest[]>([]);
+  const [previousRequestCount, setPreviousRequestCount] = useState<number>(0);
 
   // Load initial data and set up real-time subscriptions
   useEffect(() => {
@@ -129,6 +135,7 @@ export function AdminDashboard() {
     const unsubscribeStudents = subscribeToStudents(setStudents);
     const unsubscribeBalances = subscribeToStudentBalances(setStudentBalances);
     const unsubscribeFees = subscribeToSchoolFees(setSchoolFees);
+    const unsubscribePromotions = subscribeToPromotionRequests(setPromotionRequests);
 
     return () => {
       unsubscribeStats();
@@ -136,8 +143,30 @@ export function AdminDashboard() {
       unsubscribeStudents();
       unsubscribeBalances();
       unsubscribeFees();
+      unsubscribePromotions();
     };
   }, []);
+
+  // Real-time notification for new promotion requests
+  useEffect(() => {
+    const pendingRequests = promotionRequests.filter(req => req.status === 'pending');
+    
+    // Only show notification if we have a previous count and the new count is higher
+    if (previousRequestCount > 0 && pendingRequests.length > previousRequestCount) {
+      const newRequestsCount = pendingRequests.length - previousRequestCount;
+      toast.info(`New Promotion Request${newRequestsCount > 1 ? 's' : ''}`, {
+        description: `${newRequestsCount} teacher${newRequestsCount > 1 ? 's have' : ' has'} submitted promotion decisions for review.`,
+        duration: 5000,
+        action: {
+          label: 'View',
+          onClick: () => navigate('/admin/promotions')
+        },
+        icon: <Bell className="w-4 h-4" />
+      });
+    }
+    
+    setPreviousRequestCount(pendingRequests.length);
+  }, [promotionRequests, previousRequestCount, navigate]);
 
   // Helper function to get activity icon
   const getActivityIcon = (type: string) => {
