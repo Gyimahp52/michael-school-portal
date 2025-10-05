@@ -11,6 +11,7 @@ import { getAllClasses, getAllStudents, Class, Student, recordAttendance } from 
 import { Calendar as CalendarIcon, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/CustomAuthContext";
+import { filterTeacherClasses } from "@/lib/access-control";
 
 interface AttendanceDialogProps {
   open: boolean;

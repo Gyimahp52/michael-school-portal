@@ -17,6 +17,7 @@ import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAss
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useNavigate } from "react-router-dom";
 import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
+import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";
 
 export function TeacherDashboard() {
   const { currentUser } = useAuth();
@@ -25,6 +26,7 @@ export function TeacherDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [openAssessment, setOpenAssessment] = useState(false);
+  const [openAttendance, setOpenAttendance] = useState(false);
 
   useEffect(() => {
     const unsubClasses = subscribeToClasses((cls) => {
@@ -129,6 +131,15 @@ export function TeacherDashboard() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start gap-2"
+                        onClick={() => navigate(`/teacher/class/${classItem.id}`)}
+                      >
+                        <Users className="w-4 h-4" />
+                        View Students
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -244,7 +255,7 @@ export function TeacherDashboard() {
               <Users className="w-6 h-6" />
               <span>View Students</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAttendance(true)}>
               <Calendar className="w-6 h-6" />
               <span>Mark Attendance</span>
             </Button>
@@ -257,6 +268,7 @@ export function TeacherDashboard() {
       </Card>
 
       <AssessmentDialog open={openAssessment} onOpenChange={setOpenAssessment} />
+      <AttendanceDialog open={openAttendance} onOpenChange={setOpenAttendance} />
     </div>
   );
 }

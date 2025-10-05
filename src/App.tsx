@@ -19,6 +19,7 @@ import SettingsPage from "./pages/SettingsPage";
 import SchoolFeesPage from "./pages/SchoolFeesPage";
 import AcademicTermsPage from "./pages/AcademicTermsPage";
 import { ClassAssignmentsPage } from "./pages/ClassAssignmentsPage";
+import { TeacherClassStudentsPage } from "./pages/TeacherClassStudentsPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -79,6 +80,7 @@ const AppContent = () => {
           <Route index element={<TeacherDashboard />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="students/:studentId" element={<StudentProfilePage />} />
+          <Route path="class/:classId" element={<TeacherClassStudentsPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
