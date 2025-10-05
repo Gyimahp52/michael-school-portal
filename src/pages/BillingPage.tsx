@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TermSelector } from "@/components/shared/TermSelector";
 import {
   Table,
   TableBody,
@@ -29,23 +30,27 @@ import {
   TrendingDown,
   CreditCard,
 } from "lucide-react";
-import { Invoice, subscribeToInvoices } from "@/lib/database-operations";
+import { Invoice, subscribeToInvoices, Term } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { formatCurrency } from "@/lib/utils";
 
 export function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("all");
+  const [selectedTermData, setSelectedTermData] = useState<Term | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToInvoices(setInvoices);
     return () => unsubscribe();
   }, []);
-  const filteredInvoices = invoices.filter((invoice) =>
-    invoice.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch = invoice.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTerm = selectedTerm === "all" || invoice.termId === selectedTerm;
+    return matchesSearch && matchesTerm;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -168,8 +173,16 @@ export function BillingPage() {
               />
             </div>
             <div className="flex gap-2">
+              <TermSelector
+                value={selectedTerm}
+                onChange={(termId, term) => {
+                  setSelectedTerm(termId);
+                  setSelectedTermData(term);
+                }}
+                showAllOption={true}
+                className="w-48"
+              />
               <Button variant="outline">All Status</Button>
-              <Button variant="outline">This Month</Button>
               <Button variant="outline">Export Data</Button>
             </div>
           </div>

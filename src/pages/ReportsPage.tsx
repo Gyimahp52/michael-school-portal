@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/CustomAuthContext";
+import { TermSelector } from "@/components/shared/TermSelector";
 import { 
-  subscribeToReports, 
+  subscribeToReports,
   subscribeToReportStats, 
   subscribeToStudents,
   subscribeToClasses,
@@ -64,6 +65,7 @@ export default function ReportsPage() {
   const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [sendingReports, setSendingReports] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -460,6 +462,14 @@ export default function ReportsPage() {
                   <DialogTitle>Record Student Payment</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <TermSelector
+                      value={selectedTerm}
+                      onChange={(termId) => setSelectedTerm(termId)}
+                      label="Academic Term"
+                      showAllOption={false}
+                    />
+                  </div>
                   <div className="grid gap-2">
                     <Label htmlFor="class-select">Select Class</Label>
                     <Select value={selectedClass} onValueChange={setSelectedClass}>

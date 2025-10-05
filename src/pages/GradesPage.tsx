@@ -28,12 +28,13 @@ import {
   Users,
   Calendar,
 } from "lucide-react";
-import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord, Class, subscribeToClasses } from "@/lib/database-operations";
+import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord, Class, subscribeToClasses, Term } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { GradeDialog } from '@/components/dialogs/GradeDialog';
 import { useNavigate } from 'react-router-dom';
+import { TermSelector } from '@/components/shared/TermSelector';
 
 type GradeRow = {
   id: string;
@@ -52,6 +53,8 @@ export function GradesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedTerm, setSelectedTerm] = useState<string>("all");
+  const [selectedTermData, setSelectedTermData] = useState<Term | null>(null);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -112,6 +115,7 @@ export function GradesPage() {
   }, [assessments, userRole, currentUser?.id]);
 
   const filteredGrades = gradeRows.filter((grade) => {
+    const assessment = assessments.find(a => a.id === grade.id);
     const studentNameLc = (grade.studentName || '').toLowerCase();
     const studentIdLc = (grade.studentId || '').toLowerCase();
     const queryLc = (searchQuery || '').toLowerCase();
@@ -119,7 +123,8 @@ export function GradesPage() {
     const matchesClass = selectedClass === "all" ||
       classes.find(c => (c.name || c.className) === grade.className)?.id === selectedClass;
     const matchesSubject = selectedSubject === "all" || grade.subject === selectedSubject;
-    return matchesSearch && matchesClass && matchesSubject;
+    const matchesTerm = selectedTerm === "all" || assessment?.termId === selectedTerm;
+    return matchesSearch && matchesClass && matchesSubject && matchesTerm;
   });
 
   const getGradeColor = (score: number, maxScore: number) => {
@@ -302,6 +307,16 @@ export function GradesPage() {
               />
             </div>
             <div className="flex gap-4">
+              <TermSelector
+                value={selectedTerm}
+                onChange={(termId, term) => {
+                  setSelectedTerm(termId);
+                  setSelectedTermData(term);
+                }}
+                showAllOption={true}
+                className="w-48"
+              />
+              
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Class" />

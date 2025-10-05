@@ -13,13 +13,16 @@ import {
   Class,
   Student,
   Subject,
+  Term,
   createAssessmentRecord,
   getStudentsByClassApprox,
   subscribeToAssessments,
   subscribeToClasses,
   subscribeToStudents,
   subscribeToSubjects,
+  getCurrentTerm,
 } from "@/lib/database-operations";
+import { TermSelector } from "@/components/shared/TermSelector";
 
 interface AssessmentDialogProps {
   open: boolean;
@@ -38,6 +41,8 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("");
+  const [selectedTermData, setSelectedTermData] = useState<Term | null>(null);
   const [assessmentType, setAssessmentType] = useState<AssessmentType>("exercise");
   const [description, setDescription] = useState<string>("");
   const [score, setScore] = useState<string>("");
@@ -53,6 +58,15 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
     const unsubSubjects = subscribeToSubjects(setSubjects);
     const unsubStudents = subscribeToStudents(setStudents);
     const unsubAssess = subscribeToAssessments(setAllAssessments);
+    
+    // Set current term by default
+    getCurrentTerm().then(term => {
+      if (term) {
+        setSelectedTerm(term.id!);
+        setSelectedTermData(term);
+      }
+    });
+    
     return () => { unsubClasses(); unsubSubjects(); unsubStudents(); unsubAssess(); };
   }, [currentUser?.id]);
 
@@ -73,7 +87,7 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
     return subjects.filter(s => s.id && subjectIds.includes(s.id));
   }, [classes, subjects, selectedClassId]);
 
-  const canSubmit = selectedClassId && selectedSubjectId && selectedStudentId && score !== "" && maxScore !== "";
+  const canSubmit = selectedClassId && selectedSubjectId && selectedStudentId && selectedTerm && score !== "" && maxScore !== "";
 
   const handleSubmit = async () => {
     if (!currentUser?.id) {
@@ -95,6 +109,10 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
         score: Number(score),
         maxScore: Number(maxScore),
         date,
+        termId: selectedTerm,
+        termName: selectedTermData?.name,
+        academicYearId: selectedTermData?.academicYearId,
+        academicYearName: selectedTermData?.academicYearName,
       };
       await createAssessmentRecord(record);
       toast({ title: "Assessment recorded", description: `${student.firstName} scored ${score}/${maxScore}` });
@@ -119,6 +137,13 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
       setScore("");
       setMaxScore("100");
       setDate(new Date().toISOString().slice(0, 10));
+      // Re-set current term
+      getCurrentTerm().then(term => {
+        if (term) {
+          setSelectedTerm(term.id!);
+          setSelectedTermData(term);
+        }
+      });
     }
   }, [open]);
 
@@ -129,6 +154,18 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
           <DialogTitle>Record Assessment</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <TermSelector
+              value={selectedTerm}
+              onChange={(termId, term) => {
+                setSelectedTerm(termId);
+                setSelectedTermData(term);
+              }}
+              label="Academic Term"
+              showAllOption={false}
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Class</Label>
