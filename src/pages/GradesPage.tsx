@@ -146,12 +146,17 @@ export function GradesPage() {
     : 0;
 
   const availableClasses = useMemo(() => {
-    return [...classes].sort((a, b) => {
+    // Restrict teachers to only their assigned classes
+    let classList = classes;
+    if (userRole === 'teacher' && currentUser?.id) {
+      classList = classes.filter(c => (c.teacherIds || []).includes(currentUser.id));
+    }
+    return [...classList].sort((a, b) => {
       const an = (a.name || a.className || '').toString();
       const bn = (b.name || b.className || '').toString();
       return an.localeCompare(bn);
     });
-  }, [classes]);
+  }, [classes, userRole, currentUser?.id]);
 
   const availableSubjects = useMemo(() => {
     return subjects;

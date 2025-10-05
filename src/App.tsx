@@ -18,6 +18,7 @@ import UserManagementPage from "./pages/UserManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import SchoolFeesPage from "./pages/SchoolFeesPage";
 import AcademicTermsPage from "./pages/AcademicTermsPage";
+import { ClassAssignmentsPage } from "./pages/ClassAssignmentsPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -64,6 +65,7 @@ const AppContent = () => {
           <Route path="promotions" element={<PromotionsPage />} />
           {/* Admissions route removed */}
           <Route path="classes" element={<AcademicsPage />} />
+          <Route path="class-assignments" element={<ClassAssignmentsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="school-fees" element={<SchoolFeesPage />} />

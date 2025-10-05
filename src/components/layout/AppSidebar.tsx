@@ -55,6 +55,12 @@ const baseItems = [
     group: "Academic",
   },
   {
+    title: "Class Assignments",
+    suffix: "/class-assignments",
+    icon: UserPlus,
+    group: "Academic",
+  },
+  {
     title: "Academic Terms",
     suffix: "/terms",
     icon: Calendar,

@@ -69,6 +69,9 @@ export function TeacherDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Teacher Dashboard</h1>
           <p className="text-muted-foreground">Manage your classes, students, and academic activities</p>
+          {classCount > 0 && (
+            <p className="text-sm text-primary mt-1">You are currently managing {classCount} class{classCount !== 1 ? 'es' : ''}</p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
@@ -98,6 +101,69 @@ export function TeacherDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* My Assigned Classes */}
+      {classes.length > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              My Assigned Classes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {classes.map((classItem) => {
+                const classStudents = students.filter(s => s.className === classItem.className && s.status === 'active');
+                return (
+                  <Card key={classItem.id} className="border-2 hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{classItem.className}</CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {classStudents.length} Student{classStudents.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">{classItem.section || 'Main'}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                          setOpenAssessment(true);
+                        }}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Enter Scores
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start gap-2"
+                        onClick={() => navigate(`/grades?class=${classItem.id}`)}
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Reports
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            {classes.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No classes assigned yet</p>
+                <p className="text-sm mt-1">Contact admin to assign classes to you</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Today's Classes */}
@@ -170,11 +236,11 @@ export function TeacherDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/grades')}>
               <BookOpen className="w-6 h-6" />
-              <span>Manage Classes</span>
+              <span>View All Grades</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/students')}>
               <Users className="w-6 h-6" />
               <span>View Students</span>
             </Button>
@@ -184,11 +250,7 @@ export function TeacherDashboard() {
             </Button>
             <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
               <Plus className="w-6 h-6" />
-              <span>Create Assignment</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/teacher/promotions')}>
-              <ArrowUpCircle className="w-6 h-6" />
-              <span>Student Promotions</span>
+              <span>Add Assessment</span>
             </Button>
           </div>
         </CardContent>
