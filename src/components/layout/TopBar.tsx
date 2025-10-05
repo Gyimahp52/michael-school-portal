@@ -27,14 +27,14 @@ export function TopBar() {
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           
-          {/* Search */}
-          <div className="relative">
+          {/* Search - Hidden on mobile */}
+          <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search students, teachers, or records..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-80 pl-10 bg-muted/50 border-border focus:bg-background"
+              className="w-full md:w-64 lg:w-80 pl-10 bg-muted/50 border-border focus:bg-background"
             />
           </div>
         </div>

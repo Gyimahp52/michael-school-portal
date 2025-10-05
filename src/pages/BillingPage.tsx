@@ -78,22 +78,23 @@ export function BillingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-lg">
             <Calculator className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Fees & Billing</h1>
-            <p className="text-muted-foreground">Manage student fees and financial records</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Fees & Billing</h1>
+            <p className="text-sm text-muted-foreground">Manage student fees and financial records</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto">
             <FileText className="w-4 h-4" />
-            Financial Report
+            <span className="hidden sm:inline">Financial Report</span>
+            <span className="sm:hidden">Report</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary" onClick={() => setPaymentDialogOpen(true)}>
+          <Button className="gap-2 bg-gradient-primary w-full sm:w-auto" onClick={() => setPaymentDialogOpen(true)}>
             <Plus className="w-4 h-4" />
             Record Payment
           </Button>
@@ -172,7 +173,7 @@ export function BillingPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <TermSelector
                 value={selectedTerm}
                 onChange={(termId, term) => {
@@ -180,10 +181,10 @@ export function BillingPage() {
                   setSelectedTermData(term);
                 }}
                 showAllOption={true}
-                className="w-48"
+                className="w-full sm:w-48"
               />
-              <Button variant="outline">All Status</Button>
-              <Button variant="outline">Export Data</Button>
+              <Button variant="outline" className="w-full sm:w-auto">All Status</Button>
+              <Button variant="outline" className="w-full sm:w-auto">Export Data</Button>
             </div>
           </div>
         </CardContent>
@@ -195,7 +196,9 @@ export function BillingPage() {
           <CardTitle>Recent Invoices ({filteredInvoices.length} invoices)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
@@ -255,7 +258,9 @@ export function BillingPage() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

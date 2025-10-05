@@ -163,18 +163,18 @@ export function StudentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-lg">
             <Users className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Students</h1>
-            <p className="text-muted-foreground">Manage student information and records</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Students</h1>
+            <p className="text-sm text-muted-foreground">Manage student information and records</p>
           </div>
         </div>
         {userRole !== 'teacher' && (
-          <Button className="gap-2 bg-gradient-primary" onClick={handleAddStudent}>
+          <Button className="gap-2 bg-gradient-primary w-full sm:w-auto" onClick={handleAddStudent}>
             <Plus className="w-4 h-4" />
             Add Student
           </Button>
@@ -274,7 +274,9 @@ export function StudentsPage() {
           <CardTitle>Student List ({filteredStudents.length} students)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
@@ -365,7 +367,9 @@ export function StudentsPage() {
               );
             })}
             </TableBody>
-          </Table>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

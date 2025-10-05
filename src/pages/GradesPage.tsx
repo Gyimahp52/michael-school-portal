@@ -205,32 +205,34 @@ export function GradesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-lg">
             <BookOpen className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Grades & Records</h1>
-            <p className="text-muted-foreground">Manage academic assessments and student performance</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Grades & Records</h1>
+            <p className="text-sm text-muted-foreground">Manage academic assessments and student performance</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2" onClick={handleExport}>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={handleExport}>
             <Download className="w-4 h-4" />
-            Export Report Cards
+            <span className="hidden md:inline">Export Report Cards</span>
+            <span className="md:hidden">Export</span>
           </Button>
-          <Button className="gap-2 bg-gradient-primary" onClick={() => setDialogOpen(true)} >
+          <Button className="gap-2 bg-gradient-primary w-full sm:w-auto" onClick={() => setDialogOpen(true)} >
             <Plus className="w-4 h-4" />
             Add Score
           </Button>
-          <Button variant="secondary" className="gap-2" onClick={() => {
+          <Button variant="secondary" className="gap-2 w-full sm:w-auto" onClick={() => {
             const cid = selectedClass === 'all' ? (availableClasses[0]?.id || '') : selectedClass;
             if (!cid) return;
             navigate(`/admin/grades/print/${cid}`);
           }}>
             <FileText className="w-4 h-4" />
-            Print Report Cards
+            <span className="hidden md:inline">Print Report Cards</span>
+            <span className="md:hidden">Print</span>
           </Button>
         </div>
       </div>
@@ -311,7 +313,7 @@ export function GradesPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
               <TermSelector
                 value={selectedTerm}
                 onChange={(termId, term) => {
@@ -319,11 +321,11 @@ export function GradesPage() {
                   setSelectedTermData(term);
                 }}
                 showAllOption={true}
-                className="w-48"
+                className="w-full sm:w-48"
               />
               
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,7 +337,7 @@ export function GradesPage() {
               </Select>
 
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -356,7 +358,9 @@ export function GradesPage() {
           <CardTitle>Recent Scores ({filteredGrades.length} entries)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
@@ -433,7 +437,9 @@ export function GradesPage() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
       <GradeDialog 

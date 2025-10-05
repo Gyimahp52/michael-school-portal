@@ -242,7 +242,9 @@ export default function UserManagementPage() {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-4 md:mx-0">
+              <div className="inline-block min-w-full align-middle">
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -295,7 +297,9 @@ export default function UserManagementPage() {
                   ))
                 )}
               </TableBody>
-            </Table>
+                </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
