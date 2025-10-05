@@ -60,6 +60,7 @@ import {
   SchoolFees
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
+import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
 import { formatCurrency } from "@/lib/utils";
 
@@ -87,6 +88,7 @@ export function AdminDashboard() {
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [outstandingFeesDialogOpen, setOutstandingFeesDialogOpen] = useState(false);
 
   // Load initial data and set up real-time subscriptions
   useEffect(() => {
@@ -298,7 +300,17 @@ export function AdminDashboard() {
         <h2 className="text-xl font-semibold mb-4 text-foreground">Financial Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {financialStats.map((stat, index) => (
-            <Card key={index} className="shadow-soft border-border/50 hover:shadow-lg transition-shadow">
+            <Card 
+              key={index} 
+              className={`shadow-soft border-border/50 hover:shadow-lg transition-shadow ${
+                stat.title === 'Outstanding Fees' ? 'cursor-pointer' : ''
+              }`}
+              onClick={() => {
+                if (stat.title === 'Outstanding Fees') {
+                  setOutstandingFeesDialogOpen(true);
+                }
+              }}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -545,6 +557,12 @@ export function AdminDashboard() {
       </div>
 
       <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
+      <OutstandingFeesDialog 
+        open={outstandingFeesDialogOpen} 
+        onOpenChange={setOutstandingFeesDialogOpen}
+        studentBalances={studentBalances}
+        students={students}
+      />
     </div>
   );
 }
