@@ -62,26 +62,37 @@ export interface FinancialRecord {
 // Dashboard Analytics Functions
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const [studentsSnapshot, teachersSnapshot, classesSnapshot, financialSnapshot, usersSnapshot] = await Promise.all([
+    const [studentsSnapshot, teachersSnapshot, classesSnapshot, usersSnapshot, invoicesSnapshot, balancesSnapshot] = await Promise.all([
       get(ref(rtdb, 'students')),
       get(ref(rtdb, 'teachers')),
       get(ref(rtdb, 'classes')),
-      get(ref(rtdb, 'financial')),
-      get(ref(rtdb, 'users'))
+      get(ref(rtdb, 'users')),
+      get(ref(rtdb, 'invoices')),
+      get(ref(rtdb, 'studentBalances'))
     ]);
 
     const students = studentsSnapshot.exists() ? Object.values(studentsSnapshot.val()) : [];
     const teachers = teachersSnapshot.exists() ? Object.values(teachersSnapshot.val()) : [];
     const users = usersSnapshot.exists() ? Object.values(usersSnapshot.val()) as any[] : [];
     const classes = classesSnapshot.exists() ? Object.values(classesSnapshot.val()) : [];
-    const financial = financialSnapshot.exists() ? Object.values(financialSnapshot.val()) as FinancialRecord[] : [];
+    const invoices = invoicesSnapshot.exists() ? Object.values(invoicesSnapshot.val()) as any[] : [];
+    const balances = balancesSnapshot.exists() ? Object.values(balancesSnapshot.val()) as any[] : [];
 
-    // Calculate financial metrics
-    const income = financial.filter(f => f.type === 'income');
-    const expenses = financial.filter(f => f.type === 'expense');
+    // Calculate financial metrics from actual data
+    // Total Revenue = sum of all paid invoices
+    const totalRevenue = invoices
+      .filter(inv => inv.status === 'Paid')
+      .reduce((sum, inv) => sum + (inv.amount || 0), 0);
     
-    const totalRevenue = income.reduce((sum, f) => sum + f.amount, 0);
-    const outstandingFees = income.filter(f => f.status === 'pending' || f.status === 'overdue').reduce((sum, f) => sum + f.amount, 0);
+    // Outstanding Fees = sum of all unpaid/overdue balances
+    const outstandingFees = balances
+      .filter(bal => bal.status === 'partial' || bal.status === 'overdue')
+      .reduce((sum, bal) => sum + (bal.balance || 0), 0);
+    
+    // Monthly Expenses (from financial table if exists, otherwise 0)
+    const financialSnapshot = await get(ref(rtdb, 'financial'));
+    const financial = financialSnapshot.exists() ? Object.values(financialSnapshot.val()) as FinancialRecord[] : [];
+    const expenses = financial.filter(f => f.type === 'expense');
     const monthlyExpenses = expenses.filter(e => {
       const expenseDate = new Date(e.date);
       const currentMonth = new Date().getMonth();
