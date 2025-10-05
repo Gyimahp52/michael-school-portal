@@ -11,6 +11,7 @@ import {
   Settings,
   DollarSign,
   ArrowUpCircle,
+  Calendar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -51,6 +52,12 @@ const baseItems = [
     title: "Classes & Subjects",
     suffix: "/classes",
     icon: BookOpen,
+    group: "Academic",
+  },
+  {
+    title: "Academic Terms",
+    suffix: "/terms",
+    icon: Calendar,
     group: "Academic",
   },
   {
@@ -107,7 +114,7 @@ function buildNavigation(userRole?: string | null) {
       return ["Dashboard","Students","Grades & Records","Promotions","Settings"].includes(item.title);
     }
     if (userRole === 'accountant') {
-      return ["Dashboard","Fees & Billing","Reports & Analytics","Settings"].includes(item.title);
+      return ["Dashboard","Fees & Billing","Reports & Analytics","Settings","Academic Terms"].includes(item.title);
     }
     // default admin: show all
     return true;

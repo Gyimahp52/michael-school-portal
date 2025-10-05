@@ -14,10 +14,12 @@ import {
   subscribeToSchoolFees,
   updateStudentBalance,
   createStudentBalance,
-  createInvoice
+  createInvoice,
+  getCurrentTerm
 } from "@/lib/database-operations";
 import { DollarSign, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { TermSelector } from "@/components/shared/TermSelector";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -33,11 +35,21 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [loading, setLoading] = useState(false);
+  const [selectedTermId, setSelectedTermId] = useState("");
+  const [selectedTermData, setSelectedTermData] = useState<any>(null);
 
   useEffect(() => {
     const unsubStudents = subscribeToStudents(setStudents);
     const unsubBalances = subscribeToStudentBalances(setStudentBalances);
     const unsubFees = subscribeToSchoolFees(setSchoolFees);
+
+    // Load current term
+    getCurrentTerm().then(term => {
+      if (term) {
+        setSelectedTermId(term.id!);
+        setSelectedTermData(term);
+      }
+    });
 
     return () => {
       unsubStudents();
@@ -99,6 +111,10 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
         dueDate: new Date().toISOString().split('T')[0],
         status: "Paid",
         paymentDate: new Date().toISOString().split('T')[0],
+        termId: selectedTermId || undefined,
+        termName: selectedTermData?.name || undefined,
+        academicYearId: selectedTermData?.academicYearId || undefined,
+        academicYearName: selectedTermData?.academicYearName || undefined,
       });
 
       toast({
@@ -136,6 +152,16 @@ export function PaymentDialog({ open, onOpenChange }: PaymentDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <TermSelector 
+            value={selectedTermId}
+            onChange={(termId, termData) => {
+              setSelectedTermId(termId);
+              setSelectedTermData(termData);
+            }}
+            showAllOption={false}
+            label="Term"
+          />
+
           <div className="space-y-2">
             <Label htmlFor="student">Select Student</Label>
             <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>

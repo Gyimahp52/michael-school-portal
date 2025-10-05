@@ -17,6 +17,7 @@ import ReportsPage from "./pages/ReportsPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import SettingsPage from "./pages/SettingsPage";
 import SchoolFeesPage from "./pages/SchoolFeesPage";
+import AcademicTermsPage from "./pages/AcademicTermsPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -66,6 +67,7 @@ const AppContent = () => {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="school-fees" element={<SchoolFeesPage />} />
+          <Route path="terms" element={<AcademicTermsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
@@ -86,6 +88,7 @@ const AppContent = () => {
           <Route index element={<AccountantDashboard />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="terms" element={<AcademicTermsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>

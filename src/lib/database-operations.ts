@@ -1,6 +1,205 @@
 import { ref, push, set, get, update, remove, onValue } from 'firebase/database';
 import { rtdb } from '../firebase';
 
+// ===== ACADEMIC YEAR & TERM OPERATIONS =====
+export interface AcademicYear {
+  id?: string;
+  name: string; // e.g., "2025/2026"
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'inactive' | 'archived';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Term {
+  id?: string;
+  academicYearId: string;
+  academicYearName: string;
+  name: 'First Term' | 'Second Term' | 'Third Term';
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'upcoming' | 'completed';
+  isCurrentTerm: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const createAcademicYear = async (year: Omit<AcademicYear, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const yearsRef = ref(rtdb, 'academicYears');
+    const newYearRef = push(yearsRef);
+    
+    const yearData = {
+      ...year,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newYearRef, yearData);
+    return newYearRef.key!;
+  } catch (error) {
+    console.error('Error creating academic year:', error);
+    throw error;
+  }
+};
+
+export const getAllAcademicYears = async (): Promise<AcademicYear[]> => {
+  try {
+    const yearsRef = ref(rtdb, 'academicYears');
+    const snapshot = await get(yearsRef);
+    
+    if (!snapshot.exists()) return [];
+    
+    const yearsData = snapshot.val();
+    return Object.keys(yearsData).map(key => ({
+      id: key,
+      ...yearsData[key]
+    }));
+  } catch (error) {
+    console.error('Error fetching academic years:', error);
+    throw error;
+  }
+};
+
+export const subscribeToAcademicYears = (callback: (years: AcademicYear[]) => void) => {
+  const yearsRef = ref(rtdb, 'academicYears');
+  return onValue(yearsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([]);
+      return;
+    }
+    const yearsData = snapshot.val();
+    const years = Object.keys(yearsData).map(key => ({
+      id: key,
+      ...yearsData[key]
+    }));
+    callback(years);
+  });
+};
+
+export const updateAcademicYear = async (yearId: string, updates: Partial<AcademicYear>): Promise<void> => {
+  try {
+    const yearRef = ref(rtdb, `academicYears/${yearId}`);
+    await update(yearRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating academic year:', error);
+    throw error;
+  }
+};
+
+export const createTerm = async (term: Omit<Term, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const termsRef = ref(rtdb, 'terms');
+    const newTermRef = push(termsRef);
+    
+    // If this is marked as current term, unset all other current terms
+    if (term.isCurrentTerm) {
+      const allTerms = await getAllTerms();
+      for (const t of allTerms) {
+        if (t.isCurrentTerm && t.id) {
+          await updateTerm(t.id, { isCurrentTerm: false });
+        }
+      }
+    }
+    
+    const termData = {
+      ...term,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newTermRef, termData);
+    return newTermRef.key!;
+  } catch (error) {
+    console.error('Error creating term:', error);
+    throw error;
+  }
+};
+
+export const getAllTerms = async (): Promise<Term[]> => {
+  try {
+    const termsRef = ref(rtdb, 'terms');
+    const snapshot = await get(termsRef);
+    
+    if (!snapshot.exists()) return [];
+    
+    const termsData = snapshot.val();
+    return Object.keys(termsData).map(key => ({
+      id: key,
+      ...termsData[key]
+    }));
+  } catch (error) {
+    console.error('Error fetching terms:', error);
+    throw error;
+  }
+};
+
+export const subscribeToTerms = (callback: (terms: Term[]) => void) => {
+  const termsRef = ref(rtdb, 'terms');
+  return onValue(termsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([]);
+      return;
+    }
+    const termsData = snapshot.val();
+    const terms = Object.keys(termsData).map(key => ({
+      id: key,
+      ...termsData[key]
+    }));
+    callback(terms);
+  });
+};
+
+export const updateTerm = async (termId: string, updates: Partial<Term>): Promise<void> => {
+  try {
+    // If setting this as current term, unset all others
+    if (updates.isCurrentTerm === true) {
+      const allTerms = await getAllTerms();
+      for (const t of allTerms) {
+        if (t.isCurrentTerm && t.id !== termId && t.id) {
+          await update(ref(rtdb, `terms/${t.id}`), { 
+            isCurrentTerm: false,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+    }
+    
+    const termRef = ref(rtdb, `terms/${termId}`);
+    await update(termRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating term:', error);
+    throw error;
+  }
+};
+
+export const getCurrentTerm = async (): Promise<Term | null> => {
+  try {
+    const terms = await getAllTerms();
+    return terms.find(t => t.isCurrentTerm) || null;
+  } catch (error) {
+    console.error('Error getting current term:', error);
+    return null;
+  }
+};
+
+export const getTermsByAcademicYear = async (academicYearId: string): Promise<Term[]> => {
+  try {
+    const terms = await getAllTerms();
+    return terms.filter(t => t.academicYearId === academicYearId);
+  } catch (error) {
+    console.error('Error getting terms by academic year:', error);
+    throw error;
+  }
+};
+
 // ===== STUDENT OPERATIONS =====
 export interface Student {
   id?: string;
@@ -458,6 +657,10 @@ export interface Invoice {
   dueDate: string;
   status: 'Paid' | 'Pending' | 'Overdue';
   paymentDate?: string | null;
+  termId?: string;
+  termName?: string;
+  academicYearId?: string;
+  academicYearName?: string;
 }
 
 export const createInvoice = async (invoice: Omit<Invoice, 'id'>): Promise<string> => {
@@ -614,6 +817,8 @@ export interface SchoolFees {
   otherFees: number;
   totalFees: number;
   academicYear: string;
+  termId?: string;
+  termName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -628,6 +833,10 @@ export interface StudentBalance {
   balance: number;
   lastPaymentDate?: string;
   status: 'paid' | 'partial' | 'overdue';
+  termId?: string;
+  termName?: string;
+  academicYearId?: string;
+  academicYearName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -807,6 +1016,10 @@ export interface AssessmentRecord {
 	score: number;
 	maxScore: number;
 	date: string; // ISO date
+	termId?: string;
+	termName?: string;
+	academicYearId?: string;
+	academicYearName?: string;
 	createdAt?: string;
 	updatedAt?: string;
 }
