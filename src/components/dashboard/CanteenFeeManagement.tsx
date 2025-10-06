@@ -40,8 +40,6 @@ import {
 } from "@/lib/database-operations";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import { storage } from "@/firebase";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { format } from "date-fns";
 
 interface CanteenFeeManagementProps {
@@ -95,18 +93,21 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
   };
 
   const uploadProofFile = async (file: File): Promise<{ url: string; name: string; type: string }> => {
-    const timestamp = Date.now();
-    const fileName = `canteen-proof-${timestamp}-${file.name}`;
-    const fileRef = storageRef(storage, `canteen-documents/${fileName}`);
-    
-    await uploadBytes(fileRef, file);
-    const url = await getDownloadURL(fileRef);
-    
-    return {
-      url,
-      name: file.name,
-      type: file.type
-    };
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        resolve({
+          url: base64String,
+          name: file.name,
+          type: file.type
+        });
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
