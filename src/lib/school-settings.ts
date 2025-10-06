@@ -31,6 +31,7 @@ const defaultSettings: SchoolSettings = {
   address: "123 Education Street, Accra, Ghana",
   phone: "+233 20 123 4567",
   email: "info@michaelagyeischool.edu.gh",
+  logoUrl: "/Crest.jpg",
   darkMode: false,
   autoBackup: true,
   emailNotifications: true,
