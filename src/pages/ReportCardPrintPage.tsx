@@ -232,24 +232,24 @@ export default function ReportCardPrintPage() {
       `}</style>
 
       {reports.map((rep, idx) => (
-        <div key={rep.student.id} className={`card bg-white border-2 rounded-2xl shadow-lg mb-10 relative overflow-hidden ${idx < reports.length - 1 ? 'page-break' : ''}`}> 
-          <div className="h-3 w-full bg-gradient-to-r from-blue-600 via-emerald-500 to-blue-600" />
+        <div key={rep.student.id} className={`card bg-white border-2 rounded-lg shadow-lg mb-6 relative overflow-hidden ${idx < reports.length - 1 ? 'page-break' : ''}`}> 
+          <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-emerald-500 to-blue-600" />
           {/* Decorative Corner Elements */}
-          <div className="absolute top-0 left-0 w-32 h-32 opacity-10">
+          <div className="absolute top-0 left-0 w-24 h-24 opacity-10">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-transparent rounded-br-full"></div>
           </div>
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+          <div className="absolute top-0 right-0 w-24 h-24 opacity-10">
             <div className="absolute inset-0 bg-gradient-to-bl from-emerald-500 to-transparent rounded-bl-full"></div>
           </div>
           {/* Watermark */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.02] flex items-center justify-center">
-            <div className="text-[12rem] font-extrabold tracking-widest text-blue-700 transform rotate-[-15deg]">MAEC</div>
+            <div className="text-[8rem] font-extrabold tracking-widest text-blue-700 transform rotate-[-15deg]">MAEC</div>
           </div>
 
         {/* Header */}
-        <div className="relative z-10 flex items-center justify-center py-6 px-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-4 ring-blue-200 shadow-lg">
+        <div className="relative z-10 flex items-center justify-center py-3 px-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-2 ring-blue-200 shadow-md">
               <img 
                 src="/public/Crest.jpg" 
                 alt="School Logo" 
@@ -259,23 +259,23 @@ export default function ReportCardPrintPage() {
                   target.style.display = 'none';
                   const parent = target.parentElement;
                   if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-2xl font-bold">M</div>';
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-600 to-emerald-600 flex items-center justify-center text-white text-lg font-bold">M</div>';
                   }
                 }}
               />
             </div>
             <div className="text-center">
-              <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
+              <h2 className="text-xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
                 Michael Adjei Educational Complex
               </h2>
-              <div className="mt-2 inline-block">
-                <p className="text-sm font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-4 py-1 rounded-full">
+              <div className="mt-1 inline-block">
+                <p className="text-[10px] font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-3 py-0.5 rounded-full">
                   Academic Report Card
                 </p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Excellence in Education</p>
+              <p className="text-[9px] text-gray-500 mt-1">Excellence in Education</p>
             </div>
-            <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-4 ring-emerald-200 shadow-lg">
+            <div className="w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-2 ring-emerald-200 shadow-md">
               <img 
                 src="/public/Crest.jpg" 
                 alt="School Logo" 
@@ -285,7 +285,7 @@ export default function ReportCardPrintPage() {
                   target.style.display = 'none';
                   const parent = target.parentElement;
                   if (parent) {
-                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">A</div>';
+                    parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center text-white text-lg font-bold">A</div>';
                   }
                 }}
               />
@@ -294,40 +294,40 @@ export default function ReportCardPrintPage() {
         </div>
 
           {/* Student Info Section */}
-          <div className="relative z-10 px-6 mb-6">
-            <div className="bg-gradient-to-r from-blue-50 via-white to-emerald-50 rounded-xl p-6 border-2 border-blue-100">
+          <div className="relative z-10 px-4 mb-3">
+            <div className="bg-gradient-to-r from-blue-50 via-white to-emerald-50 rounded-lg p-3 border border-blue-100">
               <div className="flex items-start justify-between">
                 {/* Student Details */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-2">
                   <div>
-                    <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">Student Name</p>
-                    <p className="text-xl font-bold text-blue-800">{rep.student.firstName} {rep.student.lastName}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Student Name</p>
+                    <p className="text-sm font-bold text-blue-800">{rep.student.firstName} {rep.student.lastName}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Admission No.</p>
-                      <p className="text-sm font-semibold text-gray-700">{rep.student.id}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Admission No.</p>
+                      <p className="text-[11px] font-semibold text-gray-700">{rep.student.id}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Class & Year</p>
-                      <p className="text-sm font-semibold text-gray-700">{classLabel} • {settings?.academicYear || '__________'}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Class & Year</p>
+                      <p className="text-[11px] font-semibold text-gray-700">{classLabel} • {settings?.academicYear || '__________'}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-2 gap-3 pt-1">
                     <div>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Date of Birth</p>
-                      <p className="text-sm font-medium text-gray-700">{rep.student.dateOfBirth || '-'}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Date of Birth</p>
+                      <p className="text-[11px] font-medium text-gray-700">{rep.student.dateOfBirth || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Parent/Guardian</p>
-                      <p className="text-sm font-medium text-gray-700">{rep.student.parentName || '-'}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Parent/Guardian</p>
+                      <p className="text-[11px] font-medium text-gray-700">{rep.student.parentName || '-'}</p>
                     </div>
                   </div>
                 </div>
                 
                 {/* Student Photo */}
-                <div className="ml-6">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden bg-white border-4 border-white shadow-lg ring-2 ring-blue-200">
+                <div className="ml-4">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border-2 border-white shadow-md ring-2 ring-blue-200">
                     {rep.student.photoUrl ? (
                       <img 
                         src={rep.student.photoUrl} 
@@ -339,13 +339,13 @@ export default function ReportCardPrintPage() {
                           target.style.display = 'none';
                           const parent = target.parentElement;
                           if (parent) {
-                            parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-blue-100"><span class="text-4xl font-bold text-blue-600">${rep.student.firstName[0]}${rep.student.lastName[0]}</span></div>`;
+                            parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-blue-100"><span class="text-2xl font-bold text-blue-600">${rep.student.firstName[0]}${rep.student.lastName[0]}</span></div>`;
                           }
                         }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-blue-100">
-                        <span className="text-4xl font-bold text-blue-600">{rep.student.firstName[0]}{rep.student.lastName[0]}</span>
+                        <span className="text-2xl font-bold text-blue-600">{rep.student.firstName[0]}{rep.student.lastName[0]}</span>
                       </div>
                     )}
                   </div>
@@ -355,38 +355,38 @@ export default function ReportCardPrintPage() {
           </div>
 
           {/* Academic Performance Section */}
-          <div className="relative z-10 px-6 mb-6">
-            <div className="mb-3">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-emerald-500 rounded-full"></div>
+          <div className="relative z-10 px-4 mb-3">
+            <div className="mb-2">
+              <h3 className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                <div className="w-1 h-4 bg-gradient-to-b from-blue-600 to-emerald-500 rounded-full"></div>
                 Academic Performance
               </h3>
             </div>
-            <div className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-sm">
-              <table className="w-full text-sm">
+            <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+              <table className="w-full text-[10px]">
                 <thead>
                   <tr className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 text-white">
-                    <th className="px-4 py-3 text-left font-semibold">Subject</th>
-                    <th className="px-4 py-3 text-center font-semibold">Classwork</th>
-                    <th className="px-4 py-3 text-center font-semibold">Exam</th>
-                    <th className="px-4 py-3 text-center font-semibold">Total</th>
-                    <th className="px-4 py-3 text-center font-semibold">Grade</th>
-                    <th className="px-4 py-3 text-left font-semibold">Remarks</th>
+                    <th className="px-2 py-1.5 text-left font-semibold">Subject</th>
+                    <th className="px-2 py-1.5 text-center font-semibold">Classwork</th>
+                    <th className="px-2 py-1.5 text-center font-semibold">Exam</th>
+                    <th className="px-2 py-1.5 text-center font-semibold">Total</th>
+                    <th className="px-2 py-1.5 text-center font-semibold">Grade</th>
+                    <th className="px-2 py-1.5 text-left font-semibold">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rep.subjects.map((row, idx) => (
                     <tr key={row.subjectId} className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}>
-                      <td className="px-4 py-3 font-medium text-gray-800">{row.subjectName}</td>
-                      <td className="px-4 py-3 text-center text-gray-700">{row.classwork}</td>
-                      <td className="px-4 py-3 text-center text-gray-700">{row.exam}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-gray-900">{row.total}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${getGradeBadgeClass(row.grade)}`}>
+                      <td className="px-2 py-1.5 font-medium text-gray-800">{row.subjectName}</td>
+                      <td className="px-2 py-1.5 text-center text-gray-700">{row.classwork}</td>
+                      <td className="px-2 py-1.5 text-center text-gray-700">{row.exam}</td>
+                      <td className="px-2 py-1.5 text-center font-semibold text-gray-900">{row.total}</td>
+                      <td className="px-2 py-1.5 text-center">
+                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-bold text-[9px] ${getGradeBadgeClass(row.grade)}`}>
                           {row.grade}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-700 italic">{row.remarks}</td>
+                      <td className="px-2 py-1.5 text-gray-700 italic">{row.remarks}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -395,39 +395,39 @@ export default function ReportCardPrintPage() {
           </div>
 
           {/* Performance Summary & Comments */}
-          <div className="relative z-10 px-6 mb-6">
-            <div className="grid grid-cols-2 gap-6">
+          <div className="relative z-10 px-4 mb-3">
+            <div className="grid grid-cols-2 gap-3">
               {/* Left: Stats */}
-              <div className="space-y-4">
-                <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-4 border-2 border-blue-100">
-                  <h4 className="text-xs uppercase tracking-wide text-blue-600 font-semibold mb-3">Performance Metrics</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Marks</div>
-                      <div className="text-2xl font-bold text-blue-700">{rep.totalMarks}</div>
+              <div className="space-y-2">
+                <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-2.5 border border-blue-100">
+                  <h4 className="text-[9px] uppercase tracking-wide text-blue-600 font-semibold mb-2">Performance Metrics</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white rounded-md p-2 shadow-sm">
+                      <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Total Marks</div>
+                      <div className="text-lg font-bold text-blue-700">{rep.totalMarks}</div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Average</div>
-                      <div className="text-2xl font-bold text-emerald-600">{rep.averageMarks.toFixed(1)}</div>
+                    <div className="bg-white rounded-md p-2 shadow-sm">
+                      <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Average</div>
+                      <div className="text-lg font-bold text-emerald-600">{rep.averageMarks.toFixed(1)}</div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Position</div>
-                      <div className="text-2xl font-bold text-purple-600">{positions.get(rep.student.id!) || '-'} / {fullClassReports.length}</div>
+                    <div className="bg-white rounded-md p-2 shadow-sm">
+                      <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Position</div>
+                      <div className="text-lg font-bold text-purple-600">{positions.get(rep.student.id!) || '-'} / {fullClassReports.length}</div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Class Avg</div>
-                      <div className="text-2xl font-bold text-orange-600">{classAverage.toFixed(1)}</div>
+                    <div className="bg-white rounded-md p-2 shadow-sm">
+                      <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Class Avg</div>
+                      <div className="text-lg font-bold text-orange-600">{classAverage.toFixed(1)}</div>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl p-4 border-2 border-emerald-100">
-                  <p className="text-xs text-gray-600"><span className="font-bold text-gray-800">Class Teacher:</span> {classTeacherName}</p>
-                  <p className="text-xs text-gray-600 mt-2"><span className="font-bold text-gray-800">Academic Year:</span> {settings?.academicYear || '__________'}</p>
+                <div className="bg-gradient-to-br from-emerald-50 to-white rounded-lg p-2.5 border border-emerald-100">
+                  <p className="text-[9px] text-gray-600"><span className="font-bold text-gray-800">Class Teacher:</span> {classTeacherName}</p>
+                  <p className="text-[9px] text-gray-600 mt-1"><span className="font-bold text-gray-800">Academic Year:</span> {settings?.academicYear || '__________'}</p>
                 </div>
               </div>
 
               {/* Right: Comments */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {(() => {
                   const overallPercent = (() => {
                     const totalMax = assessments.filter(a => a.studentId === rep.student.id).reduce((sum, i) => sum + (i.maxScore || 0), 0);
@@ -441,23 +441,23 @@ export default function ReportCardPrintPage() {
                   const headAuto = overallPercent >= 70 ? 'Keep striving for excellence.' : overallPercent >= 50 ? 'Work harder next term.' : 'Parent/guardian should support learning at home.';
                   return (
                     <>
-                      <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 border-2 border-amber-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                            <span className="text-amber-600 text-xs">👨‍🏫</span>
+                      <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg p-2.5 border border-amber-200">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                            <span className="text-amber-600 text-[9px]">👨‍🏫</span>
                           </div>
-                          <div className="text-xs font-bold text-amber-800 uppercase tracking-wide">Class Teacher's Comment</div>
+                          <div className="text-[9px] font-bold text-amber-800 uppercase tracking-wide">Class Teacher's Comment</div>
                         </div>
-                        <div className="text-sm text-gray-700 leading-relaxed pl-10">{teacherAuto}</div>
+                        <div className="text-[10px] text-gray-700 leading-relaxed pl-7">{teacherAuto}</div>
                       </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border-2 border-purple-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                            <span className="text-purple-600 text-xs">👔</span>
+                      <div className="bg-gradient-to-br from-purple-50 to-white rounded-lg p-2.5 border border-purple-200">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                            <span className="text-purple-600 text-[9px]">👔</span>
                           </div>
-                          <div className="text-xs font-bold text-purple-800 uppercase tracking-wide">Head Teacher's Comment</div>
+                          <div className="text-[9px] font-bold text-purple-800 uppercase tracking-wide">Head Teacher's Comment</div>
                         </div>
-                        <div className="text-sm text-gray-700 leading-relaxed pl-10">{headAuto}</div>
+                        <div className="text-[10px] text-gray-700 leading-relaxed pl-7">{headAuto}</div>
                       </div>
                     </>
                   );
@@ -467,31 +467,31 @@ export default function ReportCardPrintPage() {
           </div>
 
           {/* Attendance Section */}
-          <div className="relative z-10 px-6 mb-6">
-            <div className="bg-gradient-to-r from-indigo-50 via-white to-indigo-50 rounded-xl p-4 border-2 border-indigo-100">
-              <h4 className="text-xs uppercase tracking-wide text-indigo-600 font-semibold mb-3 flex items-center gap-2">
-                <div className="w-1 h-4 bg-indigo-600 rounded-full"></div>
+          <div className="relative z-10 px-4 mb-3">
+            <div className="bg-gradient-to-r from-indigo-50 via-white to-indigo-50 rounded-lg p-2.5 border border-indigo-100">
+              <h4 className="text-[9px] uppercase tracking-wide text-indigo-600 font-semibold mb-2 flex items-center gap-1.5">
+                <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
                 Attendance Record
               </h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-gray-100">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Opened</div>
-                  <div className="text-2xl font-bold text-gray-800">{rep.attendance?.opened ?? '-'}</div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-white rounded-md p-2 text-center shadow-sm border border-gray-100">
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Days Opened</div>
+                  <div className="text-lg font-bold text-gray-800">{rep.attendance?.opened ?? '-'}</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-green-100">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Present</div>
-                  <div className="text-2xl font-bold text-green-600">{rep.attendance?.present ?? '-'}</div>
+                <div className="bg-white rounded-md p-2 text-center shadow-sm border border-green-100">
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Days Present</div>
+                  <div className="text-lg font-bold text-green-600">{rep.attendance?.present ?? '-'}</div>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm border border-red-100">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Days Absent</div>
-                  <div className="text-2xl font-bold text-red-600">{rep.attendance?.absent ?? '-'}</div>
+                <div className="bg-white rounded-md p-2 text-center shadow-sm border border-red-100">
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider mb-0.5">Days Absent</div>
+                  <div className="text-lg font-bold text-red-600">{rep.attendance?.absent ?? '-'}</div>
                 </div>
               </div>
               {rep.attendance && rep.attendance.opened > 0 && (
-                <div className="mt-3 text-center">
-                  <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-indigo-200">
-                    <span className="text-xs text-gray-600">Attendance Rate:</span>
-                    <span className="text-sm font-bold text-indigo-700">
+                <div className="mt-2 text-center">
+                  <div className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-indigo-200">
+                    <span className="text-[9px] text-gray-600">Attendance Rate:</span>
+                    <span className="text-[10px] font-bold text-indigo-700">
                       {((rep.attendance.present / rep.attendance.opened) * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -501,50 +501,50 @@ export default function ReportCardPrintPage() {
           </div>
 
           {/* Signatures & Stamp */}
-          <div className="relative z-10 px-6 mb-6">
-            <div className="grid grid-cols-3 gap-6 text-sm">
+          <div className="relative z-10 px-4 mb-3">
+            <div className="grid grid-cols-3 gap-3 text-[10px]">
               <div className="text-center">
-                <div className="h-16 flex items-end justify-center">
+                <div className="h-10 flex items-end justify-center">
                   <div className="w-full h-px bg-gray-300"></div>
                 </div>
-                <p className="mt-2 font-semibold text-gray-700">Class Teacher</p>
-                <p className="text-xs text-gray-500">Signature & Date</p>
+                <p className="mt-1 font-semibold text-gray-700">Class Teacher</p>
+                <p className="text-[8px] text-gray-500">Signature & Date</p>
               </div>
               <div className="text-center">
-                <div className="h-16 flex items-end justify-center">
+                <div className="h-10 flex items-end justify-center">
                   <div className="w-full h-px bg-gray-300"></div>
                 </div>
-                <p className="mt-2 font-semibold text-gray-700">Head Teacher</p>
-                <p className="text-xs text-gray-500">Signature & Date</p>
+                <p className="mt-1 font-semibold text-gray-700">Head Teacher</p>
+                <p className="text-[8px] text-gray-500">Signature & Date</p>
               </div>
               <div className="text-center">
-                <div className="h-16 flex items-end justify-center">
+                <div className="h-10 flex items-end justify-center">
                   <div className="w-full h-px bg-gray-300"></div>
                 </div>
-                <p className="mt-2 font-semibold text-gray-700">Parent / Guardian</p>
-                <p className="text-xs text-gray-500">Signature & Date</p>
+                <p className="mt-1 font-semibold text-gray-700">Parent / Guardian</p>
+                <p className="text-[8px] text-gray-500">Signature & Date</p>
               </div>
             </div>
             
-            <div className="mt-6 flex justify-center">
-              <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+            <div className="mt-3 flex justify-center">
+              <div className="w-20 h-20 rounded-md border border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">School Stamp</p>
+                  <p className="text-[8px] font-semibold text-gray-500 uppercase">School Stamp</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="relative z-10 border-t-2 border-gray-200 mt-2 pt-4 px-6 pb-4">
-            <p className="text-center text-xs text-gray-500">
+          <div className="relative z-10 border-t border-gray-200 mt-2 pt-2 px-4 pb-2">
+            <p className="text-center text-[8px] text-gray-500">
               This is an official document from Michael Adjei Educational Complex • Keep this report card for your records
             </p>
           </div>
 
           {/* Per-student action */}
-          <div className="print:hidden mt-4 flex justify-end gap-2 px-6 pb-4">
-            <button className="px-4 py-2 rounded-lg border-2 border-blue-200 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors" onClick={() => setSearchParams({ studentId: rep.student.id! })}>
+          <div className="print:hidden mt-2 flex justify-end gap-2 px-4 pb-2">
+            <button className="px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors" onClick={() => setSearchParams({ studentId: rep.student.id! })}>
               Print Only This Student
             </button>
           </div>
