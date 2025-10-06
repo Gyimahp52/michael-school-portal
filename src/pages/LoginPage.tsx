@@ -76,8 +76,12 @@ export function LoginPage() {
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex flex-col items-center space-y-4">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <GraduationCap className="w-12 h-12 text-primary" />
+              <div className="w-24 h-24 rounded-xl overflow-hidden bg-background ring-2 ring-primary/20 shadow-lg">
+                <img 
+                  src="/Crest.jpg" 
+                  alt="School Logo" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground text-center">Michael Adjei Educational Complex</h1>
@@ -137,21 +141,6 @@ export function LoginPage() {
                 Contact administrator
               </a>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleSetupUsers}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                'Check Database Connection'
-              )}
-            </Button>
           </CardFooter>
         </Card>
       </div>
