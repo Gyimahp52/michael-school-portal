@@ -38,7 +38,7 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent } from "@/lib/database-operations";
+import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type Class } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 
 import { useAuth } from "@/contexts/CustomAuthContext";
@@ -48,8 +48,9 @@ import { sendWhatsAppText } from "@/lib/whatsapp";
 export function StudentsPage() {
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGrade, setSelectedGrade] = useState("All");
+  const [selectedClass, setSelectedClass] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
@@ -60,7 +61,11 @@ export function StudentsPage() {
     const unsubscribe = subscribeToStudents((studentsData) => {
       setStudents(studentsData);
     });
-    return () => unsubscribe();
+    const unsubClasses = subscribeToClasses(setClasses);
+    return () => {
+      unsubscribe();
+      unsubClasses();
+    };
   }, []);
 
   const filteredStudents = students.filter((student) => {
@@ -68,8 +73,8 @@ export function StudentsPage() {
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                          student.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGrade = selectedGrade === "All" || student.className === selectedGrade;
-    return matchesSearch && matchesGrade;
+    const matchesClass = selectedClass === "All" || student.className === selectedClass;
+    return matchesSearch && matchesClass;
   });
 
   const handleAddStudent = () => {
@@ -249,18 +254,17 @@ export function StudentsPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by Grade" />
+                  <SelectValue placeholder="Filter by Class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Grades</SelectItem>
-                  <SelectItem value="7">Grade 7</SelectItem>
-                  <SelectItem value="8">Grade 8</SelectItem>
-                  <SelectItem value="9">Grade 9</SelectItem>
-                  <SelectItem value="10">Grade 10</SelectItem>
-                  <SelectItem value="11">Grade 11</SelectItem>
-                  <SelectItem value="12">Grade 12</SelectItem>
+                  <SelectItem value="All">All Classes</SelectItem>
+                  {classes.map(cls => (
+                    <SelectItem key={cls.id} value={cls.className}>
+                      {cls.className}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -281,7 +285,7 @@ export function StudentsPage() {
               <TableRow>
                 <TableHead>Student</TableHead>
                 <TableHead>ID</TableHead>
-                <TableHead>Grade</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Guardian</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Fees</TableHead>
