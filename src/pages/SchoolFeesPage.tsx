@@ -12,11 +12,13 @@ import {
   createSchoolFees,
   updateSchoolFees,
   SchoolFees,
-    subscribeToClasses,
-    Class,
+  subscribeToClasses,
+  Class,
   subscribeToStudents,
-  Student
+  Student,
+  Term
 } from "@/lib/database-operations";
+import { TermSelector } from "@/components/shared/TermSelector";
 import {
   DollarSign,
   Plus,
@@ -45,7 +47,9 @@ export default function SchoolFeesPage() {
     examFees: "",
     activityFees: "",
     otherFees: "",
-    academicYear: new Date().getFullYear().toString()
+    academicYear: new Date().getFullYear().toString(),
+    termId: "",
+    termName: ""
   });
   const { toast } = useToast();
 
@@ -68,10 +72,10 @@ export default function SchoolFeesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.className || !formData.tuitionFees || !formData.examFees || !formData.activityFees || !formData.otherFees) {
+    if (!formData.className || !formData.tuitionFees || !formData.examFees || !formData.activityFees || !formData.otherFees || !formData.termId) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including term",
         variant: "destructive",
       });
       return;
@@ -90,7 +94,9 @@ export default function SchoolFeesPage() {
         activityFees: activity,
         otherFees: other,
         totalFees: tuition + exam + activity + other,
-        academicYear: formData.academicYear
+        academicYear: formData.academicYear,
+        termId: formData.termId,
+        termName: formData.termName
       };
 
       if (editingFees) {
@@ -114,7 +120,9 @@ export default function SchoolFeesPage() {
         examFees: "",
         activityFees: "",
         otherFees: "",
-        academicYear: new Date().getFullYear().toString()
+        academicYear: new Date().getFullYear().toString(),
+        termId: "",
+        termName: ""
       });
       setDialogOpen(false);
       setEditingFees(null);
@@ -135,7 +143,9 @@ export default function SchoolFeesPage() {
       examFees: fees.examFees.toString(),
       activityFees: fees.activityFees.toString(),
       otherFees: fees.otherFees.toString(),
-      academicYear: fees.academicYear
+      academicYear: fees.academicYear,
+      termId: fees.termId || "",
+      termName: fees.termName || ""
     });
     setDialogOpen(true);
   };
@@ -147,7 +157,9 @@ export default function SchoolFeesPage() {
       examFees: "",
       activityFees: "",
       otherFees: "",
-      academicYear: new Date().getFullYear().toString()
+      academicYear: new Date().getFullYear().toString(),
+      termId: "",
+      termName: ""
     });
     setDialogOpen(false);
     setEditingFees(null);
@@ -181,7 +193,7 @@ export default function SchoolFeesPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">School Fees Management</h1>
           <p className="text-muted-foreground mt-2">
-            Set and manage school fees for all classes for the academic year.
+            Set and manage school fees for all classes by term.
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -198,9 +210,25 @@ export default function SchoolFeesPage() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Term *</Label>
+                <TermSelector
+                  value={formData.termId}
+                  onChange={(termId, term) => {
+                    setFormData({
+                      ...formData, 
+                      termId: termId || "",
+                      termName: term?.name || ""
+                    });
+                  }}
+                  label=""
+                  showAllOption={false}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="className">Class</Label>
+                  <Label htmlFor="className">Class *</Label>
                   <Select 
                     value={formData.className} 
                     onValueChange={(value) => setFormData({...formData, className: value})}
@@ -226,6 +254,7 @@ export default function SchoolFeesPage() {
                     value={formData.academicYear}
                     onChange={(e) => setFormData({...formData, academicYear: e.target.value})}
                     placeholder="2024"
+                    disabled
                   />
                 </div>
               </div>
@@ -408,7 +437,7 @@ export default function SchoolFeesPage() {
                           <div>
                             <h4 className="font-medium text-foreground">Class {fees.className}</h4>
                             <p className="text-sm text-muted-foreground">
-                              Academic Year {fees.academicYear} • {studentsInClass} students
+                              {fees.termName} • Academic Year {fees.academicYear} • {studentsInClass} students
                             </p>
                           </div>
                         </div>
