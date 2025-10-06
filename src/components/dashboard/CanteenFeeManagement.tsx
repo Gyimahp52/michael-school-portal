@@ -74,40 +74,119 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type and size
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      const maxSize = 10 * 1024 * 1024; // 10MB
-
       if (!validTypes.includes(file.type)) {
-        toast.error("Invalid file type. Please upload JPG, PNG, or PDF files.");
+        toast.error('Invalid file type. Please upload JPG, PNG, or PDF files.');
         return;
       }
-
-      if (file.size > maxSize) {
-        toast.error("File size exceeds 10MB. Please upload a smaller file.");
-        return;
+      // Immediate size check for PDFs (images will be compressed later)
+      if (file.type === 'application/pdf') {
+        const maxPdfSize = 4 * 1024 * 1024; // 4MB
+        if (file.size > maxPdfSize) {
+          toast.error('PDF is too large. Please upload a PDF under 4MB.');
+          return;
+        }
       }
 
       setFormData({ ...formData, proofFile: file });
+      if (file.type.startsWith('image/')) {
+        toast('Heads up', {
+          description: 'Large images will be compressed automatically before saving.',
+        });
+      }
     }
   };
 
-  const uploadProofFile = async (file: File): Promise<{ url: string; name: string; type: string }> => {
+  // Compress images client-side to keep payloads small for Realtime DB
+  const compressImageFile = (
+    file: File,
+    maxWidth = 1280,
+    quality = 0.7
+  ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
+      const img = new Image();
       const reader = new FileReader();
+
       reader.onload = () => {
-        const base64String = reader.result as string;
-        resolve({
-          url: base64String,
-          name: file.name,
-          type: file.type
-        });
+        img.onload = () => {
+          const scale = Math.min(maxWidth / img.width, 1);
+          const width = Math.round(img.width * scale);
+          const height = Math.round(img.height * scale);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error('Image compression failed'));
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image for compression'));
+        img.src = reader.result as string;
       };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
+      reader.onerror = () => reject(new Error('Failed to read image file'));
       reader.readAsDataURL(file);
     });
+  };
+
+  const uploadProofFile = async (
+    file: File
+  ): Promise<{ url: string; name: string; type: string }> => {
+    try {
+      // PDFs: enforce strict size limit (4MB)
+      if (file.type === 'application/pdf') {
+        const maxPdfSize = 4 * 1024 * 1024; // 4MB
+        if (file.size > maxPdfSize) {
+          throw new Error('PDF is too large. Please upload a PDF under 4MB.');
+        }
+        const pdfDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read PDF file'));
+          reader.readAsDataURL(file);
+        });
+        return { url: pdfDataUrl, name: file.name, type: file.type };
+      }
+
+      // Images: compress then convert to Data URL (JPEG)
+      if (file.type.startsWith('image/')) {
+        const compressedBlob = await compressImageFile(file, 1280, 0.7);
+        const compressedFile = new File(
+          [compressedBlob],
+          file.name.replace(/\.[^.]+$/, '.jpg'),
+          { type: 'image/jpeg' }
+        );
+
+        const imageDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read compressed image'));
+          reader.readAsDataURL(compressedFile);
+        });
+
+        // Optional: warn if still large (>4MB after compression)
+        const approxSizeBytes = Math.ceil((imageDataUrl.length * 3) / 4);
+        if (approxSizeBytes > 4 * 1024 * 1024) {
+          throw new Error('Image is too large after compression. Try a smaller image.');
+        }
+
+        return { url: imageDataUrl, name: compressedFile.name, type: 'image/jpeg' };
+      }
+
+      throw new Error('Unsupported file type.');
+    } catch (err) {
+      throw err;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,9 +240,10 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
       const fileInput = document.getElementById('proof-file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-    } catch (error) {
-      console.error("Error recording canteen collection:", error);
-      toast.error("Failed to record collection");
+    } catch (error: any) {
+      console.error('Error recording canteen collection:', error);
+      const message = typeof error?.message === 'string' ? error.message : 'Failed to record collection';
+      toast.error(message);
     } finally {
       setLoading(false);
       setUploadingFile(false);
