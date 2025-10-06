@@ -27,6 +27,7 @@ import {
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
+import { CanteenFeeManagement } from "./CanteenFeeManagement";
 import { formatCurrency } from "@/lib/utils";
 import { FeesCollectedDialog } from "@/components/dialogs/FeesCollectedDialog";
 import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
@@ -336,6 +337,12 @@ export function AccountantDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Canteen Fee Management */}
+      <CanteenFeeManagement 
+        currentUserId="accountant-001" 
+        currentUserName="Accountant"
+      />
 
       {/* Student Balances by Class */}
       <div>

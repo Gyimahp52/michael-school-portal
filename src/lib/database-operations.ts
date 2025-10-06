@@ -747,6 +747,80 @@ export const subscribeToStudentDocuments = (
   return unsubscribe;
 };
 
+// ===== CANTEEN/FEEDING FEE OPERATIONS =====
+export interface CanteenCollection {
+  id?: string;
+  date: string;
+  totalAmount: number;
+  numberOfStudents?: number;
+  proofDocUrl?: string;
+  proofDocName?: string;
+  proofDocType?: string;
+  notes?: string;
+  recordedBy: string;
+  recordedByName: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const createCanteenCollection = async (collection: Omit<CanteenCollection, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  try {
+    const collectionsRef = ref(rtdb, 'canteenCollections');
+    const newCollectionRef = push(collectionsRef);
+    
+    const collectionData = {
+      ...collection,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await set(newCollectionRef, collectionData);
+    return newCollectionRef.key!;
+  } catch (error) {
+    console.error('Error creating canteen collection:', error);
+    throw error;
+  }
+};
+
+export const subscribeToCanteenCollections = (callback: (collections: CanteenCollection[]) => void): (() => void) => {
+  const collectionsRef = ref(rtdb, 'canteenCollections');
+  const unsubscribe = onValue(collectionsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const collectionsData = snapshot.val();
+      const collections = Object.keys(collectionsData)
+        .map(key => ({ id: key, ...collectionsData[key] }))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      callback(collections);
+    } else {
+      callback([]);
+    }
+  });
+  return unsubscribe;
+};
+
+export const updateCanteenCollection = async (collectionId: string, updates: Partial<CanteenCollection>): Promise<void> => {
+  try {
+    const collectionRef = ref(rtdb, `canteenCollections/${collectionId}`);
+    await update(collectionRef, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error updating canteen collection:', error);
+    throw error;
+  }
+};
+
+export const deleteCanteenCollection = async (collectionId: string): Promise<void> => {
+  try {
+    const collectionRef = ref(rtdb, `canteenCollections/${collectionId}`);
+    await remove(collectionRef);
+  } catch (error) {
+    console.error('Error deleting canteen collection:', error);
+    throw error;
+  }
+};
+
 export const deleteStudentDocument = async (docId: string): Promise<void> => {
   try {
     const docRef = ref(rtdb, `studentDocuments/${docId}`);
