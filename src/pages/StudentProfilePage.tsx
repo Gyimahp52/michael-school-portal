@@ -27,6 +27,9 @@ import {
   Mail,
   MapPin,
   CreditCard,
+  Upload,
+  Trash2,
+  Eye,
 } from "lucide-react";
 import {
   Student,
@@ -41,7 +44,17 @@ import {
   PromotionRequest,
   subscribeToSubjects,
   Subject,
+  subscribeToInvoices,
+  Invoice,
+  subscribeToStudentDocuments,
+  StudentDocument,
+  createStudentDocument,
+  deleteStudentDocument,
 } from "@/lib/database-operations";
+import { storage } from "@/firebase";
+import { ref as sRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+import { useAuth } from "@/contexts/CustomAuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 
@@ -67,14 +80,18 @@ interface StudentHistoryRecord {
 export function StudentProfilePage() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecordDoc[]>([]);
   const [balance, setBalance] = useState<StudentBalance | null>(null);
   const [promotionHistory, setPromotionHistory] = useState<PromotionRequest[]>([]);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [academicHistory, setAcademicHistory] = useState<StudentHistoryRecord[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!studentId) return;
@@ -125,6 +142,19 @@ export function StudentProfilePage() {
       setPromotionHistory(studentPromotions);
     });
     unsubscribers.push(unsubPromotions);
+
+    // Subscribe to invoices
+    const unsubInvoices = subscribeToInvoices((allInvoices) => {
+      const studentInvoices = allInvoices.filter(inv => inv.studentId === studentId);
+      setInvoices(studentInvoices);
+    });
+    unsubscribers.push(unsubInvoices);
+
+    // Subscribe to documents
+    const unsubDocuments = subscribeToStudentDocuments(studentId, (docs) => {
+      setDocuments(docs);
+    });
+    unsubscribers.push(unsubDocuments);
 
     return () => unsubscribers.forEach(unsub => unsub());
   }, [studentId]);
@@ -238,6 +268,88 @@ export function StudentProfilePage() {
         return <Badge variant="destructive">Overdue</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !student || !currentUser) return;
+
+    try {
+      setUploading(true);
+      
+      // Upload to Firebase Storage
+      const safeName = `${studentId}-${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
+      const storageRef = sRef(storage, `student-documents/${safeName}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on('state_changed',
+        () => {},
+        (error) => {
+          console.error('Upload error:', error);
+          toast({
+            title: "Upload Failed",
+            description: error.message,
+            variant: "destructive"
+          });
+          setUploading(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          // Save metadata to database
+          await createStudentDocument({
+            studentId: studentId!,
+            studentName: `${student.firstName} ${student.lastName}`,
+            fileName: file.name,
+            fileUrl: downloadURL,
+            fileType: file.type,
+            fileSize: file.size,
+            uploadedBy: currentUser.username,
+            description: 'Uploaded from student profile',
+            uploadDate: new Date().toISOString()
+          });
+
+          toast({
+            title: "Document Uploaded",
+            description: `${file.name} has been uploaded successfully.`
+          });
+          setUploading(false);
+        }
+      );
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: "Upload Error",
+        description: error.message || 'Failed to upload document',
+        variant: "destructive"
+      });
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (doc: StudentDocument) => {
+    if (!confirm(`Delete ${doc.fileName}?`)) return;
+
+    try {
+      // Delete from storage
+      const storageRef = sRef(storage, doc.fileUrl);
+      await deleteObject(storageRef);
+
+      // Delete from database
+      await deleteStudentDocument(doc.id!);
+
+      toast({
+        title: "Document Deleted",
+        description: `${doc.fileName} has been deleted.`
+      });
+    } catch (error: any) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: "Delete Error",
+        description: error.message || 'Failed to delete document',
+        variant: "destructive"
+      });
     }
   };
 
@@ -485,50 +597,72 @@ export function StudentProfilePage() {
 
           <Card className="shadow-soft border-border/50">
             <CardHeader>
-              <CardTitle>Current Grades</CardTitle>
+              <CardTitle>Current Term Assessments - Detailed View</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Assessment Type</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Percentage</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {assessments.filter(a => a.classId === student.className).length > 0 ? (
-                    assessments
-                      .filter(a => a.classId === student.className)
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((assessment) => {
-                        const percentage = (assessment.score / assessment.maxScore) * 100;
-                        const subject = subjects.find(s => s.id === assessment.subjectId);
-                        return (
-                          <TableRow key={assessment.id}>
-                            <TableCell className="font-medium">{subject?.name || 'Unknown Subject'}</TableCell>
-                            <TableCell className="capitalize">{assessment.assessmentType}</TableCell>
-                            <TableCell>{assessment.score}/{assessment.maxScore}</TableCell>
-                            <TableCell>
-                              <Badge variant={percentage >= 70 ? "default" : percentage >= 50 ? "secondary" : "destructive"}>
-                                {percentage.toFixed(1)}%
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{format(new Date(assessment.date), "PP")}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        No assessments recorded yet
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              {assessments.filter(a => a.classId === student.className).length > 0 ? (
+                <div className="space-y-6">
+                  {subjects
+                    .filter(subject => assessments.some(a => a.subjectId === subject.id && a.classId === student.className))
+                    .map(subject => {
+                      const subjectAssessments = assessments.filter(
+                        a => a.subjectId === subject.id && a.classId === student.className
+                      ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                      const avgPercentage = subjectAssessments.length > 0
+                        ? subjectAssessments.reduce((sum, a) => sum + (a.score / a.maxScore) * 100, 0) / subjectAssessments.length
+                        : 0;
+
+                      return (
+                        <div key={subject.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-lg">{subject.name}</h4>
+                            <Badge variant={avgPercentage >= 70 ? "default" : avgPercentage >= 50 ? "secondary" : "destructive"}>
+                              Avg: {avgPercentage.toFixed(1)}%
+                            </Badge>
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Assessment Type</TableHead>
+                                <TableHead>Score</TableHead>
+                                <TableHead>Percentage</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Term</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {subjectAssessments.map(assessment => {
+                                const percentage = (assessment.score / assessment.maxScore) * 100;
+                                return (
+                                  <TableRow key={assessment.id}>
+                                    <TableCell className="capitalize font-medium">{assessment.assessmentType}</TableCell>
+                                    <TableCell>{assessment.score}/{assessment.maxScore}</TableCell>
+                                    <TableCell>
+                                      <Badge variant={percentage >= 70 ? "default" : percentage >= 50 ? "secondary" : "destructive"}>
+                                        {percentage.toFixed(1)}%
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell>{format(new Date(assessment.date), "PP")}</TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">
+                                      {assessment.termName || assessment.academicYearName || 'N/A'}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p className="font-medium">No assessments recorded yet</p>
+                  <p className="text-sm mt-1">Assessments will appear here once grades are recorded</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -536,43 +670,88 @@ export function StudentProfilePage() {
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
           <Card className="shadow-soft border-border/50">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Student Documents</CardTitle>
+              <div>
+                <input
+                  type="file"
+                  id="document-upload"
+                  className="hidden"
+                  onChange={handleDocumentUpload}
+                  disabled={uploading}
+                />
+                <Button
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => document.getElementById('document-upload')?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="w-4 h-4" />
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-primary" />
-                    <div>
-                      <p className="font-medium">Student ID Card</p>
-                      <p className="text-sm text-muted-foreground">Official identification document</p>
-                    </div>
+              <div className="space-y-3">
+                {documents.length > 0 ? (
+                  documents
+                    .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+                    .map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <FileText className="w-8 h-8 text-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.fileName}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>{format(new Date(doc.uploadDate), "PP")}</span>
+                              <span>•</span>
+                              <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
+                              <span>•</span>
+                              <span>By {doc.uploadedBy}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            onClick={() => window.open(doc.fileUrl, '_blank')}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2"
+                            asChild
+                          >
+                            <a href={doc.fileUrl} download={doc.fileName}>
+                              <Download className="w-4 h-4" />
+                              Download
+                            </a>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteDocument(doc)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="font-medium">No documents uploaded yet</p>
+                    <p className="text-sm mt-1">Click "Upload Document" to add files</p>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-secondary" />
-                    <div>
-                      <p className="font-medium">Latest Report Card</p>
-                      <p className="text-sm text-muted-foreground">Academic performance report</p>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </Button>
-                </div>
-
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>More documents will appear here as they are uploaded</p>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -730,30 +909,48 @@ export function StudentProfilePage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Receipt #</TableHead>
+                    <TableHead>Term</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.length > 0 ? (
-                    payments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-medium">{format(new Date(payment.date), "PP")}</TableCell>
-                        <TableCell className="font-mono text-sm">{payment.receiptNumber}</TableCell>
-                        <TableCell>{payment.description}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{payment.paymentMethod}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-success">
-                          {formatCurrency(payment.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                  {invoices.length > 0 ? (
+                    invoices
+                      .sort((a, b) => new Date(b.paymentDate || b.dueDate).getTime() - new Date(a.paymentDate || a.dueDate).getTime())
+                      .map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">
+                            {invoice.paymentDate ? format(new Date(invoice.paymentDate), "PP") : '-'}
+                          </TableCell>
+                          <TableCell>{invoice.termName || invoice.academicYearName || 'N/A'}</TableCell>
+                          <TableCell>{invoice.description}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {format(new Date(invoice.dueDate), "PP")}
+                          </TableCell>
+                          <TableCell>
+                            {invoice.status === 'Paid' && (
+                              <Badge className="bg-success text-success-foreground">Paid</Badge>
+                            )}
+                            {invoice.status === 'Pending' && (
+                              <Badge className="bg-warning text-warning-foreground">Pending</Badge>
+                            )}
+                            {invoice.status === 'Overdue' && (
+                              <Badge variant="destructive">Overdue</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            <span className={invoice.status === 'Paid' ? 'text-success' : 'text-foreground'}>
+                              {formatCurrency(invoice.amount)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         No payment records found
                       </TableCell>
                     </TableRow>

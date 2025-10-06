@@ -696,6 +696,67 @@ export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void): ((
   return unsubscribe;
 };
 
+// ===== STUDENT DOCUMENTS =====
+export interface StudentDocument {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedBy: string;
+  uploadDate: string;
+  description?: string;
+  category?: 'ID' | 'Certificate' | 'Medical' | 'Report' | 'Other';
+}
+
+export const createStudentDocument = async (doc: Omit<StudentDocument, 'id'>): Promise<string> => {
+  try {
+    const docsRef = ref(rtdb, 'studentDocuments');
+    const newDocRef = push(docsRef);
+    
+    const docData = {
+      ...doc,
+      uploadDate: new Date().toISOString()
+    };
+    
+    await set(newDocRef, docData);
+    return newDocRef.key!;
+  } catch (error) {
+    console.error('Error creating student document:', error);
+    throw error;
+  }
+};
+
+export const subscribeToStudentDocuments = (
+  studentId: string,
+  callback: (docs: StudentDocument[]) => void
+): (() => void) => {
+  const docsRef = ref(rtdb, 'studentDocuments');
+  const unsubscribe = onValue(docsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const docsData = snapshot.val();
+      const allDocs = Object.keys(docsData).map(key => ({ id: key, ...docsData[key] }));
+      const studentDocs = allDocs.filter(doc => doc.studentId === studentId);
+      callback(studentDocs);
+    } else {
+      callback([]);
+    }
+  });
+  return unsubscribe;
+};
+
+export const deleteStudentDocument = async (docId: string): Promise<void> => {
+  try {
+    const docRef = ref(rtdb, `studentDocuments/${docId}`);
+    await remove(docRef);
+  } catch (error) {
+    console.error('Error deleting student document:', error);
+    throw error;
+  }
+};
+
 // ===== REPORTS =====
 export interface Report {
   id?: string;
