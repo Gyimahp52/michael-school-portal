@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createStudent, updateStudent, upsertStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
-import { storage } from "@/firebase";
-import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+
+
 import { Loader2, Upload, User } from "lucide-react";
 
 interface StudentDialogProps {
@@ -144,40 +144,14 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         if (photoFile.size > MAX_BYTES) {
           throw new Error('Image too large. Please select a file under 10MB.');
         }
-        // Inactivity watchdog: reset on progress, fail if no progress for 45s
-        const createInactivityWatchdog = (ms: number, onTimeout: () => void) => {
-          let timer: ReturnType<typeof setTimeout> | null = setTimeout(onTimeout, ms);
-          return {
-            tick: () => { if (timer) { clearTimeout(timer); timer = setTimeout(onTimeout, ms); } },
-            clear: () => { if (timer) { clearTimeout(timer); timer = null; } }
-          };
-        };
         const blob = await compressImage(photoFile);
-        const safeName = `${(proposedId || `${formData.firstName}-${formData.lastName}`).replace(/[^a-z0-9-_]/gi, '_')}-${Date.now()}.jpg`;
-        const path = `student-photos/${safeName}`;
-        const fileRef = sRef(storage, path);
-        const url: string = await new Promise((resolve, reject) => {
-          const task = uploadBytesResumable(fileRef, blob, { contentType: 'image/jpeg' });
-          const watchdog = createInactivityWatchdog(45000, () => {
-            try { task.cancel(); } catch {}
-            reject(new Error('Upload stalled. Please check your connection and try again.'));
-          });
-          task.on('state_changed', () => {
-            watchdog.tick();
-          }, (err) => {
-            watchdog.clear();
-            reject(err);
-          }, async () => {
-            watchdog.clear();
-            try {
-              const downloadUrl = await getDownloadURL(fileRef);
-              resolve(String(downloadUrl));
-            } catch (e) {
-              reject(e);
-            }
-          });
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error('Failed to read image'));
+          reader.readAsDataURL(blob);
         });
-        return url;
+        return dataUrl;
       };
 
       if (mode === "create") {

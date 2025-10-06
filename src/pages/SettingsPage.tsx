@@ -20,8 +20,6 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { getSchoolSettings, updateSchoolSettings, SchoolSettings } from "@/lib/school-settings";
 import { useToast } from "@/hooks/use-toast";
-import { storage } from "@/firebase";
-import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("school");
@@ -113,42 +111,17 @@ export default function SettingsPage() {
 
     try {
       setUploadingLogo(true);
-      const createInactivityWatchdog = (ms: number, onTimeout: () => void) => {
-        let timer: ReturnType<typeof setTimeout> | null = setTimeout(onTimeout, ms);
-        return {
-          tick: () => { if (timer) { clearTimeout(timer); timer = setTimeout(onTimeout, ms); } },
-          clear: () => { if (timer) { clearTimeout(timer); timer = null; } }
-        };
-      };
-      const safeName = `school-logo-${Date.now()}`;
-      const path = `branding/${safeName}`;
-      const fileRef = sRef(storage, path);
-      const url: string = await new Promise((resolve, reject) => {
-        const task = uploadBytesResumable(fileRef, file, { contentType: file.type });
-        const watchdog = createInactivityWatchdog(60000, () => {
-          try { task.cancel(); } catch {}
-          reject(new Error('Upload timed out. Please try again.'));
-        });
-        task.on('state_changed', () => {
-          watchdog.tick();
-        }, (err) => {
-          watchdog.clear();
-          reject(err);
-        }, async () => {
-          watchdog.clear();
-          try {
-            const downloadUrl = await getDownloadURL(fileRef);
-            resolve(String(downloadUrl));
-          } catch (e) {
-            reject(e);
-          }
-        });
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
       });
 
-      setSettings({ ...settings, logoUrl: url });
-      await updateSchoolSettings({ logoUrl: url });
+      setSettings({ ...settings, logoUrl: dataUrl });
+      await updateSchoolSettings({ logoUrl: dataUrl });
 
-      toast({ title: "Logo updated", description: "School logo uploaded successfully" });
+      toast({ title: "Logo updated", description: "School logo updated successfully" });
     } catch (err: any) {
       console.error("Logo upload failed", err);
       toast({ title: "Upload failed", description: err?.message || "Unable to upload logo", variant: "destructive" });

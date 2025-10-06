@@ -51,8 +51,6 @@ import {
   createStudentDocument,
   deleteStudentDocument,
 } from "@/lib/database-operations";
-import { storage } from "@/firebase";
-import { ref as sRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -277,46 +275,31 @@ export function StudentProfilePage() {
 
     try {
       setUploading(true);
-      
-      // Upload to Firebase Storage
-      const safeName = `${studentId}-${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
-      const storageRef = sRef(storage, `student-documents/${safeName}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
 
-      uploadTask.on('state_changed',
-        () => {},
-        (error) => {
-          console.error('Upload error:', error);
-          toast({
-            title: "Upload Failed",
-            description: error.message,
-            variant: "destructive"
-          });
-          setUploading(false);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          
-          // Save metadata to database
-          await createStudentDocument({
-            studentId: studentId!,
-            studentName: `${student.firstName} ${student.lastName}`,
-            fileName: file.name,
-            fileUrl: downloadURL,
-            fileType: file.type,
-            fileSize: file.size,
-            uploadedBy: currentUser.username,
-            description: 'Uploaded from student profile',
-            uploadDate: new Date().toISOString()
-          });
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
 
-          toast({
-            title: "Document Uploaded",
-            description: `${file.name} has been uploaded successfully.`
-          });
-          setUploading(false);
-        }
-      );
+      await createStudentDocument({
+        studentId: studentId!,
+        studentName: `${student.firstName} ${student.lastName}`,
+        fileName: file.name,
+        fileUrl: dataUrl,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadedBy: currentUser.username,
+        description: 'Uploaded from student profile',
+        uploadDate: new Date().toISOString()
+      });
+
+      toast({
+        title: "Document Uploaded",
+        description: `${file.name} has been uploaded successfully.`
+      });
+      setUploading(false);
     } catch (error: any) {
       console.error('Error uploading document:', error);
       toast({
@@ -332,11 +315,7 @@ export function StudentProfilePage() {
     if (!confirm(`Delete ${doc.fileName}?`)) return;
 
     try {
-      // Delete from storage
-      const storageRef = sRef(storage, doc.fileUrl);
-      await deleteObject(storageRef);
-
-      // Delete from database
+      // Delete from database only (files are embedded as data URLs)
       await deleteStudentDocument(doc.id!);
 
       toast({
