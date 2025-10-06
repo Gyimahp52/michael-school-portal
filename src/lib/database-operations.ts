@@ -774,7 +774,12 @@ export const createCanteenCollection = async (collection: Omit<CanteenCollection
       updatedAt: new Date().toISOString()
     };
     
-    await set(newCollectionRef, collectionData);
+    // Remove undefined fields (RTDB does not allow undefined)
+    const sanitizedData = Object.fromEntries(
+      Object.entries(collectionData).filter(([, v]) => v !== undefined)
+    );
+    
+    await set(newCollectionRef, sanitizedData);
     return newCollectionRef.key!;
   } catch (error) {
     console.error('Error creating canteen collection:', error);
@@ -801,10 +806,14 @@ export const subscribeToCanteenCollections = (callback: (collections: CanteenCol
 export const updateCanteenCollection = async (collectionId: string, updates: Partial<CanteenCollection>): Promise<void> => {
   try {
     const collectionRef = ref(rtdb, `canteenCollections/${collectionId}`);
-    await update(collectionRef, {
+    const payload = {
       ...updates,
       updatedAt: new Date().toISOString()
-    });
+    };
+    const sanitized = Object.fromEntries(
+      Object.entries(payload).filter(([, v]) => v !== undefined)
+    );
+    await update(collectionRef, sanitized);
   } catch (error) {
     console.error('Error updating canteen collection:', error);
     throw error;
