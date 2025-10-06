@@ -251,7 +251,7 @@ export default function ReportCardPrintPage() {
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-4 ring-blue-200 shadow-lg">
               <img 
-                src="/public/favicon.ico" 
+                src="/public/Crest.jpg" 
                 alt="School Logo" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
