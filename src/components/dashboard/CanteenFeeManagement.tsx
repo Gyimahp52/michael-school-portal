@@ -100,8 +100,8 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
   // Compress images client-side to keep payloads small for Realtime DB
   const compressImageFile = (
     file: File,
-    maxWidth = 1280,
-    quality = 0.7
+    maxWidth = 1024,
+    quality = 0.6
   ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -160,24 +160,40 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
 
       // Images: compress then convert to Data URL (JPEG)
       if (file.type.startsWith('image/')) {
-        const compressedBlob = await compressImageFile(file, 1280, 0.7);
-        const compressedFile = new File(
+        // First pass compression
+        let compressedBlob = await compressImageFile(file, 1024, 0.6);
+        let compressedFile = new File(
           [compressedBlob],
           file.name.replace(/\.[^.]+$/, '.jpg'),
           { type: 'image/jpeg' }
         );
 
-        const imageDataUrl = await new Promise<string>((resolve, reject) => {
+        let imageDataUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = () => reject(new Error('Failed to read compressed image'));
           reader.readAsDataURL(compressedFile);
         });
 
-        // Optional: warn if still large (>4MB after compression)
+        // If still large (>4MB), try a second pass with stronger compression
         const approxSizeBytes = Math.ceil((imageDataUrl.length * 3) / 4);
         if (approxSizeBytes > 4 * 1024 * 1024) {
-          throw new Error('Image is too large after compression. Try a smaller image.');
+          compressedBlob = await compressImageFile(file, 1024, 0.4);
+          compressedFile = new File(
+            [compressedBlob],
+            file.name.replace(/\.[^.]+$/, '.jpg'),
+            { type: 'image/jpeg' }
+          );
+          imageDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('Failed to read compressed image'));
+            reader.readAsDataURL(compressedFile);
+          });
+          const approxSizeBytes2 = Math.ceil((imageDataUrl.length * 3) / 4);
+          if (approxSizeBytes2 > 4 * 1024 * 1024) {
+            throw new Error('Image is too large after compression. Try a smaller image.');
+          }
         }
 
         return { url: imageDataUrl, name: compressedFile.name, type: 'image/jpeg' };
@@ -242,7 +258,7 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
 
     } catch (error: any) {
       console.error('Error recording canteen collection:', error);
-      const message = typeof error?.message === 'string' ? error.message : 'Failed to record collection';
+      const message = (error && (error.message || error.code)) ? `${error.code ? error.code + ': ' : ''}${error.message || ''}` : String(error) || 'Failed to record collection';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -422,7 +438,7 @@ export function CanteenFeeManagement({ currentUserId, currentUserName }: Canteen
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  JPG, PNG, or PDF (max 10MB)
+                  JPG, PNG, or PDF (max 4MB)
                 </p>
               </div>
 
