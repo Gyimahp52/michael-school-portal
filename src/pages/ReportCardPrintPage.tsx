@@ -265,11 +265,11 @@ export default function ReportCardPrintPage() {
               />
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight">
+              <h2 className="text-xl font-extrabold bg-gradient-to-r from-blue-700 to-emerald-600 bg-clip-text text-transparent leading-tight print:text-blue-700 print:bg-none">
                 Michael Adjei Educational Complex
               </h2>
               <div className="mt-1 inline-block">
-                <p className="text-[10px] font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-3 py-0.5 rounded-full">
+                <p className="text-[10px] font-semibold text-gray-600 bg-gradient-to-r from-blue-100 to-emerald-100 px-3 py-0.5 rounded-full print:bg-none">
                   Academic Report Card
                 </p>
               </div>
