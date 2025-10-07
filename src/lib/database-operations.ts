@@ -1268,6 +1268,7 @@ export interface PromotionDecision {
 	studentName: string;
 	currentClass: string;
 	decision: 'promote' | 'repeat';
+	targetClass?: string; // The class to promote to (only for promote decision)
 	comment?: string;
 }
 
@@ -1379,7 +1380,8 @@ export const executePromotion = async (
 				};
 
 				if (decision.decision === 'promote') {
-					const nextClass = getNextClass(decision.currentClass);
+					// Use teacher-selected target class, or fallback to calculated next class
+					const nextClass = decision.targetClass || getNextClass(decision.currentClass);
 					updates.className = nextClass;
 					updates[`promotionHistory/${new Date().getFullYear()}`] = {
 						from: decision.currentClass,

@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Student, createPromotionRequest, PromotionDecision } from '@/lib/database-operations';
+import { Student, Class, createPromotionRequest, PromotionDecision } from '@/lib/database-operations';
 import { useAuth } from '@/contexts/CustomAuthContext';
 import { Loader2, ArrowUp, RotateCcw } from 'lucide-react';
 
@@ -15,6 +16,7 @@ interface PromotionDialogProps {
   classId: string;
   className: string;
   students: Student[];
+  availableClasses: Class[];
 }
 
 export function PromotionDialog({ 
@@ -22,20 +24,21 @@ export function PromotionDialog({
   onOpenChange, 
   classId, 
   className, 
-  students 
+  students,
+  availableClasses
 }: PromotionDialogProps) {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [decisions, setDecisions] = useState<Record<string, { decision: 'promote' | 'repeat', comment: string }>>({});
+  const [decisions, setDecisions] = useState<Record<string, { decision: 'promote' | 'repeat', targetClass?: string, comment: string }>>({});
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     // Initialize all students as promoted by default
     if (students.length > 0 && Object.keys(decisions).length === 0) {
-      const initialDecisions: Record<string, { decision: 'promote' | 'repeat', comment: string }> = {};
+      const initialDecisions: Record<string, { decision: 'promote' | 'repeat', targetClass?: string, comment: string }> = {};
       students.forEach(student => {
-        initialDecisions[student.id] = { decision: 'promote', comment: '' };
+        initialDecisions[student.id] = { decision: 'promote', targetClass: undefined, comment: '' };
       });
       setDecisions(initialDecisions);
     }
@@ -52,6 +55,13 @@ export function PromotionDialog({
     setDecisions(prev => ({
       ...prev,
       [studentId]: { ...prev[studentId], comment }
+    }));
+  };
+
+  const handleTargetClassChange = (studentId: string, targetClass: string) => {
+    setDecisions(prev => ({
+      ...prev,
+      [studentId]: { ...prev[studentId], targetClass }
     }));
   };
 
@@ -72,6 +82,7 @@ export function PromotionDialog({
         studentName: `${student.firstName} ${student.lastName}`,
         currentClass: student.className,
         decision: decisions[student.id]?.decision || 'promote',
+        targetClass: decisions[student.id]?.targetClass,
         comment: decisions[student.id]?.comment || '',
       }));
 
@@ -176,6 +187,29 @@ export function PromotionDialog({
                       </div>
                     </div>
                   </div>
+
+                  {decisions[student.id]?.decision === 'promote' && (
+                    <div className="space-y-2">
+                      <Label htmlFor={`target-class-${student.id}`} className="text-sm">
+                        Promote to Class <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={decisions[student.id]?.targetClass || ''}
+                        onValueChange={(value) => handleTargetClassChange(student.id, value)}
+                      >
+                        <SelectTrigger id={`target-class-${student.id}`}>
+                          <SelectValue placeholder="Select target class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableClasses.map((cls) => (
+                            <SelectItem key={cls.id} value={cls.className}>
+                              {cls.className}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor={`comment-${student.id}`} className="text-sm">

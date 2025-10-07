@@ -83,6 +83,9 @@ export default function PromotionsPage() {
     setShowPromotionDialog(true);
   };
 
+  // Get available classes for promotion (all classes)
+  const availableClasses = classes.filter(c => c.className);
+
   const getClassStudents = (className: string) => {
     return filteredStudents.filter(s => s.className === className && s.status === 'active');
   };
@@ -305,6 +308,7 @@ export default function PromotionsPage() {
             classId={selectedClass.id}
             className={selectedClass.name}
             students={getClassStudents(selectedClass.name)}
+            availableClasses={availableClasses}
           />
         )}
       </div>
