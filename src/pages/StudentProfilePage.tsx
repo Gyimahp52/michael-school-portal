@@ -210,35 +210,39 @@ export function StudentProfilePage() {
   }
 
   useEffect(() => {
-    if (!student || promotionHistory.length === 0) return;
+    if (!student) return;
 
     // Build academic history from promotion records
     const history: StudentHistoryRecord[] = [];
-    const sortedPromotions = [...promotionHistory].sort(
-      (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
-    );
+    
+    // Only process promotions if they exist
+    if (promotionHistory.length > 0) {
+      const sortedPromotions = [...promotionHistory].sort(
+        (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
+      );
 
-    sortedPromotions.forEach((promo) => {
-      const decision = promo.decisions.find(d => d.studentId === studentId);
-      if (decision) {
-        const studentAssessmentsForYear = assessments.filter(a => 
-          a.studentId === studentId && a.classId === decision.currentClass
-        );
-        const avgScore = studentAssessmentsForYear.length > 0
-          ? studentAssessmentsForYear.reduce((sum, a) => sum + ((a.score / a.maxScore) * 100), 0) / studentAssessmentsForYear.length
-          : 0;
+      sortedPromotions.forEach((promo) => {
+        const decision = promo.decisions.find(d => d.studentId === studentId);
+        if (decision) {
+          const studentAssessmentsForYear = assessments.filter(a => 
+            a.studentId === studentId && a.classId === decision.currentClass
+          );
+          const avgScore = studentAssessmentsForYear.length > 0
+            ? studentAssessmentsForYear.reduce((sum, a) => sum + ((a.score / a.maxScore) * 100), 0) / studentAssessmentsForYear.length
+            : 0;
 
-        history.push({
-          academicYear: promo.academicYear,
-          className: decision.currentClass,
-          averageScore: avgScore,
-          attendancePercent: 0,
-          status: decision.decision === 'promote' ? 'promoted' : 'repeated',
-        });
-      }
-    });
+          history.push({
+            academicYear: promo.academicYear,
+            className: decision.currentClass,
+            averageScore: avgScore,
+            attendancePercent: 0,
+            status: decision.decision === 'promote' ? 'promoted' : 'repeated',
+          });
+        }
+      });
+    }
 
-    // Add current class
+    // Always add current class
     if (student.className) {
       const currentAssessments = assessments.filter(a => 
         a.studentId === studentId && a.classId === student.className
