@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   BookOpen, 
@@ -10,7 +11,9 @@ import {
   AlertTriangle,
   Plus,
   Eye,
-  ArrowUpCircle
+  ArrowUpCircle,
+  ClipboardList,
+  UserCheck
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAssessments, AssessmentRecord } from "@/lib/database-operations";
@@ -18,6 +21,7 @@ import { useAuth } from "@/contexts/CustomAuthContext";
 import { useNavigate } from "react-router-dom";
 import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
 import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";
+import { BatchScoreEntry } from "./BatchScoreEntry";
 
 export function TeacherDashboard() {
   const { currentUser } = useAuth();
@@ -75,16 +79,6 @@ export function TeacherDashboard() {
             <p className="text-sm text-primary mt-1">You are currently managing {classCount} class{classCount !== 1 ? 'es' : ''}</p>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="w-4 h-4 mr-2" />
-            View Schedule
-          </Button>
-          <Button size="sm" onClick={() => setOpenAssessment(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Grade
-          </Button>
-        </div>
       </div>
 
       {/* Stats Cards */}
@@ -104,79 +98,87 @@ export function TeacherDashboard() {
         ))}
       </div>
 
-      {/* My Assigned Classes */}
-      {classes.length > 0 && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              My Assigned Classes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {classes.map((classItem) => {
-                const classStudents = students.filter(s => s.className === classItem.className && s.status === 'active');
-                return (
-                  <Card key={classItem.id} className="border-2 hover:border-primary/50 transition-colors">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{classItem.className}</CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {classStudents.length} Student{classStudents.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">{classItem.section || 'Main'}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start gap-2"
-                        onClick={() => navigate(`/teacher/class/${classItem.id}`)}
-                      >
-                        <Users className="w-4 h-4" />
-                        View Students
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start gap-2"
-                        onClick={() => {
-                          setOpenAssessment(true);
-                        }}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Enter Scores
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full justify-start gap-2"
-                        onClick={() => navigate(`/grades?class=${classItem.id}`)}
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Reports
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-            {classes.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No classes assigned yet</p>
-                <p className="text-sm mt-1">Contact admin to assign classes to you</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Main Tabs */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsTrigger value="overview" className="gap-2">
+            <BookOpen className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="scores" className="gap-2">
+            <ClipboardList className="w-4 h-4" />
+            Enter Scores
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="gap-2">
+            <UserCheck className="w-4 h-4" />
+            Attendance
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* My Assigned Classes */}
+          {classes.length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  My Assigned Classes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {classes.map((classItem) => {
+                    const classStudents = students.filter(s => s.className === classItem.className && s.status === 'active');
+                    return (
+                      <Card key={classItem.id} className="border-2 hover:border-primary/50 transition-colors">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-lg">{classItem.className}</CardTitle>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {classStudents.length} Student{classStudents.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <Badge variant="secondary">{classItem.section || 'Main'}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start gap-2"
+                            onClick={() => navigate(`/teacher/class/${classItem.id}`)}
+                          >
+                            <Users className="w-4 h-4" />
+                            View Students
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-start gap-2"
+                            onClick={() => navigate(`/grades?class=${classItem.id}`)}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Reports
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                {classes.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No classes assigned yet</p>
+                    <p className="text-sm mt-1">Contact admin to assign classes to you</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-2">
         {/* Today's Classes */}
         <Card className="shadow-sm">
           <CardHeader>
@@ -240,32 +242,58 @@ export function TeacherDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/grades')}>
-              <BookOpen className="w-6 h-6" />
-              <span>View All Grades</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/students')}>
-              <Users className="w-6 h-6" />
-              <span>View Students</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAttendance(true)}>
-              <Calendar className="w-6 h-6" />
-              <span>Mark Attendance</span>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
-              <Plus className="w-6 h-6" />
-              <span>Add Assessment</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          {/* Quick Actions */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/grades')}>
+                  <BookOpen className="w-6 h-6" />
+                  <span>View All Grades</span>
+                </Button>
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/students')}>
+                  <Users className="w-6 h-6" />
+                  <span>View Students</span>
+                </Button>
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAttendance(true)}>
+                  <Calendar className="w-6 h-6" />
+                  <span>Mark Attendance</span>
+                </Button>
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
+                  <Plus className="w-6 h-6" />
+                  <span>Add Assessment</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Enter Scores Tab */}
+        <TabsContent value="scores">
+          <BatchScoreEntry />
+        </TabsContent>
+
+        {/* Attendance Tab */}
+        <TabsContent value="attendance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mark Attendance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <UserCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground mb-4">Quick access to attendance marking</p>
+                <Button onClick={() => setOpenAttendance(true)}>
+                  <UserCheck className="w-4 h-4 mr-2" />
+                  Open Attendance Dialog
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <AssessmentDialog open={openAssessment} onOpenChange={setOpenAssessment} />
       <AttendanceDialog open={openAttendance} onOpenChange={setOpenAttendance} />
