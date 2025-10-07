@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
 import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";
 import { BatchScoreEntry } from "./BatchScoreEntry";
+import { BatchAttendance } from "./BatchAttendance";
 
 export function TeacherDashboard() {
   const { currentUser } = useAuth();
@@ -277,21 +278,7 @@ export function TeacherDashboard() {
 
         {/* Attendance Tab */}
         <TabsContent value="attendance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mark Attendance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <UserCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground mb-4">Quick access to attendance marking</p>
-                <Button onClick={() => setOpenAttendance(true)}>
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  Open Attendance Dialog
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <BatchAttendance />
         </TabsContent>
       </Tabs>
 
