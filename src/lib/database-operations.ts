@@ -209,6 +209,9 @@ export interface Student {
   phone: string;
   dateOfBirth: string;
   className: string;
+  previousClass?: string;
+  academicYear?: string;
+  previousAcademicYear?: string;
   parentName: string;
   parentPhone: string;
   parentWhatsApp: string;
@@ -1369,12 +1372,15 @@ export const executePromotion = async (
 			return classMap[currentClass] || currentClass;
 		};
 
+		const currentYear = new Date().getFullYear();
+
 		// Update each student based on promotion decision
 		for (const decision of decisions) {
 			const studentRef = ref(rtdb, `students/${decision.studentId}`);
 			const snapshot = await get(studentRef);
 			
 			if (snapshot.exists()) {
+				const currentStudentData = snapshot.val();
 				const updates: any = {
 					updatedAt: new Date().toISOString(),
 				};
@@ -1382,20 +1388,73 @@ export const executePromotion = async (
 				if (decision.decision === 'promote') {
 					// Use teacher-selected target class, or fallback to calculated next class
 					const nextClass = decision.targetClass || getNextClass(decision.currentClass);
+					
+					// Update class and academic year tracking
+					updates.previousClass = decision.currentClass;
 					updates.className = nextClass;
-					updates[`promotionHistory/${new Date().getFullYear()}`] = {
+					updates.previousAcademicYear = currentStudentData.academicYear || newAcademicYear;
+					updates.academicYear = newAcademicYear;
+					
+					// Record promotion history
+					updates[`promotionHistory/${currentYear}`] = {
 						from: decision.currentClass,
 						to: nextClass,
 						date: new Date().toISOString(),
 						comment: decision.comment || '',
+						academicYear: newAcademicYear,
 					};
+
+					// Create academic transition record for new year
+					const academicTransitionRef = ref(rtdb, `academicTransitions/${decision.studentId}/${currentYear}`);
+					await set(academicTransitionRef, {
+						studentId: decision.studentId,
+						studentName: decision.studentName,
+						fromClass: decision.currentClass,
+						toClass: nextClass,
+						fromAcademicYear: currentStudentData.academicYear || `${currentYear - 1}/${currentYear}`,
+						toAcademicYear: newAcademicYear,
+						promotionDate: new Date().toISOString(),
+						status: 'promoted',
+						// Financial carry-forward flag
+						carryForwardUnpaidBalances: true,
+						// Reset flags for new academic year
+						attendanceReset: true,
+						scoresReset: true,
+						createdAt: new Date().toISOString(),
+					});
+
 				} else {
-					// Student repeats - keep same class
-					updates[`repeatHistory/${new Date().getFullYear()}`] = {
+					// Student repeats - keep same class but update academic year
+					updates.previousAcademicYear = currentStudentData.academicYear || newAcademicYear;
+					updates.academicYear = newAcademicYear;
+					
+					// Record repeat history
+					updates[`repeatHistory/${currentYear}`] = {
 						class: decision.currentClass,
 						date: new Date().toISOString(),
 						comment: decision.comment || '',
+						academicYear: newAcademicYear,
 					};
+
+					// Create academic transition record for repeating year
+					const academicTransitionRef = ref(rtdb, `academicTransitions/${decision.studentId}/${currentYear}`);
+					await set(academicTransitionRef, {
+						studentId: decision.studentId,
+						studentName: decision.studentName,
+						fromClass: decision.currentClass,
+						toClass: decision.currentClass,
+						fromAcademicYear: currentStudentData.academicYear || `${currentYear - 1}/${currentYear}`,
+						toAcademicYear: newAcademicYear,
+						promotionDate: new Date().toISOString(),
+						status: 'repeating',
+						reason: decision.comment || 'Repeating year',
+						// Financial carry-forward flag
+						carryForwardUnpaidBalances: true,
+						// Reset flags for new academic year
+						attendanceReset: true,
+						scoresReset: true,
+						createdAt: new Date().toISOString(),
+					});
 				}
 
 				await update(studentRef, updates);
