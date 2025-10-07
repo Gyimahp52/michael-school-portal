@@ -137,7 +137,7 @@ export default function ReportCardPrintPage() {
         totalMarks,
         averageMarks,
         overallGrade,
-        attendance: opened ? { opened, present, absent } : undefined,
+        attendance: { opened, present, absent },
       };
     });
   }, [assessments, classStudents, subjectById, attendance, targetClass?.id, settings]);
@@ -187,7 +187,7 @@ export default function ReportCardPrintPage() {
       const present = attForStudent.filter(e => e.status === 'present').length;
       const absent = Math.max(0, opened - present);
 
-      return { student, subjects: rows, totalMarks, averageMarks, overallGrade, attendance: opened ? { opened, present, absent } : undefined };
+      return { student, subjects: rows, totalMarks, averageMarks, overallGrade, attendance: { opened, present, absent } };
     });
   }, [assessments, allClassStudents, subjectById, attendance, targetClass?.id, settings]);
 
