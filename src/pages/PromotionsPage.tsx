@@ -101,10 +101,18 @@ export default function PromotionsPage() {
   };
 
   const handleDecisionOverride = (studentId: string, newDecision: 'promote' | 'repeat') => {
-    setModifiedDecisions(prev => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], decision: newDecision }
-    }));
+    setModifiedDecisions(prev => {
+      const currentDecision = prev[studentId];
+      return {
+        ...prev,
+        [studentId]: { 
+          ...currentDecision, 
+          decision: newDecision,
+          // Preserve targetClass if it exists
+          targetClass: currentDecision?.targetClass 
+        }
+      };
+    });
   };
 
   const handleApprove = () => {
@@ -439,9 +447,14 @@ export default function PromotionsPage() {
               {reviewingRequest.decisions.map((decision) => (
                 <div key={decision.studentId} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold">{decision.studentName}</h4>
                       <p className="text-sm text-muted-foreground">Current: {decision.currentClass}</p>
+                      {decision.targetClass && modifiedDecisions[decision.studentId]?.decision === 'promote' && (
+                        <p className="text-sm font-medium text-green-600 mt-1">
+                          → Promoting to: {decision.targetClass}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="flex gap-4">
