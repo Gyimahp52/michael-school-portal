@@ -27,8 +27,6 @@ import {
   Mail,
   MapPin,
   CreditCard,
-  Upload,
-  Trash2,
   Eye,
 } from "lucide-react";
 import {
@@ -48,8 +46,6 @@ import {
   Invoice,
   subscribeToStudentDocuments,
   StudentDocument,
-  createStudentDocument,
-  deleteStudentDocument,
   subscribeToClasses,
   Class,
 } from "@/lib/database-operations";
@@ -93,7 +89,6 @@ export function StudentProfilePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [academicHistory, setAcademicHistory] = useState<StudentHistoryRecord[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
@@ -325,68 +320,6 @@ export function StudentProfilePage() {
     }
   };
 
-  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !student || !currentUser) return;
-
-    try {
-      setUploading(true);
-
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      });
-
-      await createStudentDocument({
-        studentId: studentId!,
-        studentName: `${student.firstName} ${student.lastName}`,
-        fileName: file.name,
-        fileUrl: dataUrl,
-        fileType: file.type,
-        fileSize: file.size,
-        uploadedBy: currentUser.username,
-        description: 'Uploaded from student profile',
-        uploadDate: new Date().toISOString()
-      });
-
-      toast({
-        title: "Document Uploaded",
-        description: `${file.name} has been uploaded successfully.`
-      });
-      setUploading(false);
-    } catch (error: any) {
-      console.error('Error uploading document:', error);
-      toast({
-        title: "Upload Error",
-        description: error.message || 'Failed to upload document',
-        variant: "destructive"
-      });
-      setUploading(false);
-    }
-  };
-
-  const handleDeleteDocument = async (doc: StudentDocument) => {
-    if (!confirm(`Delete ${doc.fileName}?`)) return;
-
-    try {
-      // Delete from database only (files are embedded as data URLs)
-      await deleteStudentDocument(doc.id!);
-
-      toast({
-        title: "Document Deleted",
-        description: `${doc.fileName} has been deleted.`
-      });
-    } catch (error: any) {
-      console.error('Error deleting document:', error);
-      toast({
-        title: "Delete Error",
-        description: error.message || 'Failed to delete document',
-        variant: "destructive"
-      });
-    }
-  };
 
   if (!student) {
     return (
@@ -705,31 +638,21 @@ export function StudentProfilePage() {
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
           <Card className="shadow-soft border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Student Documents</CardTitle>
-              <div>
-                <input
-                  type="file"
-                  id="document-upload"
-                  className="hidden"
-                  onChange={handleDocumentUpload}
-                  disabled={uploading}
-                />
-                <Button
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => document.getElementById('document-upload')?.click()}
-                  disabled={uploading}
-                >
-                  <Upload className="w-4 h-4" />
-                  {uploading ? 'Uploading...' : 'Upload Document'}
-                </Button>
-              </div>
+            <CardHeader>
+              <CardTitle>Termly Report Cards</CardTitle>
+              <p className="text-sm text-muted-foreground">Download student's termly report card documents</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {documents.length > 0 ? (
+                {documents.filter(doc => 
+                  doc.fileName.toLowerCase().includes('report') || 
+                  doc.description?.toLowerCase().includes('report card')
+                ).length > 0 ? (
                   documents
+                    .filter(doc => 
+                      doc.fileName.toLowerCase().includes('report') || 
+                      doc.description?.toLowerCase().includes('report card')
+                    )
                     .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
                     .map((doc) => (
                       <div
@@ -744,8 +667,6 @@ export function StudentProfilePage() {
                               <span>{format(new Date(doc.uploadDate), "PP")}</span>
                               <span>•</span>
                               <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
-                              <span>•</span>
-                              <span>By {doc.uploadedBy}</span>
                             </div>
                           </div>
                         </div>
@@ -770,21 +691,14 @@ export function StudentProfilePage() {
                               Download
                             </a>
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteDocument(doc)}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
                         </div>
                       </div>
                     ))
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">No documents uploaded yet</p>
-                    <p className="text-sm mt-1">Click "Upload Document" to add files</p>
+                    <p className="font-medium">No report cards available yet</p>
+                    <p className="text-sm mt-1">Termly report cards will appear here when generated</p>
                   </div>
                 )}
               </div>
