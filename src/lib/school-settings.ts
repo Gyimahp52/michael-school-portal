@@ -12,6 +12,8 @@ export interface SchoolSettings {
   autoBackup: boolean;
   emailNotifications: boolean;
   sessionTimeout: number;
+  termStartDate?: string;
+  termEndDate?: string;
   notifications: {
     newEnrollment: boolean;
     feeReminders: boolean;

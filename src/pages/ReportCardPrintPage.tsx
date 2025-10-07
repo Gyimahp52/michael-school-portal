@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AssessmentRecord, AttendanceRecordDoc, Student, Subject, Class, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, subscribeToClasses, subscribeToAttendance, Teacher, subscribeToTeachers } from '@/lib/database-operations';
 import { getSchoolSettings, SchoolSettings } from '@/lib/school-settings';
 import { useSearchParams } from 'react-router-dom';
+import { countWeekdays } from '@/lib/utils';
 
 type StudentReport = {
   student: Student;
@@ -114,10 +115,19 @@ export default function ReportCardPrintPage() {
       const overallPercent = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
       const overallGrade = computeGrade(overallPercent);
 
-      // Attendance approx (if available by class and date)
+      // Attendance based on term dates (weekdays only)
       const classAttendance = attendance.filter(r => r.classId === (targetClass?.id || ''));
       const attForStudent = classAttendance.flatMap(r => r.entries.filter(e => e.studentId === student.id));
-      const opened = classAttendance.length;
+      
+      // Calculate total weekdays in term
+      let opened = 0;
+      if (settings?.termStartDate && settings?.termEndDate) {
+        opened = countWeekdays(settings.termStartDate, settings.termEndDate);
+      } else {
+        // Fallback to counting attendance records if term dates not set
+        opened = classAttendance.length;
+      }
+      
       const present = attForStudent.filter(e => e.status === 'present').length;
       const absent = Math.max(0, opened - present);
 
@@ -164,7 +174,16 @@ export default function ReportCardPrintPage() {
 
       const classAttendance = attendance.filter(r => r.classId === (targetClass?.id || ''));
       const attForStudent = classAttendance.flatMap(r => r.entries.filter(e => e.studentId === student.id));
-      const opened = classAttendance.length;
+      
+      // Calculate total weekdays in term
+      let opened = 0;
+      if (settings?.termStartDate && settings?.termEndDate) {
+        opened = countWeekdays(settings.termStartDate, settings.termEndDate);
+      } else {
+        // Fallback to counting attendance records if term dates not set
+        opened = classAttendance.length;
+      }
+      
       const present = attForStudent.filter(e => e.status === 'present').length;
       const absent = Math.max(0, opened - present);
 

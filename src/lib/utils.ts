@@ -17,3 +17,28 @@ export function formatCurrency(amount: number): string {
     currencyDisplay: 'symbol'
   }).format(amount);
 }
+
+/**
+ * Count weekdays (Monday-Friday) between two dates, inclusive
+ * @param startDate - Start date string (YYYY-MM-DD)
+ * @param endDate - End date string (YYYY-MM-DD)
+ * @returns Number of weekdays between the dates
+ */
+export function countWeekdays(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  let count = 0;
+  const current = new Date(start);
+  
+  while (current <= end) {
+    const dayOfWeek = current.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return count;
+}
