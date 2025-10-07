@@ -140,7 +140,7 @@ export default function ReportCardPrintPage() {
         attendance: opened ? { opened, present, absent } : undefined,
       };
     });
-  }, [assessments, classStudents, subjectById, attendance, targetClass?.id]);
+  }, [assessments, classStudents, subjectById, attendance, targetClass?.id, settings]);
 
   // Build full reports for the entire class (used to compute positions over the full class)
   const fullClassReports: StudentReport[] = useMemo(() => {
@@ -189,7 +189,7 @@ export default function ReportCardPrintPage() {
 
       return { student, subjects: rows, totalMarks, averageMarks, overallGrade, attendance: opened ? { opened, present, absent } : undefined };
     });
-  }, [assessments, allClassStudents, subjectById, attendance, targetClass?.id]);
+  }, [assessments, allClassStudents, subjectById, attendance, targetClass?.id, settings]);
 
   const classAverage = useMemo(() => {
     if (!reports.length) return 0;
