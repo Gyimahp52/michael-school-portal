@@ -50,11 +50,14 @@ import {
   StudentDocument,
   createStudentDocument,
   deleteStudentDocument,
+  subscribeToClasses,
+  Class,
 } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
+import { validateTeacherStudentAccess } from "@/lib/access-control";
 
 interface PaymentRecord {
   id: string;
@@ -78,9 +81,10 @@ interface StudentHistoryRecord {
 export function StudentProfilePage() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const { toast } = useToast();
   const [student, setStudent] = useState<Student | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecordDoc[]>([]);
@@ -90,16 +94,41 @@ export function StudentProfilePage() {
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [academicHistory, setAcademicHistory] = useState<StudentHistoryRecord[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (!studentId) return;
 
     const unsubscribers: (() => void)[] = [];
 
+    // Subscribe to classes first (needed for access control)
+    const unsubClasses = subscribeToClasses((classesData) => {
+      setClasses(classesData);
+    });
+    unsubscribers.push(unsubClasses);
+
     // Subscribe to student data
     const unsubStudent = subscribeToStudents((students) => {
       const foundStudent = students.find(s => s.id === studentId);
       setStudent(foundStudent || null);
+      
+      // Check teacher access
+      if (userRole === 'teacher' && currentUser?.id && foundStudent) {
+        const hasAccess = validateTeacherStudentAccess(
+          currentUser.id,
+          foundStudent,
+          classes
+        );
+        setAccessDenied(!hasAccess);
+        
+        if (!hasAccess) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to view this student's profile",
+            variant: "destructive",
+          });
+        }
+      }
     });
     unsubscribers.push(unsubStudent);
 
@@ -155,7 +184,30 @@ export function StudentProfilePage() {
     unsubscribers.push(unsubDocuments);
 
     return () => unsubscribers.forEach(unsub => unsub());
-  }, [studentId]);
+  }, [studentId, userRole, currentUser?.id, classes]);
+
+  // Show access denied for teachers without permission
+  if (accessDenied && userRole === 'teacher') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-96">
+          <CardContent className="p-6 text-center">
+            <div className="text-destructive mb-4">
+              <User className="w-12 h-12 mx-auto" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">
+              You don't have permission to view this student's profile. This student is not in any of your assigned classes.
+            </p>
+            <Button onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!student || promotionHistory.length === 0) return;

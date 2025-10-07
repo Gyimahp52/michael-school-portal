@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type Class } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
+import { filterTeacherClasses, filterTeacherStudents } from "@/lib/access-control";
 
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -68,7 +69,17 @@ export function StudentsPage() {
     };
   }, []);
 
-  const filteredStudents = students.filter((student) => {
+  // Filter students based on user role - teachers only see their assigned students
+  const accessibleStudents = userRole === 'teacher' && currentUser?.id
+    ? filterTeacherStudents(currentUser.id, students, classes)
+    : students;
+
+  // Filter classes for dropdown - teachers only see their assigned classes
+  const accessibleClasses = userRole === 'teacher' && currentUser?.id
+    ? filterTeacherClasses(currentUser.id, classes)
+    : classes;
+
+  const filteredStudents = accessibleStudents.filter((student) => {
     const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                          student.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,9 +149,9 @@ export function StudentsPage() {
   };
 
   const getStats = () => {
-    const total = students.length;
-    const active = students.filter(s => s.status === "active").length;
-    const thisMonth = students.filter(s => {
+    const total = accessibleStudents.length;
+    const active = accessibleStudents.filter(s => s.status === "active").length;
+    const thisMonth = accessibleStudents.filter(s => {
       const enrollmentDate = new Date(s.enrollmentDate);
       const now = new Date();
       return enrollmentDate.getMonth() === now.getMonth() && 
@@ -260,7 +271,7 @@ export function StudentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Classes</SelectItem>
-                  {classes.map(cls => (
+                  {accessibleClasses.map(cls => (
                     <SelectItem key={cls.id} value={cls.className}>
                       {cls.className}
                     </SelectItem>
