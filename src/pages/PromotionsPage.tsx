@@ -39,6 +39,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function PromotionsPage() {
   const { currentUser, userRole } = useAuth();
@@ -108,13 +109,21 @@ export default function PromotionsPage() {
         [studentId]: { 
           ...currentDecision, 
           decision: newDecision,
-          // Preserve targetClass if it exists
           targetClass: currentDecision?.targetClass 
         }
       };
     });
   };
 
+  const handleOverrideTargetClass = (studentId: string, targetClass: string) => {
+    setModifiedDecisions(prev => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || ({} as PromotionDecision)),
+        targetClass,
+      },
+    }));
+  };
   const handleApprove = () => {
     if (!reviewingRequest) return;
     setExecutingRequest(reviewingRequest);
@@ -461,10 +470,35 @@ export default function PromotionsPage() {
                     <div className="flex-1">
                       <h4 className="font-semibold">{decision.studentName}</h4>
                       <p className="text-sm text-muted-foreground">Current: {decision.currentClass}</p>
-                      {decision.targetClass && modifiedDecisions[decision.studentId]?.decision === 'promote' && (
-                        <p className="text-sm font-medium text-green-600 mt-1">
-                          → Promoting to: {decision.targetClass}
-                        </p>
+                      {modifiedDecisions[decision.studentId]?.decision === 'promote' && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-sm">
+                            <span className="font-medium">Promoting to:</span>{' '}
+                            <span className="text-green-600">
+                              {modifiedDecisions[decision.studentId]?.targetClass || decision.targetClass || 'Not selected'}
+                            </span>
+                          </p>
+                          <div className="max-w-xs">
+                            <Select
+                              value={modifiedDecisions[decision.studentId]?.targetClass || decision.targetClass || ''}
+                              onValueChange={(v) => {
+                                handleDecisionOverride(decision.studentId, 'promote');
+                                handleOverrideTargetClass(decision.studentId, v);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select target class" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {classes.filter(c => c.className).map((cls) => (
+                                  <SelectItem key={cls.id} value={cls.className}>
+                                    {cls.className}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       )}
                     </div>
                     
