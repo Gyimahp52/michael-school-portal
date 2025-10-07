@@ -126,6 +126,17 @@ export default function PromotionsPage() {
 
     try {
       const finalDecisions = Object.values(modifiedDecisions);
+      const missingTargets = finalDecisions.filter(d => d.decision === 'promote' && !d.targetClass);
+      if (missingTargets.length > 0) {
+        const names = missingTargets.map(d => d.studentName).join(', ');
+        toast({
+          title: 'Select target class',
+          description: `Please choose a target class for: ${names}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const nextYear = parseInt(executingRequest.academicYear.split('/')[1]);
       
       await executePromotion(

@@ -75,6 +75,21 @@ export function PromotionDialog({
       return;
     }
 
+    // Validate: all promoted students must have a target class selected
+    const missingTargetStudents = students.filter((s) => {
+      const d = decisions[s.id];
+      const decision = d?.decision ?? 'promote';
+      return decision === 'promote' && !d?.targetClass;
+    });
+    if (missingTargetStudents.length > 0) {
+      toast({
+        title: "Select target class",
+        description: `${missingTargetStudents.length} student(s) marked for promotion have no target class selected. Please choose a class for each promoted student.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const promotionDecisions: PromotionDecision[] = students.map(student => ({
@@ -239,7 +254,15 @@ export function PromotionDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || students.length === 0}
+            disabled={
+              loading ||
+              students.length === 0 ||
+              students.some((s) => {
+                const d = decisions[s.id];
+                const decision = d?.decision ?? 'promote';
+                return decision === 'promote' && !d?.targetClass;
+              })
+            }
           >
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Submit for Admin Approval
