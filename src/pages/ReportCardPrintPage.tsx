@@ -251,7 +251,7 @@ export default function ReportCardPrintPage() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-emerald-100 ring-2 ring-blue-200 shadow-md">
               <img 
-                src="/public/Crest.jpg" 
+                src="/Crest.jpg" 
                 alt="School Logo" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -277,7 +277,7 @@ export default function ReportCardPrintPage() {
             </div>
             <div className="w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-100 to-blue-100 ring-2 ring-emerald-200 shadow-md">
               <img 
-                src="/public/Crest.jpg" 
+                src="/Crest.jpg" 
                 alt="School Logo" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
