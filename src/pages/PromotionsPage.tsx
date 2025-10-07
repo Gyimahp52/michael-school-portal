@@ -16,6 +16,7 @@ import {
   executePromotion,
   PromotionDecision,
 } from '@/lib/database-operations';
+import { filterTeacherStudents } from '@/lib/access-control';
 import { PromotionDialog } from '@/components/dialogs/PromotionDialog';
 import { 
   Clock, 
@@ -69,6 +70,10 @@ export default function PromotionsPage() {
     ? classes.filter(c => c.teacherIds?.includes(currentUser?.id || ''))
     : classes;
 
+  const filteredStudents = userRole === 'teacher'
+    ? filterTeacherStudents(currentUser?.id || '', students, classes)
+    : students;
+
   const teacherRequests = requests?.filter(r => r.teacherId === currentUser?.id) || [];
   const pendingRequests = requests?.filter(r => r.status === 'pending') || [];
   const reviewedRequests = requests?.filter(r => r.status !== 'pending') || [];
@@ -79,7 +84,7 @@ export default function PromotionsPage() {
   };
 
   const getClassStudents = (className: string) => {
-    return students.filter(s => s.className === className && s.status === 'active');
+    return filteredStudents.filter(s => s.className === className && s.status === 'active');
   };
 
   const handleReviewRequest = (request: PromotionRequest) => {
