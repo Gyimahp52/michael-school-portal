@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, User, Settings, LogOut, Key } from "lucide-react";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ChangePasswordDialog } from "@/components/dialogs/ChangePasswordDialog";
 
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
 
@@ -85,6 +87,10 @@ export function TopBar() {
                 <User className="h-4 w-4" />
                 Profile
               </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2" onClick={() => setPasswordDialogOpen(true)}>
+                <Key className="h-4 w-4" />
+                Change Password
+              </DropdownMenuItem>
               <DropdownMenuItem className="gap-2" onClick={() => navigate('/admin/settings')}>
                 <Settings className="h-4 w-4" />
                 Settings
@@ -101,6 +107,7 @@ export function TopBar() {
           </DropdownMenu>
         </div>
       </div>
+      <ChangePasswordDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen} />
     </header>
   );
 }

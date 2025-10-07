@@ -20,6 +20,7 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { getSchoolSettings, updateSchoolSettings, SchoolSettings } from "@/lib/school-settings";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/CustomAuthContext";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("school");
@@ -29,7 +30,13 @@ export default function SettingsPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const { userRole } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Define what each role can access
+  const isAdmin = userRole === 'admin';
+  const isAccountant = userRole === 'accountant';
+  const isTeacher = userRole === 'teacher';
 
   useEffect(() => {
     loadSettings();
@@ -144,20 +151,26 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">System Settings</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {isAdmin ? 'System Settings' : 'My Settings'}
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Configure school information, system preferences, and security settings.
+            {isAdmin 
+              ? 'Configure school information, system preferences, and security settings.'
+              : 'View school information and configure your preferences.'}
           </p>
         </div>
-        <Button 
-          className="gap-2 bg-gradient-primary hover:opacity-90 w-fit" 
-          onClick={handleSaveSettings}
-          disabled={saving}
-        >
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          <Save className="w-4 h-4" />
-          Save All Changes
-        </Button>
+        {isAdmin && (
+          <Button 
+            className="gap-2 bg-gradient-primary hover:opacity-90 w-fit" 
+            onClick={handleSaveSettings}
+            disabled={saving}
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            <Save className="w-4 h-4" />
+            Save All Changes
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -172,21 +185,29 @@ export default function SettingsPage() {
               School Information
             </Button>
             <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
-              <Bell className="w-4 h-4" />
-              Notifications
+              <Settings className="w-4 h-4" />
+              Preferences
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
-              <Shield className="w-4 h-4" />
-              Security
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
-              <Database className="w-4 h-4" />
-              System Backup
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
-              <Mail className="w-4 h-4" />
-              Email Configuration
-            </Button>
+            {isAdmin && (
+              <>
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
+                  <Bell className="w-4 h-4" />
+                  Notifications
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
+                  <Shield className="w-4 h-4" />
+                  Security
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
+                  <Database className="w-4 h-4" />
+                  System Backup
+                </Button>
+                <Button variant="ghost" className="w-full justify-start gap-3 hover:bg-muted/50">
+                  <Mail className="w-4 h-4" />
+                  Email Configuration
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -208,6 +229,7 @@ export default function SettingsPage() {
                     id="schoolName" 
                     value={settings.schoolName}
                     onChange={(e) => updateSetting('schoolName', e.target.value)}
+                    disabled={!isAdmin}
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,6 +238,7 @@ export default function SettingsPage() {
                     id="academicYear" 
                     value={settings.academicYear}
                     onChange={(e) => updateSetting('academicYear', e.target.value)}
+                    disabled={!isAdmin}
                   />
                 </div>
               </div>
@@ -227,6 +250,7 @@ export default function SettingsPage() {
                   value={settings.address}
                   onChange={(e) => updateSetting('address', e.target.value)}
                   rows={3}
+                  disabled={!isAdmin}
                 />
               </div>
 
@@ -237,6 +261,7 @@ export default function SettingsPage() {
                     id="phone" 
                     value={settings.phone}
                     onChange={(e) => updateSetting('phone', e.target.value)}
+                    disabled={!isAdmin}
                   />
                 </div>
                 <div className="space-y-2">
@@ -245,36 +270,39 @@ export default function SettingsPage() {
                     id="email" 
                     value={settings.email}
                     onChange={(e) => updateSetting('email', e.target.value)}
+                    disabled={!isAdmin}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="logo">School Logo</Label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                    {settings.logoUrl ? (
-                      <img src={settings.logoUrl} alt="School logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <School className="w-8 h-8 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleLogoSelected}
-                    />
-                    <Button variant="outline" className="gap-2" onClick={handleSelectLogoClick} disabled={uploadingLogo}>
-                      {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin" />}
-                      <Upload className="w-4 h-4" />
-                      {uploadingLogo ? "Uploading..." : "Upload Logo"}
-                    </Button>
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label htmlFor="logo">School Logo</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                      {settings.logoUrl ? (
+                        <img src={settings.logoUrl} alt="School logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <School className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoSelected}
+                      />
+                      <Button variant="outline" className="gap-2" onClick={handleSelectLogoClick} disabled={uploadingLogo}>
+                        {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin" />}
+                        <Upload className="w-4 h-4" />
+                        {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -283,7 +311,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-secondary" />
-                System Preferences
+                My Preferences
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -297,56 +325,61 @@ export default function SettingsPage() {
                   checked={theme === "dark"} 
                   onCheckedChange={(checked) => {
                     setTheme(checked ? "dark" : "light");
-                    updateSetting('darkMode', checked);
+                    if (isAdmin) updateSetting('darkMode', checked);
                   }}
                 />
               </div>
 
-              <Separator />
+              {isAdmin && (
+                <>
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="autoBackup">Automatic Backup</Label>
-                  <p className="text-sm text-muted-foreground">Daily automatic database backup</p>
-                </div>
-                <Switch 
-                  id="autoBackup" 
-                  checked={settings.autoBackup}
-                  onCheckedChange={(checked) => updateSetting('autoBackup', checked)}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="autoBackup">Automatic Backup</Label>
+                      <p className="text-sm text-muted-foreground">Daily automatic database backup</p>
+                    </div>
+                    <Switch 
+                      id="autoBackup" 
+                      checked={settings.autoBackup}
+                      onCheckedChange={(checked) => updateSetting('autoBackup', checked)}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="emailNotifications">Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">Send system notifications via email</p>
-                </div>
-                <Switch 
-                  id="emailNotifications" 
-                  checked={settings.emailNotifications}
-                  onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
-                />
-              </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="emailNotifications">Email Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Send system notifications via email</p>
+                    </div>
+                    <Switch 
+                      id="emailNotifications" 
+                      checked={settings.emailNotifications}
+                      onCheckedChange={(checked) => updateSetting('emailNotifications', checked)}
+                    />
+                  </div>
 
-              <Separator />
+                  <Separator />
 
-              <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                <Input 
-                  id="sessionTimeout" 
-                  type="number" 
-                  value={settings.sessionTimeout}
-                  onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
-                  className="w-32" 
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                    <Input 
+                      id="sessionTimeout" 
+                      type="number" 
+                      value={settings.sessionTimeout}
+                      onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
+                      className="w-32" 
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
-          {/* Notification Settings */}
-          <Card className="shadow-soft border-border/50">
+          {/* Notification Settings - Admin Only */}
+          {isAdmin && (
+            <Card className="shadow-soft border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-accent" />
@@ -405,9 +438,11 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
-          {/* Security Settings */}
-          <Card className="shadow-soft border-border/50">
+          {/* Security Settings - Admin Only */}
+          {isAdmin && (
+            <Card className="shadow-soft border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-success" />
@@ -452,6 +487,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     </div>
