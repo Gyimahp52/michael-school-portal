@@ -142,3 +142,14 @@ export const getAllUsers = async (): Promise<User[]> => {
     throw error;
   }
 };
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  try {
+    const userRef = ref(rtdb, `users/${userId}`);
+    await set(userRef, null);
+    console.log('User deleted successfully:', userId);
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};

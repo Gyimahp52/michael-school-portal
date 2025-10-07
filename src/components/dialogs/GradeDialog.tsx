@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Class, Student, Subject, AssessmentRecord, createAssessmentRecord } from '@/lib/database-operations';
 import { useAuth } from '@/contexts/CustomAuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { filterTeacherClasses } from '@/lib/access-control';
 
 interface GradeDialogProps {
   open: boolean;
@@ -24,8 +25,16 @@ export function GradeDialog({ open, onOpenChange, students, classes, subjects }:
   const [maxScore, setMaxScore] = useState('100');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const { toast } = useToast();
+
+  // Filter classes based on teacher assignment
+  const availableClasses = useMemo(() => {
+    if (userRole === 'teacher' && currentUser?.id) {
+      return filterTeacherClasses(currentUser.id, classes);
+    }
+    return classes;
+  }, [userRole, currentUser?.id, classes]);
 
   useEffect(() => {
       if (selectedClass) {
@@ -87,7 +96,7 @@ export function GradeDialog({ open, onOpenChange, students, classes, subjects }:
           <Select onValueChange={setSelectedClass} value={selectedClass}>
             <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
             <SelectContent>
-              {classes.map(c => <SelectItem key={c.id} value={c.id!}>{c.name || c.className}</SelectItem>)}
+              {availableClasses.map(c => <SelectItem key={c.id} value={c.id!}>{c.name || c.className}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select onValueChange={setSelectedStudent} value={selectedStudent} disabled={!selectedClass}>
