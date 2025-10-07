@@ -202,7 +202,7 @@ export default function PromotionsPage() {
           <TabsContent value="classes" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {myClasses.map((classItem) => {
-                const classStudents = getClassStudents(classItem.name);
+                const classStudents = getClassStudents(classItem.className);
                 const hasRequest = teacherRequests.some(r => r.classId === classItem.id);
 
                 return (
@@ -210,7 +210,7 @@ export default function PromotionsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <GraduationCap className="w-5 h-5" />
-                        {classItem.name}
+                        {classItem.name || classItem.className}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -226,7 +226,7 @@ export default function PromotionsPage() {
                       ) : (
                         <Button
                           className="w-full"
-                          onClick={() => handleOpenPromotionDialog(classItem.id, classItem.name)}
+                          onClick={() => handleOpenPromotionDialog(classItem.id, classItem.className)}
                           disabled={classStudents.length === 0}
                         >
                           Submit Promotion List
