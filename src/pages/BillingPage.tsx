@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Invoice, subscribeToInvoices, Term } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
+import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
 import { formatCurrency } from "@/lib/utils";
 
 export function BillingPage() {
@@ -40,6 +41,7 @@ export function BillingPage() {
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [selectedTermData, setSelectedTermData] = useState<Term | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [financialReportDialogOpen, setFinancialReportDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToInvoices(setInvoices);
@@ -89,7 +91,7 @@ export function BillingPage() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Button variant="outline" className="gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => setFinancialReportDialogOpen(true)}>
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Financial Report</span>
             <span className="sm:hidden">Report</span>
@@ -265,6 +267,7 @@ export function BillingPage() {
       </Card>
 
       <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
+      <FinancialReportDialog open={financialReportDialogOpen} onOpenChange={setFinancialReportDialogOpen} />
     </div>
   );
 }

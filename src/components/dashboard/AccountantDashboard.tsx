@@ -33,6 +33,7 @@ import { FeesCollectedDialog } from "@/components/dialogs/FeesCollectedDialog";
 import { OutstandingFeesDialog } from "@/components/dialogs/OutstandingFeesDialog";
 import { TotalStudentsDialog } from "@/components/dialogs/TotalStudentsDialog";
 import { PaymentStatusDialog } from "@/components/dialogs/PaymentStatusDialog";
+import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
 
 export function AccountantDashboard() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -45,6 +46,7 @@ export function AccountantDashboard() {
   const [outstandingFeesDialogOpen, setOutstandingFeesDialogOpen] = useState(false);
   const [totalStudentsDialogOpen, setTotalStudentsDialogOpen] = useState(false);
   const [paymentStatusDialogOpen, setPaymentStatusDialogOpen] = useState(false);
+  const [financialReportDialogOpen, setFinancialReportDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
@@ -170,7 +172,7 @@ export function AccountantDashboard() {
           <p className="text-muted-foreground">Monitor school finances, fees, and expenses</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setFinancialReportDialogOpen(true)}>
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
@@ -375,11 +377,11 @@ export function AccountantDashboard() {
               <DollarSign className="w-6 h-6" />
               <span>Record Payment</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setFinancialReportDialogOpen(true)}>
               <FileText className="w-6 h-6" />
               <span>Financial Report</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setFinancialReportDialogOpen(true)}>
               <TrendingUp className="w-6 h-6" />
               <span>View Analytics</span>
             </Button>
@@ -406,6 +408,10 @@ export function AccountantDashboard() {
         onOpenChange={setPaymentStatusDialogOpen}
         students={students}
         studentBalances={studentBalances}
+      />
+      <FinancialReportDialog 
+        open={financialReportDialogOpen} 
+        onOpenChange={setFinancialReportDialogOpen}
       />
     </div>
   );

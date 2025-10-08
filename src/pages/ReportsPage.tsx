@@ -47,6 +47,8 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
+
 
 export default function ReportsPage() {
   const { userRole } = useAuth();
@@ -69,6 +71,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [sendingReports, setSendingReports] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [financialReportDialogOpen, setFinancialReportDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDescription, setPaymentDescription] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState("");
@@ -674,7 +677,7 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Comprehensive financial analysis including revenue, expenses, and projections.
             </p>
-            <Button variant="outline" className="w-full gap-2 hover:bg-accent/5">
+            <Button variant="outline" className="w-full gap-2 hover:bg-accent/5" onClick={() => setFinancialReportDialogOpen(true)}>
               <FileText className="w-4 h-4" />
               Generate Financial Report
             </Button>
@@ -824,6 +827,8 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <FinancialReportDialog open={financialReportDialogOpen} onOpenChange={setFinancialReportDialogOpen} />
     </div>
   );
 }
