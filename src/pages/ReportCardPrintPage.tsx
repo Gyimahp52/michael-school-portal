@@ -324,8 +324,8 @@ export default function ReportCardPrintPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Admission No.</p>
-                      <p className="text-[11px] font-semibold text-gray-700">{rep.student.id}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Student Code</p>
+                      <p className="text-[11px] font-semibold text-gray-700 font-mono">{rep.student.studentCode || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Class & Year</p>

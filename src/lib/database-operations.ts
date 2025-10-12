@@ -203,6 +203,7 @@ export const getTermsByAcademicYear = async (academicYearId: string): Promise<Te
 // ===== STUDENT OPERATIONS =====
 export interface Student {
   id?: string;
+  studentCode?: string; // Unique code: MAJE-YYYY-NNN
   firstName: string;
   lastName: string;
   email: string;
@@ -224,13 +225,51 @@ export interface Student {
   updatedAt?: string;
 }
 
+// Generate unique student code: MAJE-YYYY-NNN
+export const generateStudentCode = async (): Promise<string> => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const studentsRef = ref(rtdb, 'students');
+    const snapshot = await get(studentsRef);
+    
+    // Get all existing codes for this year
+    const existingCodes = new Set<string>();
+    if (snapshot.exists()) {
+      const studentsData = snapshot.val();
+      Object.values(studentsData).forEach((student: any) => {
+        if (student.studentCode?.startsWith(`MAJE-${currentYear}-`)) {
+          existingCodes.add(student.studentCode);
+        }
+      });
+    }
+    
+    // Find next available number
+    let nextNumber = 1;
+    let newCode = '';
+    do {
+      const numberStr = String(nextNumber).padStart(3, '0');
+      newCode = `MAJE-${currentYear}-${numberStr}`;
+      nextNumber++;
+    } while (existingCodes.has(newCode));
+    
+    return newCode;
+  } catch (error) {
+    console.error('Error generating student code:', error);
+    throw error;
+  }
+};
+
 export const createStudent = async (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   try {
     const studentsRef = ref(rtdb, 'students');
     const newStudentRef = push(studentsRef);
     
+    // Auto-generate student code if not provided
+    const studentCode = student.studentCode || await generateStudentCode();
+    
     const studentData = {
       ...student,
+      studentCode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

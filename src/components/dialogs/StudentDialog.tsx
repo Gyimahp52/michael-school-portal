@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createStudent, updateStudent, upsertStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
+import { ref, get } from 'firebase/database';
+import { rtdb } from "@/firebase";
 
 
 import { Loader2, Upload, User } from "lucide-react";
@@ -24,6 +26,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   const [existingStudents, setExistingStudents] = useState<Student[]>([]);
   const [classesFromDb, setClassesFromDb] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string>("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -66,6 +69,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         photoUrl: student.photoUrl || "",
       });
       setPhotoPreview(student.photoUrl || "");
+      setGeneratedCode(student.studentCode || "");
     } else if (mode === "create") {
       setFormData({
         firstName: "",
@@ -85,6 +89,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       });
       setPhotoFile(null);
       setPhotoPreview("");
+      setGeneratedCode("");
     }
   }, [student, mode, open]);
 
@@ -170,9 +175,24 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         }
         const studentData = { ...formData, photoUrl };
         console.log('📝 Creating student with data:', { ...studentData, photoUrl: photoUrl || '(no photo)' });
-        await withTimeout(createStudent(studentData));
-        console.log('✅ Student created successfully');
-        toast({ title: "Student created" });
+        const newStudentId = await withTimeout(createStudent(studentData));
+        console.log('✅ Student created successfully with ID:', newStudentId);
+        
+        // Fetch the generated code to display it
+        const studentsRef = ref(rtdb, `students/${newStudentId}`);
+        const snapshot = await get(studentsRef);
+        const newCode = snapshot.exists() ? snapshot.val().studentCode : '';
+        setGeneratedCode(newCode || "");
+        
+        toast({ 
+          title: "Student created successfully", 
+          description: newCode ? `Student code: ${newCode}` : undefined
+        });
+        
+        // Keep dialog open briefly to show the generated code
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 3000);
       } else if (student?.id) {
         let updates = { ...formData } as typeof formData;
         if (photoFile) {
@@ -211,6 +231,17 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Student Code Display */}
+          {generatedCode && (
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <Label className="text-sm font-medium text-muted-foreground">Student Code</Label>
+              <p className="text-2xl font-bold text-primary mt-1">{generatedCode}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                This code is permanent and will be used throughout the student's time at the school
+              </p>
+            </div>
+          )}
+
           <div className="space-y-4">
             <Label>Student Photo (Optional)</Label>
             <div className="flex items-center gap-4">

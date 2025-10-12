@@ -83,6 +83,7 @@ export function StudentsPage() {
     const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
     const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                          student.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         student.studentCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesClass = selectedClass === "All" || student.className === selectedClass;
     return matchesSearch && matchesClass;
@@ -258,7 +259,7 @@ export function StudentsPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search students by name or ID..."
+                placeholder="Search students by name, code, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -295,7 +296,7 @@ export function StudentsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
-                <TableHead>ID</TableHead>
+                <TableHead>Code</TableHead>
                 <TableHead>Class</TableHead>
                 <TableHead>Guardian</TableHead>
                 <TableHead>Status</TableHead>
@@ -328,7 +329,15 @@ export function StudentsPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{student.id || "N/A"}</TableCell>
+                  <TableCell>
+                    {student.studentCode ? (
+                      <Badge variant="outline" className="font-mono">
+                        {student.studentCode}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Not assigned</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">Class {student.className}</Badge>
                   </TableCell>

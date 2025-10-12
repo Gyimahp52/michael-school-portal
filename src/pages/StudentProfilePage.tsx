@@ -377,7 +377,14 @@ export function StudentProfilePage() {
                 <h2 className="text-2xl font-bold text-foreground">
                   {student.firstName} {student.lastName}
                 </h2>
-                <p className="text-muted-foreground">Student ID: {student.id || "N/A"}</p>
+                {student.studentCode && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-base font-mono">
+                      {student.studentCode}
+                    </Badge>
+                  </div>
+                )}
+                <p className="text-muted-foreground text-sm mt-1">Student ID: {student.id || "N/A"}</p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
