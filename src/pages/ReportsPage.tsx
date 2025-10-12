@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { sendWhatsAppText } from "@/lib/whatsapp";
+// import { sendWhatsAppText } from "@/lib/whatsapp"; // Removed WhatsApp functionality
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,6 @@ import {
   Users,
   DollarSign,
   BarChart3,
-  Calendar,
   Eye,
   MessageCircle,
   Send,
@@ -47,6 +46,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import jsPDF from "jspdf";
 import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
 
 
@@ -125,23 +125,191 @@ export default function ReportsPage() {
     };
   }, []);
 
-  const sendViaWhatsApp = async (reportTitle: string) => {
+  // PDF generation functions
+  const generatePDF = (data: any[], filename: string, title: string, columns: string[]) => {
     try {
-      const input = window.prompt(
-        `Enter recipient WhatsApp number (Ghana). Examples: 0241234567 or 233241234567`,
-        "0"
-      );
-      if (!input) return;
-      const message = `Report: ${reportTitle} is ready. Please check your portal or contact the school for details.`;
-      await sendWhatsAppText(input, message);
-      toast({ title: "Sent", description: `WhatsApp message sent to ${input}` });
-    } catch (error: any) {
+      const doc = new jsPDF('landscape'); // Use landscape orientation for better fit
+      
+      // Header
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, 148, 15, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 148, 22, { align: "center" });
+      doc.text(`Total Records: ${data.length}`, 148, 28, { align: "center" });
+      
+      let yPosition = 35;
+      
+      // Calculate column widths based on content
+      const pageWidth = 280; // Landscape page width
+      const margin = 10;
+      const availableWidth = pageWidth - (margin * 2);
+      const colWidths = columns.map((col, index) => {
+        // Calculate width based on column content
+        const maxContentLength = Math.max(
+          col.length,
+          ...data.map(row => String(row[col] || '').length)
+        );
+        // Minimum width of 15, maximum of 40, scaled by content
+        return Math.min(40, Math.max(15, maxContentLength * 0.8));
+      });
+      
+      // Normalize column widths to fit page
+      const totalWidth = colWidths.reduce((sum, width) => sum + width, 0);
+      const scaleFactor = availableWidth / totalWidth;
+      const normalizedWidths = colWidths.map(width => width * scaleFactor);
+      
+      // Table headers
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      let xPosition = margin;
+      
+      columns.forEach((column, index) => {
+        // Draw header background
+        doc.setFillColor(240, 240, 240);
+        doc.rect(xPosition, yPosition - 5, normalizedWidths[index], 8, 'F');
+        
+        // Draw header text
+        doc.setTextColor(0, 0, 0);
+        doc.text(column, xPosition + 2, yPosition);
+        xPosition += normalizedWidths[index];
+      });
+      
+      yPosition += 10;
+      
+      // Table data
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      
+      data.forEach((row, rowIndex) => {
+        if (yPosition > 190) { // Check if we need a new page
+          doc.addPage();
+          yPosition = 20;
+          
+          // Redraw headers on new page
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          xPosition = margin;
+          columns.forEach((column, index) => {
+            doc.setFillColor(240, 240, 240);
+            doc.rect(xPosition, yPosition - 5, normalizedWidths[index], 8, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.text(column, xPosition + 2, yPosition);
+            xPosition += normalizedWidths[index];
+          });
+          yPosition += 10;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+        }
+        
+        // Alternate row colors
+        if (rowIndex % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(margin, yPosition - 4, availableWidth, 6, 'F');
+        }
+        
+        xPosition = margin;
+        columns.forEach((column, colIndex) => {
+          const value = row[column] || '';
+          let cellValue = String(value);
+          
+          // Truncate text if too long for column
+          const maxChars = Math.floor(normalizedWidths[colIndex] / 1.2);
+          if (cellValue.length > maxChars) {
+            cellValue = cellValue.substring(0, maxChars - 3) + '...';
+          }
+          
+          doc.setTextColor(0, 0, 0);
+          doc.text(cellValue, xPosition + 2, yPosition);
+          xPosition += normalizedWidths[colIndex];
+        });
+        yPosition += 6;
+      });
+      
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          `Page ${i} of ${pageCount} | Generated by School Management System | ${new Date().toLocaleString()}`,
+          148,
+          200,
+          { align: "center" }
+        );
+      }
+      
+      // Save the PDF
+      doc.save(`${filename}.pdf`);
+      
       toast({
-        title: "Failed to send",
-        description: error.message || "WhatsApp sending failed",
+        title: "PDF Generated",
+        description: `${filename} has been downloaded as PDF`,
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "Failed to generate PDF report",
         variant: "destructive",
       });
     }
+  };
+
+  const generateEnrollmentReport = () => {
+    const enrollmentData = students.map(student => ({
+      'Code': student.studentCode,
+      'First Name': student.firstName,
+      'Last Name': student.lastName,
+      'Email': student.email,
+      'Phone': student.phone,
+      'Class': student.className,
+      'Previous Class': student.previousClass || 'N/A',
+      'Academic Year': student.academicYear || 'N/A',
+      'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
+      'Status': student.status || 'Active'
+    }));
+    
+    const columns = ['Code', 'First Name', 'Last Name', 'Email', 'Phone', 'Class', 'Previous Class', 'Academic Year', 'Date of Birth', 'Status'];
+    generatePDF(enrollmentData, 'Enrollment_Report', 'Student Enrollment Report', columns);
+  };
+
+  const generateAcademicReport = () => {
+    // This would need to be expanded based on your academic data structure
+    const academicData = students.map(student => ({
+      'Code': student.studentCode,
+      'Name': `${student.firstName} ${student.lastName}`,
+      'Email': student.email,
+      'Phone': student.phone,
+      'Class': student.className,
+      'Previous Class': student.previousClass || 'N/A',
+      'Academic Year': student.academicYear || 'N/A',
+      'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
+      'Status': student.status || 'Active'
+      // Add more academic fields as needed
+    }));
+    
+    const columns = ['Code', 'Name', 'Email', 'Phone', 'Class', 'Previous Class', 'Academic Year', 'Date of Birth', 'Status'];
+    generatePDF(academicData, 'Academic_Report', 'Academic Performance Report', columns);
+  };
+
+  const generateFinancialReport = () => {
+    const financialData = invoices.map(invoice => ({
+      'Student Name': invoice.studentName,
+      'Description': invoice.description,
+      'Amount': formatCurrency(invoice.amount),
+      'Status': invoice.status,
+      'Due Date': invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A',
+      'Payment Date': invoice.paymentDate ? new Date(invoice.paymentDate).toLocaleDateString() : 'N/A',
+      'Term': invoice.termName || 'N/A'
+    }));
+    
+    const columns = ['Student Name', 'Description', 'Amount', 'Status', 'Due Date', 'Payment Date', 'Term'];
+    generatePDF(financialData, 'Financial_Report', 'Financial Report', columns);
   };
 
   const sendClassReportsToParents = async () => {
@@ -168,29 +336,30 @@ export default function ReportsPage() {
         return;
       }
 
-      // Send WhatsApp messages to parents
-      for (const student of classStudents) {
-        if (student.parentWhatsApp) {
-          try {
-            const message = `Academic Report for ${student.firstName} ${student.lastName} is ready. Please check your portal or contact the school for details.`;
-            await sendWhatsAppText(student.parentWhatsApp, message);
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-          } catch (error) {
-            console.error(`Failed to send to ${student.parentName}:`, error);
-          }
-        }
-      }
+      // Generate PDF report for the class
+      const classReportData = classStudents.map(student => ({
+        'Code': student.studentCode,
+        'Name': `${student.firstName} ${student.lastName}`,
+        'Email': student.email,
+        'Phone': student.phone,
+        'Class': student.className,
+        'Previous Class': student.previousClass || 'N/A',
+        'Academic Year': student.academicYear || 'N/A',
+        'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
+        'Status': student.status || 'Active'
+      }));
+
+      const columns = ['Code', 'Name', 'Email', 'Phone', 'Class', 'Previous Class', 'Academic Year', 'Date of Birth', 'Status'];
+      generatePDF(classReportData, `Class_Report_${selectedClass}`, `Class Report - ${selectedClass}`, columns);
 
       toast({
-        title: "Reports Sent Successfully",
-        description: `Academic reports sent to ${classStudents.filter(s => s.parentWhatsApp).length} parents via WhatsApp`,
+        title: "Report Generated Successfully",
+        description: `Academic report for ${selectedClass} has been downloaded as PDF`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send reports to parents",
+        description: "Failed to generate class report",
         variant: "destructive",
       });
     } finally {
@@ -353,7 +522,7 @@ export default function ReportsPage() {
           category: "Academic",
           lastGenerated: "2025-01-12",
           format: "PDF, Excel",
-          icon: "Calendar",
+          icon: "FileText",
         },
       ];
     }
@@ -415,7 +584,6 @@ export default function ReportsPage() {
       case "Users": return Users;
       case "DollarSign": return DollarSign;
       case "BarChart3": return BarChart3;
-      case "Calendar": return Calendar;
       case "Receipt": return Receipt;
       case "CreditCard": return CreditCard;
       default: return FileText;
@@ -543,11 +711,6 @@ export default function ReportsPage() {
               </DialogContent>
             </Dialog>
           )}
-          <Button variant="outline" className="gap-2 w-full sm:w-auto hover:bg-primary/5">
-            <Calendar className="w-4 h-4" />
-            <span className="hidden sm:inline">Schedule Report</span>
-            <span className="sm:hidden">Schedule</span>
-          </Button>
           <Button className="gap-2 bg-gradient-primary hover:opacity-90 w-full sm:w-auto">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Generate Report</span>
@@ -635,13 +798,14 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               Track student enrollment patterns and growth trends across academic years.
             </p>
-            <Button variant="outline" className="w-full gap-2 hover:bg-primary/5">
+            <Button variant="outline" className="w-full gap-2 hover:bg-primary/5" onClick={generateEnrollmentReport}>
               <FileText className="w-4 h-4" />
               Generate Enrollment Report
             </Button>
-            {userRole !== 'accountant' && (
-              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Student Enrollment Report")}>Send via WhatsApp</Button>
-            )}
+            <Button variant="outline" className="w-full mt-2 gap-2" onClick={generateEnrollmentReport}>
+              <Download className="w-4 h-4" />
+              Download as PDF
+            </Button>
           </CardContent>
         </Card>
 
@@ -657,11 +821,14 @@ export default function ReportsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Analyze student performance, grades, and attendance across all classes.
               </p>
-              <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5">
+              <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5" onClick={generateAcademicReport}>
                 <FileText className="w-4 h-4" />
                 Generate Academic Report
               </Button>
-              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Academic Performance Report")}>Send via WhatsApp</Button>
+              <Button variant="outline" className="w-full mt-2 gap-2" onClick={generateAcademicReport}>
+                <Download className="w-4 h-4" />
+                Download as PDF
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -681,9 +848,10 @@ export default function ReportsPage() {
               <FileText className="w-4 h-4" />
               Generate Financial Report
             </Button>
-            {userRole !== 'accountant' && (
-              <Button variant="outline" className="w-full mt-2" onClick={() => sendViaWhatsApp("Financial Summary Report")}>Send via WhatsApp</Button>
-            )}
+            <Button variant="outline" className="w-full mt-2 gap-2" onClick={generateFinancialReport}>
+              <Download className="w-4 h-4" />
+              Download as PDF
+            </Button>
           </CardContent>
         </Card>
 
@@ -812,11 +980,6 @@ export default function ReportsPage() {
                           <FileText className="w-3 h-3" />
                           Generate New
                         </Button>
-                        {userRole !== 'accountant' && (
-                          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => sendViaWhatsApp(report.title)}>
-                            Send via WhatsApp
-                          </Button>
-                        )}
                         </div>
                     </div>
                   </div>
