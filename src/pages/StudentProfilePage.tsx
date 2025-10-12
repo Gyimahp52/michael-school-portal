@@ -601,11 +601,17 @@ export function StudentProfilePage() {
 
           <Card className="shadow-soft border-border/50">
             <CardHeader>
-              <CardTitle>Current Term Assessments - Detailed View</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Current Term Assessments – Detailed View
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Comprehensive breakdown of all continuous assessments for the current active term
+              </p>
             </CardHeader>
             <CardContent>
               {assessments.filter(a => a.classId === student.className).length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {subjects
                     .filter(subject => assessments.some(a => a.subjectId === subject.id && a.classId === student.className))
                     .map(subject => {
@@ -613,58 +619,152 @@ export function StudentProfilePage() {
                         a => a.subjectId === subject.id && a.classId === student.className
                       ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                      const avgPercentage = subjectAssessments.length > 0
-                        ? subjectAssessments.reduce((sum, a) => sum + (a.score / a.maxScore) * 100, 0) / subjectAssessments.length
-                        : 0;
+                      // Calculate total scores and percentages
+                      const totalScore = subjectAssessments.reduce((sum, a) => sum + a.score, 0);
+                      const totalMaxScore = subjectAssessments.reduce((sum, a) => sum + a.maxScore, 0);
+                      const overallPercentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
+                      
+                      // Group assessments by type for better organization
+                      const assessmentsByType = subjectAssessments.reduce((acc, assessment) => {
+                        if (!acc[assessment.assessmentType]) {
+                          acc[assessment.assessmentType] = [];
+                        }
+                        acc[assessment.assessmentType].push(assessment);
+                        return acc;
+                      }, {} as Record<string, AssessmentRecord[]>);
+
+                      // Calculate classwork score (sum of all continuous assessments)
+                      const classworkTypes = ['assignment', 'exercise', 'quiz', 'project', 'classwork', 'homework'];
+                      const classworkAssessments = subjectAssessments.filter(a => classworkTypes.includes(a.assessmentType));
+                      const classworkScore = classworkAssessments.reduce((sum, a) => sum + a.score, 0);
+                      const classworkMaxScore = classworkAssessments.reduce((sum, a) => sum + a.maxScore, 0);
+                      const classworkPercentage = classworkMaxScore > 0 ? (classworkScore / classworkMaxScore) * 100 : 0;
 
                       return (
-                        <div key={subject.id} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-semibold text-lg">{subject.name}</h4>
-                            <Badge variant={avgPercentage >= 70 ? "default" : avgPercentage >= 50 ? "secondary" : "destructive"}>
-                              Avg: {avgPercentage.toFixed(1)}%
-                            </Badge>
+                        <div key={subject.id} className="border rounded-lg p-6 bg-card">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="font-semibold text-xl">{subject.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {subjectAssessments.length} assessment{subjectAssessments.length !== 1 ? 's' : ''} recorded
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={overallPercentage >= 70 ? "default" : overallPercentage >= 50 ? "secondary" : "destructive"} className="text-sm">
+                                Overall: {overallPercentage.toFixed(1)}%
+                              </Badge>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {totalScore}/{totalMaxScore} points
+                              </p>
+                            </div>
                           </div>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Assessment Type</TableHead>
-                                <TableHead>Score</TableHead>
-                                <TableHead>Percentage</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Term</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {subjectAssessments.map(assessment => {
-                                const percentage = (assessment.score / assessment.maxScore) * 100;
-                                return (
-                                  <TableRow key={assessment.id}>
-                                    <TableCell className="capitalize font-medium">{assessment.assessmentType}</TableCell>
-                                    <TableCell>{assessment.score}/{assessment.maxScore}</TableCell>
-                                    <TableCell>
-                                      <Badge variant={percentage >= 70 ? "default" : percentage >= 50 ? "secondary" : "destructive"}>
-                                        {percentage.toFixed(1)}%
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>{format(new Date(assessment.date), "PP")}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                      {assessment.termName || assessment.academicYearName || 'N/A'}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+
+                          {/* Assessment Types Summary */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            {Object.entries(assessmentsByType).map(([type, typeAssessments]) => {
+                              const typeScore = typeAssessments.reduce((sum, a) => sum + a.score, 0);
+                              const typeMaxScore = typeAssessments.reduce((sum, a) => sum + a.maxScore, 0);
+                              const typePercentage = typeMaxScore > 0 ? (typeScore / typeMaxScore) * 100 : 0;
+                              
+                              return (
+                                <div key={type} className="bg-muted/50 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium capitalize">{type}</span>
+                                    <Badge variant={typePercentage >= 70 ? "default" : typePercentage >= 50 ? "secondary" : "destructive"} className="text-xs">
+                                      {typePercentage.toFixed(1)}%
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {typeScore}/{typeMaxScore} ({typeAssessments.length} item{typeAssessments.length !== 1 ? 's' : ''})
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Detailed Assessment Table */}
+                          <div className="space-y-4">
+                            <h5 className="font-medium text-lg border-b pb-2">Assessment Details</h5>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead>Description</TableHead>
+                                  <TableHead>Score</TableHead>
+                                  <TableHead>Percentage</TableHead>
+                                  <TableHead>Remarks</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {subjectAssessments.map(assessment => {
+                                  const percentage = (assessment.score / assessment.maxScore) * 100;
+                                  return (
+                                    <TableRow key={assessment.id}>
+                                      <TableCell className="font-medium">
+                                        {format(new Date(assessment.date), "MMM dd, yyyy")}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline" className="capitalize">
+                                          {assessment.assessmentType}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="max-w-xs">
+                                        <div className="truncate" title={assessment.description || 'No description'}>
+                                          {assessment.description || 'No description'}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="font-mono">
+                                        {assessment.score}/{assessment.maxScore}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant={percentage >= 70 ? "default" : percentage >= 50 ? "secondary" : "destructive"}>
+                                          {percentage.toFixed(1)}%
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="max-w-xs">
+                                        <div className="truncate text-sm text-muted-foreground" title={assessment.remarks || 'No remarks'}>
+                                          {assessment.remarks || 'No remarks'}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+
+                          {/* Classwork Summary */}
+                          <div className="mt-6 p-4 bg-primary/5 rounded-lg border">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h6 className="font-semibold text-lg">Classwork Summary</h6>
+                                <p className="text-sm text-muted-foreground">
+                                  Total of all continuous assessments (assignments, exercises, quizzes, projects, classwork, homework)
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-primary">
+                                  {classworkScore}/{classworkMaxScore}
+                                </div>
+                                <Badge variant={classworkPercentage >= 70 ? "default" : classworkPercentage >= 50 ? "secondary" : "destructive"} className="text-sm">
+                                  {classworkPercentage.toFixed(1)}%
+                                </Badge>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Classwork 30% (Example)
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p className="font-medium">No assessments recorded yet</p>
-                  <p className="text-sm mt-1">Assessments will appear here once grades are recorded</p>
+                <div className="text-center py-12 text-muted-foreground">
+                  <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <h3 className="font-semibold text-lg mb-2">No Assessments Recorded</h3>
+                  <p className="text-sm">Assessments will appear here once grades are recorded for the current term</p>
                 </div>
               )}
             </CardContent>

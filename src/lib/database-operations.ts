@@ -1200,7 +1200,7 @@ export const subscribeToStudentBalances = (callback: (balances: StudentBalance[]
 };
 
 // ===== ASSESSMENTS / GRADES =====
-export type AssessmentType = 'assignment' | 'exercise' | 'exam';
+export type AssessmentType = 'assignment' | 'exercise' | 'exam' | 'quiz' | 'project' | 'test' | 'classwork' | 'homework';
 
 export interface AssessmentRecord {
 	id?: string;
@@ -1218,6 +1218,7 @@ export interface AssessmentRecord {
 	termName?: string;
 	academicYearId?: string;
 	academicYearName?: string;
+	remarks?: string; // Teacher's remarks
 	createdAt?: string;
 	updatedAt?: string;
 }

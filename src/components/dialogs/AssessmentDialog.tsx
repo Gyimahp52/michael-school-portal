@@ -48,6 +48,7 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
   const [score, setScore] = useState<string>("");
   const [maxScore, setMaxScore] = useState<string>("100");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [remarks, setRemarks] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -113,12 +114,14 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
         termName: selectedTermData?.name,
         academicYearId: selectedTermData?.academicYearId,
         academicYearName: selectedTermData?.academicYearName,
+        remarks: remarks || undefined,
       };
       await createAssessmentRecord(record);
       toast({ title: "Assessment recorded", description: `${student.firstName} scored ${score}/${maxScore}` });
       // Reset some fields to speed entry of multiple scores in same class/subject
       setSelectedStudentId("");
       setScore("");
+      setRemarks("");
     } catch (e: any) {
       toast({ title: "Failed to save", description: e?.message || String(e), variant: "destructive" });
     } finally {
@@ -137,6 +140,7 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
       setScore("");
       setMaxScore("100");
       setDate(new Date().toISOString().slice(0, 10));
+      setRemarks("");
       // Re-set current term
       getCurrentTerm().then(term => {
         if (term) {
@@ -224,6 +228,11 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
                 <SelectContent>
                   <SelectItem value="exercise">Exercise</SelectItem>
                   <SelectItem value="assignment">Assignment</SelectItem>
+                  <SelectItem value="quiz">Quiz</SelectItem>
+                  <SelectItem value="project">Project</SelectItem>
+                  <SelectItem value="test">Test</SelectItem>
+                  <SelectItem value="classwork">Classwork</SelectItem>
+                  <SelectItem value="homework">Homework</SelectItem>
                   <SelectItem value="exam">Exam</SelectItem>
                 </SelectContent>
               </Select>
@@ -244,6 +253,11 @@ export function AssessmentDialog({ open, onOpenChange }: AssessmentDialogProps) 
           <div className="space-y-2">
             <Label>Description (optional)</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description" />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Teacher's Remarks (optional)</Label>
+            <Input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Comments or feedback" />
           </div>
 
           <div className="space-y-2">
