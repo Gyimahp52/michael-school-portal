@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
-import autoTable from 'jspdf-autotable';
 import {
   subscribeToInvoices,
   subscribeToStudentBalances,
@@ -107,25 +106,32 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
       const partialStudents = studentBalances.filter(b => b.status === 'partial').length;
       const overdueStudents = studentBalances.filter(b => b.status === 'overdue').length;
 
-      // Summary table
-      autoTable(doc, {
-        startY: yPosition,
-        head: [['Metric', 'Value']],
-        body: [
-          ['Total Revenue Collected', formatCurrency(totalRevenue)],
-          ['Total Outstanding Fees', formatCurrency(totalOutstanding)],
-          ['Total Expected Fees', formatCurrency(totalExpected)],
-          ['Collection Rate', `${collectionRate}%`],
-          ['Total Students', students.length.toString()],
-          ['Fully Paid Students', paidStudents.toString()],
-          ['Partial Payment Students', partialStudents.toString()],
-          ['Overdue Students', overdueStudents.toString()],
-        ],
-        theme: 'grid',
-        headStyles: { fillColor: [59, 130, 246] },
+      // Summary table - using simple text layout
+      const summaryData = [
+        ['Total Revenue Collected', formatCurrency(totalRevenue)],
+        ['Total Outstanding Fees', formatCurrency(totalOutstanding)],
+        ['Total Expected Fees', formatCurrency(totalExpected)],
+        ['Collection Rate', `${collectionRate}%`],
+        ['Total Students', students.length.toString()],
+        ['Fully Paid Students', paidStudents.toString()],
+        ['Partial Payment Students', partialStudents.toString()],
+        ['Overdue Students', overdueStudents.toString()],
+      ];
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Metric', 14, yPosition);
+      doc.text('Value', 100, yPosition);
+      yPosition += 5;
+
+      doc.setFont('helvetica', 'normal');
+      summaryData.forEach(([metric, value]) => {
+        doc.text(metric, 14, yPosition);
+        doc.text(value, 100, yPosition);
+        yPosition += 5;
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      yPosition += 10;
 
       if (reportType === "detailed" || reportType === "summary") {
         // Payment Details Section
@@ -137,20 +143,26 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         const paidInvoices = filteredInvoices.filter(inv => inv.status === 'Paid');
         
         if (paidInvoices.length > 0) {
-          autoTable(doc, {
-            startY: yPosition,
-            head: [['Date', 'Student', 'Description', 'Amount', 'Status']],
-            body: paidInvoices.map(inv => [
-              inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : 'N/A',
-              inv.studentName,
-              inv.description,
-              formatCurrency(inv.amount),
-              inv.status
-            ]),
-            theme: 'striped',
-            headStyles: { fillColor: [34, 197, 94] },
+          // Payment details table - using simple text layout
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Date', 14, yPosition);
+          doc.text('Student', 40, yPosition);
+          doc.text('Description', 80, yPosition);
+          doc.text('Amount', 140, yPosition);
+          doc.text('Status', 180, yPosition);
+          yPosition += 5;
+
+          doc.setFont('helvetica', 'normal');
+          paidInvoices.forEach(inv => {
+            doc.text(inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : 'N/A', 14, yPosition);
+            doc.text(inv.studentName, 40, yPosition);
+            doc.text(inv.description, 80, yPosition);
+            doc.text(formatCurrency(inv.amount), 140, yPosition);
+            doc.text(inv.status, 180, yPosition);
+            yPosition += 5;
           });
-          yPosition = (doc as any).lastAutoTable.finalY + 15;
+          yPosition += 10;
         }
       }
 
@@ -188,12 +200,26 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           `${((data.paid / data.total) * 100).toFixed(1)}%`
         ]);
 
-        autoTable(doc, {
-          startY: yPosition,
-          head: [['Class', 'Students', 'Total Fees', 'Amount Paid', 'Outstanding', 'Collection %']],
-          body: classSummaryArray,
-          theme: 'grid',
-          headStyles: { fillColor: [147, 51, 234] },
+        // Class-wise breakdown table - using simple text layout
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Class', 14, yPosition);
+        doc.text('Students', 40, yPosition);
+        doc.text('Total Fees', 70, yPosition);
+        doc.text('Amount Paid', 110, yPosition);
+        doc.text('Outstanding', 150, yPosition);
+        doc.text('Collection %', 190, yPosition);
+        yPosition += 5;
+
+        doc.setFont('helvetica', 'normal');
+        classSummaryArray.forEach(row => {
+          doc.text(row[0], 14, yPosition);
+          doc.text(row[1], 40, yPosition);
+          doc.text(row[2], 70, yPosition);
+          doc.text(row[3], 110, yPosition);
+          doc.text(row[4], 150, yPosition);
+          doc.text(row[5], 190, yPosition);
+          yPosition += 5;
         });
       }
 
@@ -210,19 +236,26 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         const outstandingBalances = studentBalances.filter(bal => bal.balance > 0);
         
         if (outstandingBalances.length > 0) {
-          autoTable(doc, {
-            startY: yPosition,
-            head: [['Student', 'Class', 'Total Fees', 'Paid', 'Balance', 'Status']],
-            body: outstandingBalances.map(bal => [
-              bal.studentName,
-              bal.className,
-              formatCurrency(bal.totalFees),
-              formatCurrency(bal.amountPaid),
-              formatCurrency(bal.balance),
-              bal.status.toUpperCase()
-            ]),
-            theme: 'striped',
-            headStyles: { fillColor: [239, 68, 68] },
+          // Outstanding fees table - using simple text layout
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Student', 14, yPosition);
+          doc.text('Class', 60, yPosition);
+          doc.text('Total Fees', 90, yPosition);
+          doc.text('Paid', 130, yPosition);
+          doc.text('Balance', 160, yPosition);
+          doc.text('Status', 200, yPosition);
+          yPosition += 5;
+
+          doc.setFont('helvetica', 'normal');
+          outstandingBalances.forEach(bal => {
+            doc.text(bal.studentName, 14, yPosition);
+            doc.text(bal.className, 60, yPosition);
+            doc.text(formatCurrency(bal.totalFees), 90, yPosition);
+            doc.text(formatCurrency(bal.amountPaid), 130, yPosition);
+            doc.text(formatCurrency(bal.balance), 160, yPosition);
+            doc.text(bal.status.toUpperCase(), 200, yPosition);
+            yPosition += 5;
           });
         }
       }

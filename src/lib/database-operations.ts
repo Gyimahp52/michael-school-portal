@@ -190,6 +190,16 @@ export const getCurrentTerm = async (): Promise<Term | null> => {
   }
 };
 
+export const getCurrentAcademicYear = async (): Promise<AcademicYear | null> => {
+  try {
+    const years = await getAllAcademicYears();
+    return years.find(y => y.status === 'active') || null;
+  } catch (error) {
+    console.error('Error getting current academic year:', error);
+    return null;
+  }
+};
+
 export const getTermsByAcademicYear = async (academicYearId: string): Promise<Term[]> => {
   try {
     const terms = await getAllTerms();
@@ -213,6 +223,8 @@ export interface Student {
   previousClass?: string;
   academicYear?: string;
   previousAcademicYear?: string;
+  termId?: string;
+  termName?: string;
   parentName: string;
   parentPhone: string;
   parentWhatsApp: string;

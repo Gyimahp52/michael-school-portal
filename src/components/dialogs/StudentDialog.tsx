@@ -5,9 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { createStudent, updateStudent, upsertStudent, Student, subscribeToStudents, subscribeToClasses, type Class } from "@/lib/database-operations";
+import { 
+  createStudent, 
+  updateStudent, 
+  upsertStudent, 
+  Student, 
+  subscribeToStudents, 
+  subscribeToClasses, 
+  type Class,
+  subscribeToAcademicYears,
+  subscribeToTerms,
+  AcademicYear,
+  Term,
+  getCurrentAcademicYear,
+  getCurrentTerm,
+  getTermsByAcademicYear
+} from "@/lib/database-operations";
 import { ref, get } from 'firebase/database';
 import { rtdb } from "@/firebase";
+import { AcademicYearSelector } from "@/components/shared/AcademicYearSelector";
+import { TermSelector } from "@/components/shared/TermSelector";
 
 
 import { Loader2, Upload, User } from "lucide-react";
@@ -25,6 +42,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   const { toast } = useToast();
   const [existingStudents, setExistingStudents] = useState<Student[]>([]);
   const [classesFromDb, setClassesFromDb] = useState<Class[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [availableTerms, setAvailableTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string>("");
   const [formData, setFormData] = useState({
@@ -34,6 +54,8 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     phone: "",
     dateOfBirth: "",
     className: "",
+    academicYear: "",
+    termId: "",
     parentName: "",
     parentPhone: "",
     parentWhatsApp: "",
@@ -47,8 +69,44 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
   useEffect(() => {
     const unsubStudents = subscribeToStudents(setExistingStudents);
     const unsubClasses = subscribeToClasses(setClassesFromDb);
-    return () => { unsubStudents(); unsubClasses(); };
+    const unsubAcademicYears = subscribeToAcademicYears(setAcademicYears);
+    const unsubTerms = subscribeToTerms(setTerms);
+    return () => { 
+      unsubStudents(); 
+      unsubClasses(); 
+      unsubAcademicYears();
+      unsubTerms();
+    };
   }, []);
+
+  // Set default academic year and term for new students
+  useEffect(() => {
+    const setDefaults = async () => {
+      if (mode === "create" && open) {
+        try {
+          const [currentYear, currentTerm] = await Promise.all([
+            getCurrentAcademicYear(),
+            getCurrentTerm()
+          ]);
+          
+          if (currentYear && currentTerm) {
+            setFormData(prev => ({
+              ...prev,
+              academicYear: currentYear.name,
+              termId: currentTerm.id || ""
+            }));
+            // Update available terms for the selected academic year
+            const yearTerms = await getTermsByAcademicYear(currentYear.id!);
+            setAvailableTerms(yearTerms);
+          }
+        } catch (error) {
+          console.error('Error setting default academic year and term:', error);
+        }
+      }
+    };
+    
+    setDefaults();
+  }, [mode, open]);
 
   useEffect(() => {
     if (student && mode === "edit") {
@@ -59,6 +117,8 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         phone: student.phone,
         dateOfBirth: student.dateOfBirth,
         className: student.className,
+        academicYear: student.academicYear || "",
+        termId: student.termId || "",
         parentName: student.parentName,
         parentPhone: student.parentPhone,
         parentWhatsApp: student.parentWhatsApp || "",
@@ -70,6 +130,15 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       });
       setPhotoPreview(student.photoUrl || "");
       setGeneratedCode(student.studentCode || "");
+      
+      // Set available terms for the student's academic year
+      if (student.academicYear) {
+        const year = academicYears.find(y => y.name === student.academicYear);
+        if (year) {
+          const yearTerms = terms.filter(t => t.academicYearId === year.id);
+          setAvailableTerms(yearTerms);
+        }
+      }
     } else if (mode === "create") {
       setFormData({
         firstName: "",
@@ -78,6 +147,8 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
         phone: "",
         dateOfBirth: "",
         className: "",
+        academicYear: "",
+        termId: "",
         parentName: "",
         parentPhone: "",
         parentWhatsApp: "",
@@ -90,8 +161,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       setPhotoFile(null);
       setPhotoPreview("");
       setGeneratedCode("");
+      setAvailableTerms([]);
     }
-  }, [student, mode, open]);
+  }, [student, mode, open, academicYears, terms]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -107,6 +179,23 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
 
   const handleChange = (field: keyof typeof formData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAcademicYearChange = async (academicYearId: string, academicYear: AcademicYear | null) => {
+    if (academicYear) {
+      setFormData(prev => ({ ...prev, academicYear: academicYear.name }));
+      // Update available terms for the selected academic year
+      const yearTerms = await getTermsByAcademicYear(academicYearId);
+      setAvailableTerms(yearTerms);
+      // Reset term selection when academic year changes
+      setFormData(prev => ({ ...prev, termId: "" }));
+    }
+  };
+
+  const handleTermChange = (termId: string, term: Term | null) => {
+    if (term) {
+      setFormData(prev => ({ ...prev, termId: termId, termName: term.name }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -349,6 +438,26 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <AcademicYearSelector
+                value={academicYears.find(y => y.name === formData.academicYear)?.id || ""}
+                onChange={handleAcademicYearChange}
+                label="Academic Year *"
+                showAllOption={false}
+              />
+            </div>
+            <div className="space-y-2">
+              <TermSelector
+                value={formData.termId}
+                onChange={handleTermChange}
+                label="Term *"
+                showAllOption={false}
+                terms={availableTerms}
+              />
             </div>
           </div>
 

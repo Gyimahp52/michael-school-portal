@@ -393,9 +393,20 @@ export function StudentProfilePage() {
                   <p className="font-semibold text-foreground">Class {student.className}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">Academic Year</p>
+                  <p className="font-semibold text-foreground">{student.academicYear || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Term</p>
+                  <p className="font-semibold text-foreground">{student.termName || "N/A"}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Age</p>
                   <p className="font-semibold text-foreground">{age} years</p>
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Attendance</p>
                   <p className="font-semibold text-foreground">{attendancePercent}%</p>
@@ -403,6 +414,16 @@ export function StudentProfilePage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Fee Status</p>
                   {balance ? getBalanceStatusBadge(balance.status) : <Badge variant="outline">No Data</Badge>}
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Enrollment Date</p>
+                  <p className="font-semibold text-foreground">
+                    {student.enrollmentDate ? format(new Date(student.enrollmentDate), "MMM dd, yyyy") : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  {getStatusBadge(student.status)}
                 </div>
               </div>
             </div>
@@ -477,6 +498,14 @@ export function StudentProfilePage() {
                     <MapPin className="w-4 h-4 text-muted-foreground" />
                     <p className="text-foreground">{student.address || "N/A"}</p>
                   </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Academic Year</label>
+                  <p className="text-foreground font-medium">{student.academicYear || "N/A"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Current Term</label>
+                  <p className="text-foreground font-medium">{student.termName || "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Enrollment Date</label>

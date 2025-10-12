@@ -10,6 +10,7 @@ interface TermSelectorProps {
   label?: string;
   showAllOption?: boolean;
   className?: string;
+  terms?: Term[]; // Optional prop to pass specific terms instead of all
 }
 
 export function TermSelector({ 
@@ -17,24 +18,30 @@ export function TermSelector({
   onChange, 
   label = "Select Term",
   showAllOption = true,
-  className 
+  className,
+  terms: providedTerms
 }: TermSelectorProps) {
   const [terms, setTerms] = useState<Term[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubTerms = subscribeToTerms((data) => {
-      setTerms(data);
+    if (providedTerms) {
+      setTerms(providedTerms);
       setLoading(false);
-    });
-    const unsubYears = subscribeToAcademicYears(setAcademicYears);
+    } else {
+      const unsubTerms = subscribeToTerms((data) => {
+        setTerms(data);
+        setLoading(false);
+      });
+      const unsubYears = subscribeToAcademicYears(setAcademicYears);
 
-    return () => {
-      unsubTerms();
-      unsubYears();
-    };
-  }, []);
+      return () => {
+        unsubTerms();
+        unsubYears();
+      };
+    }
+  }, [providedTerms]);
 
   const handleChange = (termId: string) => {
     if (termId === "all") {
