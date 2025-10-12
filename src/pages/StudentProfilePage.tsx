@@ -630,20 +630,20 @@ export function StudentProfilePage() {
             <CardContent>
               {assessments.filter(a => 
                 a.classId === student.className && 
-                (!currentTerm || a.termId === currentTerm.id)
+                (!currentTerm || !a.termId || a.termId === currentTerm.id)
               ).length > 0 ? (
                 <div className="space-y-8">
                   {subjects
                     .filter(subject => assessments.some(a => 
                       a.subjectId === subject.id && 
                       a.classId === student.className &&
-                      (!currentTerm || a.termId === currentTerm.id)
+                      (!currentTerm || !a.termId || a.termId === currentTerm.id)
                     ))
                     .map(subject => {
                       const subjectAssessments = assessments.filter(
                         a => a.subjectId === subject.id && 
                         a.classId === student.className &&
-                        (!currentTerm || a.termId === currentTerm.id)
+                        (!currentTerm || !a.termId || a.termId === currentTerm.id)
                       ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                       // Calculate total scores and percentages
