@@ -48,6 +48,8 @@ import {
   StudentDocument,
   subscribeToClasses,
   Class,
+  Term,
+  getCurrentTerm,
 } from "@/lib/database-operations";
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -90,6 +92,7 @@ export function StudentProfilePage() {
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [academicHistory, setAcademicHistory] = useState<StudentHistoryRecord[]>([]);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [currentTerm, setCurrentTerm] = useState<Term | null>(null);
 
   useEffect(() => {
     if (!studentId) return;
@@ -177,6 +180,11 @@ export function StudentProfilePage() {
       setDocuments(docs);
     });
     unsubscribers.push(unsubDocuments);
+
+    // Get current term
+    getCurrentTerm().then(term => {
+      setCurrentTerm(term);
+    });
 
     return () => unsubscribers.forEach(unsub => unsub());
   }, [studentId, userRole, currentUser?.id, classes]);
@@ -607,16 +615,35 @@ export function StudentProfilePage() {
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Comprehensive breakdown of all continuous assessments for the current active term
+                {currentTerm && (
+                  <span className="ml-2">
+                    ({currentTerm.name} - {currentTerm.academicYearName})
+                  </span>
+                )}
               </p>
+              {currentTerm && currentTerm.status === 'completed' && (
+                <Badge variant="secondary" className="mt-2">
+                  Read-Only - Term Closed
+                </Badge>
+              )}
             </CardHeader>
             <CardContent>
-              {assessments.filter(a => a.classId === student.className).length > 0 ? (
+              {assessments.filter(a => 
+                a.classId === student.className && 
+                (!currentTerm || a.termId === currentTerm.id)
+              ).length > 0 ? (
                 <div className="space-y-8">
                   {subjects
-                    .filter(subject => assessments.some(a => a.subjectId === subject.id && a.classId === student.className))
+                    .filter(subject => assessments.some(a => 
+                      a.subjectId === subject.id && 
+                      a.classId === student.className &&
+                      (!currentTerm || a.termId === currentTerm.id)
+                    ))
                     .map(subject => {
                       const subjectAssessments = assessments.filter(
-                        a => a.subjectId === subject.id && a.classId === student.className
+                        a => a.subjectId === subject.id && 
+                        a.classId === student.className &&
+                        (!currentTerm || a.termId === currentTerm.id)
                       ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                       // Calculate total scores and percentages
@@ -751,7 +778,7 @@ export function StudentProfilePage() {
                                   {classworkPercentage.toFixed(1)}%
                                 </Badge>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Classwork 30% (Example)
+                                  Contribution to Final Grade: 30%
                                 </p>
                               </div>
                             </div>
