@@ -193,7 +193,7 @@ export default function AcademicsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Teaching Staff</p>
-                <h3 className="text-2xl font-bold mt-1">{teachers.filter(t => t.status === 'active').length}</h3>
+                <h3 className="text-2xl font-bold mt-1">{teachers.length}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Full & part-time</p>
               </div>
               <div className="bg-accent/10 p-3 rounded-lg">

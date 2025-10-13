@@ -21,6 +21,16 @@ export function TopBar() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
+  
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    const q = searchQuery.trim();
+    if (!q) return;
+    const base = userRole === 'admin' ? '/admin' : userRole === 'teacher' ? '/teacher' : userRole === 'accountant' ? '/accountant' : '';
+    const target = userRole === 'accountant' ? `${base}/billing` : `${base}/students`;
+    const url = `${target}?q=${encodeURIComponent(q)}`;
+    navigate(url);
+  };
 
   return (
     <header className="h-16 border-b border-border bg-card shadow-soft">
@@ -36,6 +46,7 @@ export function TopBar() {
               placeholder="Search students, teachers, or records..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="w-full md:w-64 lg:w-80 pl-10 bg-muted/50 border-border focus:bg-background"
             />
           </div>

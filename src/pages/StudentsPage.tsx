@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,18 +38,21 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type Class } from "@/lib/database-operations";
+import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type Class, subscribeToStudentBalances, type StudentBalance } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { filterTeacherClasses, filterTeacherStudents } from "@/lib/access-control";
 
 import { useAuth } from "@/contexts/CustomAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
+import { formatCurrency } from "@/lib/utils";
 
 export function StudentsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("All");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,11 +66,19 @@ export function StudentsPage() {
       setStudents(studentsData);
     });
     const unsubClasses = subscribeToClasses(setClasses);
+    const unsubBalances = subscribeToStudentBalances(setStudentBalances);
     return () => {
       unsubscribe();
       unsubClasses();
+      unsubBalances();
     };
   }, []);
+
+  // Sync initial and subsequent URL changes (?q=) into local search state
+  useEffect(() => {
+    const q = searchParams.get('q') || "";
+    setSearchQuery(q);
+  }, [searchParams]);
 
   // Filter students based on user role - teachers only see their assigned students
   const accessibleStudents = userRole === 'teacher' && currentUser?.id
@@ -344,7 +355,17 @@ export function StudentsPage() {
                   <TableCell>{student.parentName}</TableCell>
                   <TableCell>{getStatusBadge(student.status)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">-</Badge>
+                    {(() => {
+                      const bal = studentBalances.find(b => b.studentId === student.id);
+                      if (!bal) return <Badge variant="outline">-</Badge>;
+                      const amount = bal.balance || 0;
+                      const isPaid = (bal.status === 'paid') || amount <= 0;
+                      return (
+                        <Badge variant={isPaid ? "secondary" : "outline"} className={isPaid ? "" : "border-warning text-warning"}>
+                          {isPaid ? "Paid" : formatCurrency(amount)}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
