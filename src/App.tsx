@@ -26,6 +26,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import ReportCardPrintPage from "./pages/ReportCardPrintPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import { useEffect } from "react";
+import CanteenPage from "./pages/CanteenPage";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const AppContent = () => {
           <Route path="students" element={<StudentsPage />} />
           <Route path="students/:studentId" element={<StudentProfilePage />} />
           <Route path="billing" element={<BillingPage />} />
+          <Route path="canteen" element={<CanteenPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="grades/print/:classId" element={<ReportCardPrintPage />} />
           <Route path="promotions" element={<PromotionsPage />} />

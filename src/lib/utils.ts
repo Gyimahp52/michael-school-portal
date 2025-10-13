@@ -18,6 +18,13 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Ensures the Ghana cedi symbol appears as GH₵ even when environments fall back to "GHS"
+export function formatCurrencyGh(amount: number): string {
+  const formatted = formatCurrency(amount);
+  // Replace common fallbacks (e.g., "GHS" or narrow no-break space variants) with GH₵
+  return formatted.replace('GHS', 'GH₵');
+}
+
 /**
  * Count weekdays (Monday-Friday) between two dates, inclusive
  * @param startDate - Start date string (YYYY-MM-DD)

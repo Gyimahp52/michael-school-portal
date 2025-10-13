@@ -103,6 +103,12 @@ const baseItems = [
     group: "Financial",
   },
   {
+    title: "Canteen / Feeding Fees",
+    suffix: "/canteen",
+    icon: Users,
+    group: "Financial",
+  },
+  {
     title: "Settings",
     suffix: "/settings",
     icon: Settings,

@@ -16,7 +16,7 @@ import {
   Student,
   SchoolFees
 } from "@/lib/database-operations";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCurrencyGh } from "@/lib/utils";
 
 interface FinancialReportDialogProps {
   open: boolean;
@@ -108,9 +108,9 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
 
       // Summary table - using simple text layout
       const summaryData = [
-        ['Total Revenue Collected', formatCurrency(totalRevenue)],
-        ['Total Outstanding Fees', formatCurrency(totalOutstanding)],
-        ['Total Expected Fees', formatCurrency(totalExpected)],
+        ['Total Revenue Collected', formatCurrencyGh(totalRevenue)],
+        ['Total Outstanding Fees', formatCurrencyGh(totalOutstanding)],
+        ['Total Expected Fees', formatCurrencyGh(totalExpected)],
         ['Collection Rate', `${collectionRate}%`],
         ['Total Students', students.length.toString()],
         ['Fully Paid Students', paidStudents.toString()],
@@ -158,7 +158,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
             doc.text(inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : 'N/A', 14, yPosition);
             doc.text(inv.studentName, 40, yPosition);
             doc.text(inv.description, 80, yPosition);
-            doc.text(formatCurrency(inv.amount), 140, yPosition);
+            doc.text(formatCurrencyGh(inv.amount), 140, yPosition);
             doc.text(inv.status, 180, yPosition);
             yPosition += 5;
           });
@@ -191,12 +191,12 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           classData.students += 1;
         });
 
-        const classSummaryArray = Array.from(classSummary.entries()).map(([className, data]) => [
+          const classSummaryArray = Array.from(classSummary.entries()).map(([className, data]) => [
           className,
           data.students.toString(),
-          formatCurrency(data.total),
-          formatCurrency(data.paid),
-          formatCurrency(data.outstanding),
+            formatCurrencyGh(data.total),
+            formatCurrencyGh(data.paid),
+            formatCurrencyGh(data.outstanding),
           `${((data.paid / data.total) * 100).toFixed(1)}%`
         ]);
 
@@ -251,9 +251,9 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           outstandingBalances.forEach(bal => {
             doc.text(bal.studentName, 14, yPosition);
             doc.text(bal.className, 60, yPosition);
-            doc.text(formatCurrency(bal.totalFees), 90, yPosition);
-            doc.text(formatCurrency(bal.amountPaid), 130, yPosition);
-            doc.text(formatCurrency(bal.balance), 160, yPosition);
+            doc.text(formatCurrencyGh(bal.totalFees), 90, yPosition);
+            doc.text(formatCurrencyGh(bal.amountPaid), 130, yPosition);
+            doc.text(formatCurrencyGh(bal.balance), 160, yPosition);
             doc.text(bal.status.toUpperCase(), 200, yPosition);
             yPosition += 5;
           });

@@ -45,7 +45,7 @@ import {
   CreditCard,
   Receipt,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCurrencyGh } from "@/lib/utils";
 import jsPDF from "jspdf";
 import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
 
@@ -301,7 +301,7 @@ export default function ReportsPage() {
     const financialData = invoices.map(invoice => ({
       'Student Name': invoice.studentName,
       'Description': invoice.description,
-      'Amount': formatCurrency(invoice.amount),
+      'Amount': formatCurrencyGh(invoice.amount),
       'Status': invoice.status,
       'Due Date': invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A',
       'Payment Date': invoice.paymentDate ? new Date(invoice.paymentDate).toLocaleDateString() : 'N/A',
@@ -672,7 +672,7 @@ export default function ReportsPage() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="amount">Amount (GHS)</Label>
+                    <Label htmlFor="amount">Amount (GH₵)</Label>
                     <Input
                       id="amount"
                       type="number"
