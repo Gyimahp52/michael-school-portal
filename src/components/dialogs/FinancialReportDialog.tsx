@@ -11,10 +11,12 @@ import {
   subscribeToStudentBalances,
   subscribeToStudents,
   subscribeToSchoolFees,
+  subscribeToCanteenCollections,
   Invoice,
   StudentBalance,
   Student,
-  SchoolFees
+  SchoolFees,
+  CanteenCollection
 } from "@/lib/database-operations";
 import { formatCurrency, formatCurrencyGh } from "@/lib/utils";
 
@@ -29,9 +31,10 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
   const [students, setStudents] = useState<Student[]>([]);
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [loading, setLoading] = useState(false);
-  const [reportType, setReportType] = useState<"summary" | "detailed" | "class-wise">("summary");
+  const [reportType, setReportType] = useState<"summary" | "detailed" | "class-wise" | "canteen">("summary");
   const [reportPeriod, setReportPeriod] = useState<"current-month" | "current-term" | "current-year" | "all-time">("current-month");
   const { toast } = useToast();
+  const [canteenCollections, setCanteenCollections] = useState<CanteenCollection[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -40,12 +43,14 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
     const unsubscribeBalances = subscribeToStudentBalances(setStudentBalances);
     const unsubscribeStudents = subscribeToStudents(setStudents);
     const unsubscribeFees = subscribeToSchoolFees(setSchoolFees);
+    const unsubscribeCanteen = subscribeToCanteenCollections(setCanteenCollections);
 
     return () => {
       unsubscribeInvoices();
       unsubscribeBalances();
       unsubscribeStudents();
       unsubscribeFees();
+      unsubscribeCanteen();
     };
   }, [open]);
 
@@ -55,10 +60,15 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
     const currentYear = now.getFullYear();
 
     let filteredInvoices = invoices;
+    let filteredCanteen = canteenCollections;
 
     if (reportPeriod === "current-month") {
       filteredInvoices = invoices.filter(inv => {
         const date = new Date(inv.paymentDate || inv.dueDate);
+        return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      });
+      filteredCanteen = canteenCollections.filter(c => {
+        const date = new Date(c.date);
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
       });
     } else if (reportPeriod === "current-year") {
@@ -66,21 +76,26 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         const date = new Date(inv.paymentDate || inv.dueDate);
         return date.getFullYear() === currentYear;
       });
+      filteredCanteen = canteenCollections.filter(c => {
+        const date = new Date(c.date);
+        return date.getFullYear() === currentYear;
+      });
     }
 
-    return { filteredInvoices };
+    return { filteredInvoices, filteredCanteen };
   };
 
   const generatePDF = () => {
     setLoading(true);
     try {
       const doc = new jsPDF();
-      const { filteredInvoices } = filterDataByPeriod();
+      const { filteredInvoices, filteredCanteen } = filterDataByPeriod();
 
       // Header
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text("Financial Report", 105, 20, { align: "center" });
+      const title = reportType === "canteen" ? "Canteen Collections Report" : "Financial Report";
+      doc.text(title, 105, 20, { align: "center" });
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -89,49 +104,51 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
 
       let yPosition = 45;
 
-      // Financial Summary Section
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text("Financial Summary", 14, yPosition);
-      yPosition += 10;
+      if (reportType !== "canteen") {
+        // Financial Summary Section
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Financial Summary", 14, yPosition);
+        yPosition += 10;
 
-      // Calculate metrics
-      const totalRevenue = filteredInvoices.filter(inv => inv.status === 'Paid').reduce((sum, inv) => sum + inv.amount, 0);
-      const totalOutstanding = studentBalances.reduce((sum, bal) => sum + bal.balance, 0);
-      const totalExpected = studentBalances.reduce((sum, bal) => sum + bal.totalFees, 0);
-      const totalPaid = studentBalances.reduce((sum, bal) => sum + bal.amountPaid, 0);
-      const collectionRate = totalExpected > 0 ? ((totalPaid / totalExpected) * 100).toFixed(1) : "0";
+        // Calculate metrics
+        const totalRevenue = filteredInvoices.filter(inv => inv.status === 'Paid').reduce((sum, inv) => sum + inv.amount, 0);
+        const totalOutstanding = studentBalances.reduce((sum, bal) => sum + bal.balance, 0);
+        const totalExpected = studentBalances.reduce((sum, bal) => sum + bal.totalFees, 0);
+        const totalPaid = studentBalances.reduce((sum, bal) => sum + bal.amountPaid, 0);
+        const collectionRate = totalExpected > 0 ? ((totalPaid / totalExpected) * 100).toFixed(1) : "0";
 
-      const paidStudents = studentBalances.filter(b => b.status === 'paid').length;
-      const partialStudents = studentBalances.filter(b => b.status === 'partial').length;
-      const overdueStudents = studentBalances.filter(b => b.status === 'overdue').length;
+        const paidStudents = studentBalances.filter(b => b.status === 'paid').length;
+        const partialStudents = studentBalances.filter(b => b.status === 'partial').length;
+        const overdueStudents = studentBalances.filter(b => b.status === 'overdue').length;
 
-      // Summary table - using simple text layout
-      const summaryData = [
-        ['Total Revenue Collected', formatCurrencyGh(totalRevenue)],
-        ['Total Outstanding Fees', formatCurrencyGh(totalOutstanding)],
-        ['Total Expected Fees', formatCurrencyGh(totalExpected)],
-        ['Collection Rate', `${collectionRate}%`],
-        ['Total Students', students.length.toString()],
-        ['Fully Paid Students', paidStudents.toString()],
-        ['Partial Payment Students', partialStudents.toString()],
-        ['Overdue Students', overdueStudents.toString()],
-      ];
+        // Summary table - using simple text layout
+        const summaryData = [
+          ['Total Revenue Collected', formatCurrencyGh(totalRevenue)],
+          ['Total Outstanding Fees', formatCurrencyGh(totalOutstanding)],
+          ['Total Expected Fees', formatCurrencyGh(totalExpected)],
+          ['Collection Rate', `${collectionRate}%`],
+          ['Total Students', students.length.toString()],
+          ['Fully Paid Students', paidStudents.toString()],
+          ['Partial Payment Students', partialStudents.toString()],
+          ['Overdue Students', overdueStudents.toString()],
+        ];
 
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Metric', 14, yPosition);
-      doc.text('Value', 100, yPosition);
-      yPosition += 5;
-
-      doc.setFont('helvetica', 'normal');
-      summaryData.forEach(([metric, value]) => {
-        doc.text(metric, 14, yPosition);
-        doc.text(value, 100, yPosition);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Metric', 14, yPosition);
+        doc.text('Value', 100, yPosition);
         yPosition += 5;
-      });
 
-      yPosition += 10;
+        doc.setFont('helvetica', 'normal');
+        summaryData.forEach(([metric, value]) => {
+          doc.text(metric, 14, yPosition);
+          doc.text(value, 100, yPosition);
+          yPosition += 5;
+        });
+
+        yPosition += 10;
+      }
 
       if (reportType === "detailed" || reportType === "summary") {
         // Payment Details Section
@@ -223,6 +240,59 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         });
       }
 
+      // Canteen Collections Section
+      if (reportType === "canteen" || reportType === "detailed") {
+        doc.addPage();
+        yPosition = 20;
+
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Canteen Collections", 14, yPosition);
+        yPosition += 10;
+
+        // Summary
+        const canteenTotal = filteredCanteen.reduce((sum, c) => sum + (c.totalAmount || 0), 0);
+        const canteenDays = filteredCanteen.length;
+        const canteenAvg = canteenDays > 0 ? canteenTotal / canteenDays : 0;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Metric', 14, yPosition);
+        doc.text('Value', 100, yPosition);
+        yPosition += 5;
+        doc.setFont('helvetica', 'normal');
+        const canteenSummary = [
+          ['Total Collected', formatCurrencyGh(canteenTotal)],
+          ['Collection Days', String(canteenDays)],
+          ['Average per Day', formatCurrencyGh(canteenAvg)],
+        ];
+        canteenSummary.forEach(([metric, value]) => {
+          doc.text(metric, 14, yPosition);
+          doc.text(value, 100, yPosition);
+          yPosition += 5;
+        });
+
+        yPosition += 8;
+
+        if (filteredCanteen.length > 0) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Date', 14, yPosition);
+          doc.text('Amount', 50, yPosition);
+          doc.text('Students', 90, yPosition);
+          doc.text('Recorded By', 130, yPosition);
+          yPosition += 5;
+          doc.setFont('helvetica', 'normal');
+          filteredCanteen.forEach(c => {
+            doc.text(new Date(c.date).toLocaleDateString(), 14, yPosition);
+            doc.text(formatCurrencyGh(c.totalAmount), 50, yPosition);
+            doc.text(String(c.numberOfStudents || '-'), 90, yPosition);
+            doc.text(c.recordedByName || '-', 130, yPosition);
+            yPosition += 5;
+          });
+        }
+      }
+
       // Outstanding Fees Section
       if (reportType === "detailed") {
         doc.addPage();
@@ -275,7 +345,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
       }
 
       // Save the PDF
-      const fileName = `Financial_Report_${reportPeriod}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = (reportType === "canteen" ? `Canteen_Report_${reportPeriod}` : `Financial_Report_${reportPeriod}`) + `_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
 
       toast({
@@ -317,12 +387,14 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
                 <SelectItem value="summary">Summary Report</SelectItem>
                 <SelectItem value="detailed">Detailed Report</SelectItem>
                 <SelectItem value="class-wise">Class-wise Breakdown</SelectItem>
+                <SelectItem value="canteen">Canteen Collections</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               {reportType === "summary" && "Overview of key financial metrics and payment summary"}
-              {reportType === "detailed" && "Comprehensive report with all transactions and outstanding fees"}
+              {reportType === "detailed" && "Comprehensive report with all transactions, canteen and outstanding fees"}
               {reportType === "class-wise" && "Fee collection breakdown by class"}
+              {reportType === "canteen" && "Canteen collections report for the selected period"}
             </p>
           </div>
 
