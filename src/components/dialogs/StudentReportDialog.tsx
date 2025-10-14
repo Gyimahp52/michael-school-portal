@@ -74,7 +74,10 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
 
   useEffect(() => {
     const unsubStudents = subscribeToStudents(setStudents);
-    const unsubClasses = subscribeToClasses(setClasses);
+    const unsubClasses = subscribeToClasses((classesData) => {
+      console.log('Classes loaded:', classesData);
+      setClasses(classesData);
+    });
     const unsubTerms = subscribeToTerms(setTerms);
     const unsubSubjects = subscribeToSubjects(setSubjects);
     const unsubAssessments = subscribeToAssessments(setAssessments);
@@ -91,7 +94,8 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
   }, []);
 
   // Real-time filtered students based on selected class
-  const selectedClassName = classes.find(c => c.id === selectedClass)?.name;
+  const selectedClassObj = classes.find(c => c.id === selectedClass);
+  const selectedClassName = selectedClassObj?.className || selectedClassObj?.name;
   const filteredStudents = selectedClass && selectedClassName
     ? students.filter(s => s.className === selectedClassName && s.status === 'active')
     : [];
@@ -108,7 +112,8 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
 
     const student = students.find(s => s.id === selectedStudent);
     const term = terms.find(t => t.id === selectedTerm);
-    const selectedClassName = classes.find(c => c.id === selectedClass)?.name;
+    const selectedClassObj = classes.find(c => c.id === selectedClass);
+    const selectedClassName = selectedClassObj?.className || selectedClassObj?.name;
 
     if (!student || !term) {
       toast({
@@ -383,11 +388,13 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
                     {classes.length > 0 ? (
-                      classes.map(cls => (
-                        <SelectItem key={cls.id} value={cls.id!}>
-                          {cls.name}
-                        </SelectItem>
-                      ))
+                      classes
+                        .filter(cls => cls.id && (cls.className || cls.name))
+                        .map(cls => (
+                          <SelectItem key={cls.id} value={cls.id!}>
+                            {cls.className || cls.name}
+                          </SelectItem>
+                        ))
                     ) : (
                       <div className="p-2 text-sm text-muted-foreground">No classes available</div>
                     )}
