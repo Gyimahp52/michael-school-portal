@@ -48,6 +48,7 @@ import {
 import { formatCurrency, formatCurrencyGh } from "@/lib/utils";
 import jsPDF from "jspdf";
 import { FinancialReportDialog } from "@/components/dialogs/FinancialReportDialog";
+import { StudentReportDialog } from "@/components/dialogs/StudentReportDialog";
 
 
 export default function ReportsPage() {
@@ -72,6 +73,7 @@ export default function ReportsPage() {
   const [sendingReports, setSendingReports] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [financialReportDialogOpen, setFinancialReportDialogOpen] = useState(false);
+  const [studentReportDialogOpen, setStudentReportDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDescription, setPaymentDescription] = useState("");
   const [paymentDueDate, setPaymentDueDate] = useState("");
@@ -878,13 +880,17 @@ export default function ReportsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Analyze student performance, grades, and attendance across all classes.
               </p>
-              <Button variant="outline" className="w-full gap-2 hover:bg-secondary/5" onClick={generateAcademicReport}>
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 hover:bg-secondary/5" 
+                onClick={() => setStudentReportDialogOpen(true)}
+              >
                 <FileText className="w-4 h-4" />
-                Generate Academic Report
+                Generate Student Report
               </Button>
               <Button variant="outline" className="w-full mt-2 gap-2" onClick={generateAcademicReport}>
                 <Download className="w-4 h-4" />
-                Download as PDF
+                Download Class List PDF
               </Button>
             </CardContent>
           </Card>
@@ -1049,6 +1055,7 @@ export default function ReportsPage() {
       </Card>
 
       <FinancialReportDialog open={financialReportDialogOpen} onOpenChange={setFinancialReportDialogOpen} />
+      <StudentReportDialog open={studentReportDialogOpen} onOpenChange={setStudentReportDialogOpen} />
     </div>
   );
 }
