@@ -90,8 +90,10 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
     };
   }, []);
 
-  const filteredStudents = selectedClass
-    ? students.filter(s => s.className === classes.find(c => c.id === selectedClass)?.name)
+  // Real-time filtered students based on selected class
+  const selectedClassName = classes.find(c => c.id === selectedClass)?.name;
+  const filteredStudents = selectedClass && selectedClassName
+    ? students.filter(s => s.className === selectedClassName && s.status === 'active')
     : [];
 
   const generateReport = async () => {
@@ -374,37 +376,65 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
                 <Label htmlFor="class">Select Class *</Label>
                 <Select value={selectedClass} onValueChange={(value) => {
                   setSelectedClass(value);
-                  setSelectedStudent("");
+                  setSelectedStudent(""); // Reset student selection when class changes
                 }}>
                   <SelectTrigger id="class">
                     <SelectValue placeholder="Choose a class" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {classes.map(cls => (
-                      <SelectItem key={cls.id} value={cls.id!}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="bg-background z-50">
+                    {classes.length > 0 ? (
+                      classes.map(cls => (
+                        <SelectItem key={cls.id} value={cls.id!}>
+                          {cls.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="p-2 text-sm text-muted-foreground">No classes available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="student">Select Student *</Label>
+                <Label htmlFor="student">
+                  Select Student * 
+                  {selectedClass && filteredStudents.length > 0 && (
+                    <span className="text-muted-foreground font-normal ml-2">
+                      ({filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''})
+                    </span>
+                  )}
+                </Label>
                 <Select 
                   value={selectedStudent} 
                   onValueChange={setSelectedStudent}
                   disabled={!selectedClass}
                 >
                   <SelectTrigger id="student">
-                    <SelectValue placeholder="Choose a student" />
+                    <SelectValue placeholder={
+                      !selectedClass 
+                        ? "Select a class first" 
+                        : filteredStudents.length === 0
+                        ? "No students in this class"
+                        : "Choose a student"
+                    } />
                   </SelectTrigger>
-                  <SelectContent>
-                    {filteredStudents.map(student => (
-                      <SelectItem key={student.id} value={student.id!}>
-                        {student.firstName} {student.lastName} {student.studentCode ? `(${student.studentCode})` : ''}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="bg-background z-50">
+                    {filteredStudents.length > 0 ? (
+                      filteredStudents
+                        .sort((a, b) => a.firstName.localeCompare(b.firstName))
+                        .map(student => (
+                          <SelectItem key={student.id} value={student.id!}>
+                            {student.firstName} {student.lastName}
+                            {student.studentCode && (
+                              <span className="text-muted-foreground ml-2">({student.studentCode})</span>
+                            )}
+                          </SelectItem>
+                        ))
+                    ) : (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        {!selectedClass ? 'Select a class first' : 'No students found in this class'}
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -415,12 +445,26 @@ export function StudentReportDialog({ open, onOpenChange }: StudentReportDialogP
                   <SelectTrigger id="term">
                     <SelectValue placeholder="Choose a term" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {terms.map(term => (
-                      <SelectItem key={term.id} value={term.id!}>
-                        {term.name} - {term.academicYearName}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="bg-background z-50">
+                    {terms.length > 0 ? (
+                      terms
+                        .sort((a, b) => {
+                          // Sort by academic year and term status
+                          if (a.isCurrentTerm && !b.isCurrentTerm) return -1;
+                          if (!a.isCurrentTerm && b.isCurrentTerm) return 1;
+                          return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+                        })
+                        .map(term => (
+                          <SelectItem key={term.id} value={term.id!}>
+                            {term.name} - {term.academicYearName}
+                            {term.isCurrentTerm && (
+                              <span className="ml-2 text-xs text-primary">(Current)</span>
+                            )}
+                          </SelectItem>
+                        ))
+                    ) : (
+                      <div className="p-2 text-sm text-muted-foreground">No terms available</div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
