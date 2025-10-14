@@ -85,20 +85,75 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
     return { filteredInvoices, filteredCanteen };
   };
 
-  const generatePDF = () => {
+  let pdfFontLoaded = false;
+  const USE_EMBEDDED_FONT = false;
+  const ensureUnicodeFont = async (doc: jsPDF): Promise<string> => {
+    if (!USE_EMBEDDED_FONT) {
+      doc.setFont('helvetica', 'normal');
+      return 'helvetica';
+    }
+    if (pdfFontLoaded) {
+      doc.setFont('SegoeUI', 'normal');
+      return 'SegoeUI';
+    }
+    try {
+      const anyDoc: any = doc as any;
+      const loadFont = async (url: string, vfsName: string, family: string): Promise<string> => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('font-not-found');
+        const buf = await res.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        if (typeof anyDoc.addFileToVFS === 'function' && typeof anyDoc.addFont === 'function') {
+          anyDoc.addFileToVFS(vfsName, base64);
+          anyDoc.addFont(vfsName, family, 'normal');
+          doc.setFont(family, 'normal');
+          pdfFontLoaded = true;
+          return family;
+        }
+        throw new Error('jsPDF-font-api-missing');
+      };
+
+      // Try Segoe UI first
+      try {
+        return await loadFont('/fonts/SegoeUI.ttf', 'SegoeUI.ttf', 'SegoeUI');
+      } catch (_) {
+        // Fallback to NotoSans if Segoe is unavailable
+        return await loadFont('/fonts/NotoSans-Regular.ttf', 'NotoSans-Regular.ttf', 'NotoSans');
+      }
+    } catch (e) {
+      doc.setFont('helvetica', 'normal');
+      return 'helvetica';
+    }
+  };
+
+  const generatePDF = async () => {
     setLoading(true);
     try {
       const doc = new jsPDF();
+      const fontName = await ensureUnicodeFont(doc);
       const { filteredInvoices, filteredCanteen } = filterDataByPeriod();
+
+      // If default font, replace unsupported cedi symbol with 'GHS '
+      const normalizeRow = (row: Record<string, any>) => {
+        if (fontName !== 'helvetica') return row;
+        const copy: Record<string, any> = { ...row };
+        Object.keys(copy).forEach(k => {
+          if (typeof copy[k] === 'string') copy[k] = (copy[k] as string).replace(/₵\s*/g, 'GHS ');
+        });
+        return copy;
+      };
 
       // Header
       doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont(fontName, 'normal');
       const title = reportType === "canteen" ? "Canteen Collections Report" : "Financial Report";
       doc.text(title, 105, 20, { align: "center" });
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(fontName, 'normal');
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
       doc.text(`Period: ${reportPeriod.replace('-', ' ').toUpperCase()}`, 105, 33, { align: "center" });
 
@@ -107,7 +162,6 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
       if (reportType !== "canteen") {
         // Financial Summary Section
         doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
         doc.text("Financial Summary", 14, yPosition);
         yPosition += 10;
 
@@ -124,9 +178,9 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
 
         // Summary table - using simple text layout
         const summaryData = [
-          ['Total Revenue Collected', formatCurrencyGh(totalRevenue)],
-          ['Total Outstanding Fees', formatCurrencyGh(totalOutstanding)],
-          ['Total Expected Fees', formatCurrencyGh(totalExpected)],
+          ['Total Revenue Collected', fontName === 'helvetica' ? `GHS ${formatCurrencyGh(totalRevenue).replace(/^₵\s*/, '')}` : formatCurrencyGh(totalRevenue)],
+          ['Total Outstanding Fees', fontName === 'helvetica' ? `GHS ${formatCurrencyGh(totalOutstanding).replace(/^₵\s*/, '')}` : formatCurrencyGh(totalOutstanding)],
+          ['Total Expected Fees', fontName === 'helvetica' ? `GHS ${formatCurrencyGh(totalExpected).replace(/^₵\s*/, '')}` : formatCurrencyGh(totalExpected)],
           ['Collection Rate', `${collectionRate}%`],
           ['Total Students', students.length.toString()],
           ['Fully Paid Students', paidStudents.toString()],
@@ -135,12 +189,11 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         ];
 
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
         doc.text('Metric', 14, yPosition);
         doc.text('Value', 100, yPosition);
         yPosition += 5;
 
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(undefined as any, 'normal');
         summaryData.forEach(([metric, value]) => {
           doc.text(metric, 14, yPosition);
           doc.text(value, 100, yPosition);
@@ -152,9 +205,9 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
 
       if (reportType === "detailed" || reportType === "summary") {
         // Payment Details Section
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text("Payment Details", 14, yPosition);
+      doc.setFontSize(14);
+      doc.setFont(fontName, 'normal');
+      doc.text("Payment Details", 14, yPosition);
         yPosition += 10;
 
         const paidInvoices = filteredInvoices.filter(inv => inv.status === 'Paid');
@@ -162,7 +215,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         if (paidInvoices.length > 0) {
           // Payment details table - using simple text layout
           doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
+          doc.setFont(fontName, 'normal');
           doc.text('Date', 14, yPosition);
           doc.text('Student', 40, yPosition);
           doc.text('Description', 80, yPosition);
@@ -170,12 +223,12 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           doc.text('Status', 180, yPosition);
           yPosition += 5;
 
-          doc.setFont('helvetica', 'normal');
+          doc.setFont(fontName, 'normal');
           paidInvoices.forEach(inv => {
             doc.text(inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : 'N/A', 14, yPosition);
             doc.text(inv.studentName, 40, yPosition);
             doc.text(inv.description, 80, yPosition);
-            doc.text(formatCurrencyGh(inv.amount), 140, yPosition);
+            doc.text(fontName === 'helvetica' ? `GHS ${formatCurrencyGh(inv.amount).replace(/^₵\s*/, '')}` : formatCurrencyGh(inv.amount), 140, yPosition);
             doc.text(inv.status, 180, yPosition);
             yPosition += 5;
           });
@@ -189,7 +242,6 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         yPosition = 20;
 
         doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
         doc.text("Class-wise Fee Summary", 14, yPosition);
         yPosition += 10;
 
@@ -211,15 +263,15 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           const classSummaryArray = Array.from(classSummary.entries()).map(([className, data]) => [
           className,
           data.students.toString(),
-            formatCurrencyGh(data.total),
-            formatCurrencyGh(data.paid),
-            formatCurrencyGh(data.outstanding),
+            fontName === 'helvetica' ? `GHS ${formatCurrencyGh(data.total).replace(/^₵\s*/, '')}` : formatCurrencyGh(data.total),
+            fontName === 'helvetica' ? `GHS ${formatCurrencyGh(data.paid).replace(/^₵\s*/, '')}` : formatCurrencyGh(data.paid),
+            fontName === 'helvetica' ? `GHS ${formatCurrencyGh(data.outstanding).replace(/^₵\s*/, '')}` : formatCurrencyGh(data.outstanding),
           `${((data.paid / data.total) * 100).toFixed(1)}%`
         ]);
 
         // Class-wise breakdown table - using simple text layout
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(fontName, 'normal');
         doc.text('Class', 14, yPosition);
         doc.text('Students', 40, yPosition);
         doc.text('Total Fees', 70, yPosition);
@@ -228,7 +280,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         doc.text('Collection %', 190, yPosition);
         yPosition += 5;
 
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(fontName, 'normal');
         classSummaryArray.forEach(row => {
           doc.text(row[0], 14, yPosition);
           doc.text(row[1], 40, yPosition);
@@ -246,7 +298,6 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         yPosition = 20;
 
         doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
         doc.text("Canteen Collections", 14, yPosition);
         yPosition += 10;
 
@@ -256,15 +307,15 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         const canteenAvg = canteenDays > 0 ? canteenTotal / canteenDays : 0;
 
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(fontName, 'normal');
         doc.text('Metric', 14, yPosition);
         doc.text('Value', 100, yPosition);
         yPosition += 5;
-        doc.setFont('helvetica', 'normal');
+        doc.setFont(fontName, 'normal');
         const canteenSummary = [
-          ['Total Collected', formatCurrencyGh(canteenTotal)],
+          ['Total Collected', fontName === 'helvetica' ? `GHS ${formatCurrencyGh(canteenTotal).replace(/^₵\s*/, '')}` : formatCurrencyGh(canteenTotal)],
           ['Collection Days', String(canteenDays)],
-          ['Average per Day', formatCurrencyGh(canteenAvg)],
+          ['Average per Day', fontName === 'helvetica' ? `GHS ${formatCurrencyGh(canteenAvg).replace(/^₵\s*/, '')}` : formatCurrencyGh(canteenAvg)],
         ];
         canteenSummary.forEach(([metric, value]) => {
           doc.text(metric, 14, yPosition);
@@ -276,16 +327,16 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
 
         if (filteredCanteen.length > 0) {
           doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
+          doc.setFont(fontName, 'normal');
           doc.text('Date', 14, yPosition);
           doc.text('Amount', 50, yPosition);
           doc.text('Students', 90, yPosition);
           doc.text('Recorded By', 130, yPosition);
           yPosition += 5;
-          doc.setFont('helvetica', 'normal');
+          doc.setFont(fontName, 'normal');
           filteredCanteen.forEach(c => {
             doc.text(new Date(c.date).toLocaleDateString(), 14, yPosition);
-            doc.text(formatCurrencyGh(c.totalAmount), 50, yPosition);
+            doc.text(fontName === 'helvetica' ? `GHS ${formatCurrencyGh(c.totalAmount).replace(/^₵\s*/, '')}` : formatCurrencyGh(c.totalAmount), 50, yPosition);
             doc.text(String(c.numberOfStudents || '-'), 90, yPosition);
             doc.text(c.recordedByName || '-', 130, yPosition);
             yPosition += 5;
@@ -299,7 +350,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         yPosition = 20;
 
         doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(fontName, 'normal');
         doc.text("Outstanding Fees", 14, yPosition);
         yPosition += 10;
 
@@ -308,7 +359,7 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
         if (outstandingBalances.length > 0) {
           // Outstanding fees table - using simple text layout
           doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
+          doc.setFont(fontName, 'normal');
           doc.text('Student', 14, yPosition);
           doc.text('Class', 60, yPosition);
           doc.text('Total Fees', 90, yPosition);
@@ -317,13 +368,13 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
           doc.text('Status', 200, yPosition);
           yPosition += 5;
 
-          doc.setFont('helvetica', 'normal');
+          doc.setFont(fontName, 'normal');
           outstandingBalances.forEach(bal => {
             doc.text(bal.studentName, 14, yPosition);
             doc.text(bal.className, 60, yPosition);
-            doc.text(formatCurrencyGh(bal.totalFees), 90, yPosition);
-            doc.text(formatCurrencyGh(bal.amountPaid), 130, yPosition);
-            doc.text(formatCurrencyGh(bal.balance), 160, yPosition);
+            doc.text(fontName === 'helvetica' ? `GHS ${formatCurrencyGh(bal.totalFees).replace(/^₵\s*/, '')}` : formatCurrencyGh(bal.totalFees), 90, yPosition);
+            doc.text(fontName === 'helvetica' ? `GHS ${formatCurrencyGh(bal.amountPaid).replace(/^₵\s*/, '')}` : formatCurrencyGh(bal.amountPaid), 130, yPosition);
+            doc.text(fontName === 'helvetica' ? `GHS ${formatCurrencyGh(bal.balance).replace(/^₵\s*/, '')}` : formatCurrencyGh(bal.balance), 160, yPosition);
             doc.text(bal.status.toUpperCase(), 200, yPosition);
             yPosition += 5;
           });
@@ -335,7 +386,6 @@ export function FinancialReportDialog({ open, onOpenChange }: FinancialReportDia
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
         doc.text(
           `Page ${i} of ${pageCount} | Generated by School Management System`,
           105,

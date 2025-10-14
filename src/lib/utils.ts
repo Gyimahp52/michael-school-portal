@@ -20,9 +20,14 @@ export function formatCurrency(amount: number): string {
 
 // Ensures the Ghana cedi symbol appears as GH₵ even when environments fall back to "GHS"
 export function formatCurrencyGh(amount: number): string {
-  const formatted = formatCurrency(amount);
-  // Replace common fallbacks (e.g., "GHS" or narrow no-break space variants) with GH₵
-  return formatted.replace('GHS', 'GH₵');
+  let formatted = formatCurrency(amount);
+  // Normalize any Ghana currency prefixes to the cedi sign only
+  // Replace "GHS" and "GH₵" and any spaced variants with "₵"
+  formatted = formatted.replace(/GHS\s*/g, '₵');
+  formatted = formatted.replace(/GH₵\s*/g, '₵');
+  // Some environments insert a non-breaking space between currency and amount; keep spacing as is after the symbol
+  // Ensure the symbol is the first non-space character
+  return formatted.replace(/^\s*/, '').replace(/^₵\s*/, '₵');
 }
 
 /**
