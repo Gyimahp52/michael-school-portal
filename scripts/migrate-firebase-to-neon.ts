@@ -103,6 +103,17 @@ class FirebaseToNeonMigration {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Users table
+      CREATE TABLE users (
+        id VARCHAR(255) PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        display_name VARCHAR(255),
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       -- Classes table
       CREATE TABLE classes (
         id VARCHAR(255) PRIMARY KEY,
@@ -399,6 +410,33 @@ class FirebaseToNeonMigration {
 
     this.trackStats('teachers', records.length, succeeded, failed, errors);
     console.log(`✅ Teachers: ${succeeded}/${records.length} migrated`);
+  }
+
+  private async insertUsers(data: any) {
+    if (!data.users) return;
+    
+    console.log('\n👤 Migrating Users...');
+    const records = Object.entries(data.users);
+    let succeeded = 0, failed = 0;
+    const errors: string[] = [];
+
+    for (const [id, record] of records) {
+      try {
+        const r: any = record;
+        await this.client.query(
+          `INSERT INTO users (id, username, display_name, password, role, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [id, r.username, r.displayName, r.password, r.role]
+        );
+        succeeded++;
+      } catch (error: any) {
+        failed++;
+        errors.push(`${id}: ${error.message}`);
+      }
+    }
+
+    this.trackStats('users', records.length, succeeded, failed, errors);
+    console.log(`✅ Users: ${succeeded}/${records.length} migrated`);
   }
 
   private async insertSubjects(data: any) {
@@ -797,6 +835,7 @@ class FirebaseToNeonMigration {
       await this.insertAcademicYears(firebaseData);
       await this.insertTerms(firebaseData);
       await this.insertTeachers(firebaseData);
+      await this.insertUsers(firebaseData);
       await this.insertSubjects(firebaseData);
       await this.insertClasses(firebaseData);
       await this.insertStudents(firebaseData);
