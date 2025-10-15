@@ -1,9 +1,8 @@
 import { readFile } from 'fs/promises';
 import { Client } from 'pg';
 
-// Neon PostgreSQL connection string
-const CONNECTION_STRING = process.env.NEON_DB_URL || 
-  'postgresql://neondb_owner:npg_QBvSs06eWIVP@ep-holy-shape-adfi9emy-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+// Neon PostgreSQL connection string from environment variable
+const CONNECTION_STRING = process.env.NEON_DB_URL;
 
 interface MigrationStats {
   tableName: string;
