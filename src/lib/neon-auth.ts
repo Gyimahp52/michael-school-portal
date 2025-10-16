@@ -1,5 +1,4 @@
-import bcrypt from 'bcryptjs';
-import { query } from './neon-client';
+const API_BASE_URL = import.meta.env.VITE_NEON_API_URL || 'http://localhost:3002';
 
 export interface User {
   id: string;
@@ -12,30 +11,21 @@ export interface User {
 
 export const loginUser = async (username: string, password: string): Promise<User> => {
   try {
-    const result = await query(
-      'SELECT * FROM users WHERE username = $1',
-      [username]
-    );
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
 
-    if (result.rows.length === 0) {
-      throw new Error('Invalid username or password');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Login failed');
     }
 
-    const user = result.rows[0];
-    const isValid = await bcrypt.compare(password, user.password);
-
-    if (!isValid) {
-      throw new Error('Invalid username or password');
-    }
-
-    return {
-      id: user.id,
-      username: user.username,
-      displayName: user.display_name,
-      role: user.role,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at
-    };
+    const user = await response.json();
+    return user;
   } catch (error) {
     console.error('Login error:', error);
     throw error;
@@ -48,55 +38,68 @@ export const createUser = async (
   displayName: string,
   role: string
 ): Promise<User> => {
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const id = crypto.randomUUID();
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password, displayName, role }),
+    });
 
-  const result = await query(
-    `INSERT INTO users (id, username, display_name, password, role, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-     RETURNING *`,
-    [id, username, displayName, hashedPassword, role]
-  );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'User creation failed');
+    }
 
-  const user = result.rows[0];
-  return {
-    id: user.id,
-    username: user.username,
-    displayName: user.display_name,
-    role: user.role,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at
-  };
+    const user = await response.json();
+    return user;
+  } catch (error) {
+    console.error('Create user error:', error);
+    throw error;
+  }
 };
 
 export const initializeUsers = async (): Promise<void> => {
-  const defaultUsers = [
-    { username: 'admin', password: 'admin123', displayName: 'Administrator', role: 'admin' },
-    { username: 'teacher', password: 'teacher123', displayName: 'Teacher', role: 'teacher' },
-    { username: 'accountant', password: 'accountant123', displayName: 'Accountant', role: 'accountant' }
-  ];
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/initialize-users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  for (const user of defaultUsers) {
-    try {
-      const existing = await query('SELECT id FROM users WHERE username = $1', [user.username]);
-      if (existing.rows.length === 0) {
-        await createUser(user.username, user.password, user.displayName, user.role);
-        console.log(`Created user: ${user.username}`);
-      }
-    } catch (error) {
-      console.error(`Error creating user ${user.username}:`, error);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'User initialization failed');
     }
+
+    const result = await response.json();
+    console.log('Users initialized:', result);
+  } catch (error) {
+    console.error('Initialize users error:', error);
+    throw error;
   }
 };
 
 export const getAllUsers = async (): Promise<User[]> => {
-  const result = await query('SELECT * FROM users ORDER BY created_at DESC');
-  return result.rows.map(row => ({
-    id: row.id,
-    username: row.username,
-    displayName: row.display_name,
-    role: row.role,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  }));
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/users`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch users');
+    }
+
+    const users = await response.json();
+    return users;
+  } catch (error) {
+    console.error('Get users error:', error);
+    throw error;
+  }
 };
