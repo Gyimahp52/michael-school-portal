@@ -1,8 +1,9 @@
-import express from 'express';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import { Pool } from 'pg';
-import bcrypt from 'bcryptjs';
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const app = express();
 
