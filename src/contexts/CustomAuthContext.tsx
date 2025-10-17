@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, initializeUsers, User } from '../lib/neon-auth';
+import { loginUser, initializeUsers, User } from '../lib/custom-auth';
 
 interface AuthContextType {
   currentUser: User | null;

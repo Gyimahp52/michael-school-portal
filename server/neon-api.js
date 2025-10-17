@@ -1,9 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import pg from 'pg';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+dotenv.config();
+const { Pool } = pg;
 
 const app = express();
 
@@ -19,9 +22,117 @@ const pool = new Pool({
   }
 });
 
+// SSE clients registry
+const sseClients = new Set();
+
+// Broadcast helper for SSE
+function broadcastEvent(event) {
+  const data = typeof event === 'string' ? event : JSON.stringify(event);
+  for (const res of sseClients) {
+    try {
+      res.write(`data: ${data}\n\n`);
+    } catch (_) {
+      // drop broken connection
+      sseClients.delete(res);
+    }
+  }
+}
+
+// Real-time via Postgres LISTEN/NOTIFY
+const listener = new pg.Client({
+  connectionString: process.env.NEON_DB_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+async function initNotifications() {
+  try {
+    await listener.connect();
+    listener.on('notification', (msg) => {
+      // msg.channel, msg.payload
+      let payload = null;
+      try {
+        payload = msg.payload ? JSON.parse(msg.payload) : null;
+      } catch (_) {
+        payload = { raw: msg.payload };
+      }
+      broadcastEvent({ type: 'db_event', channel: msg.channel, payload });
+    });
+
+    const channels = [
+      'users_changed',
+      'students_changed',
+      'invoices_changed',
+      'assessments_changed',
+      'attendance_changed',
+      'attendance_entries_changed',
+      'canteen_collections_changed',
+      'promotion_requests_changed',
+      'promotion_decisions_changed',
+      'academic_transitions_changed',
+      'classes_changed',
+      'subjects_changed',
+      'teachers_changed',
+      'terms_changed',
+      'academic_years_changed',
+      'school_fees_changed',
+      'student_balances_changed'
+    ];
+
+    await Promise.all(channels.map((c) => listener.query(`LISTEN ${c}`)));
+    console.log('Realtime notifications initialized:', channels.join(', '));
+  } catch (err) {
+    console.error('Failed to initialize realtime notifications:', err);
+  }
+}
+
+initNotifications();
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Neon API server is running' });
+});
+
+// Root route - helpful landing response
+app.get('/', (req, res) => {
+  res.type('html').send(
+    '<!doctype html>\n' +
+    '<html><head><meta charset="utf-8"><title>Neon API</title></head>' +
+    '<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; padding:24px">' +
+    '<h1>Neon API Server</h1>' +
+    '<p>Server is running. Try <a href="/health">/health</a> or API endpoints like <code>/api/auth/users</code>.</p>' +
+    '</body></html>'
+  );
+});
+
+// SSE endpoint to push realtime DB changes to clients
+app.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  // Register client
+  sseClients.add(res);
+
+  // Initial hello
+  res.write(`data: ${JSON.stringify({ type: 'hello', ts: Date.now() })}\n\n`);
+
+  // Heartbeat
+  const interval = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch (_) {
+      clearInterval(interval);
+      sseClients.delete(res);
+    }
+  }, 30000);
+
+  req.on('close', () => {
+    clearInterval(interval);
+    sseClients.delete(res);
+  });
 });
 
 // Login endpoint
@@ -126,6 +237,67 @@ app.get('/api/auth/users', async (req, res) => {
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Admin endpoint: create generic trigger to emit NOTIFY on changes for key tables
+app.post('/admin/setup-triggers', async (req, res) => {
+  const tables = [
+    'users',
+    'students',
+    'invoices',
+    'assessments',
+    'attendance',
+    'attendance_entries',
+    'canteen_collections',
+    'promotion_requests',
+    'promotion_decisions',
+    'academic_transitions',
+    'classes',
+    'subjects',
+    'teachers',
+    'terms',
+    'academic_years',
+    'school_fees',
+    'student_balances'
+  ];
+
+  const functionSQL = `
+    CREATE OR REPLACE FUNCTION notify_table_change() RETURNS trigger AS $$
+    BEGIN
+      PERFORM pg_notify(
+        TG_TABLE_NAME || '_changed',
+        json_build_object(
+          'op', TG_OP,
+          'table', TG_TABLE_NAME,
+          'id', COALESCE(NEW.id::text, OLD.id::text, '')
+        )::text
+      );
+      IF (TG_OP = 'DELETE') THEN
+        RETURN OLD;
+      ELSE
+        RETURN NEW;
+      END IF;
+    END;
+    $$ LANGUAGE plpgsql;
+  `;
+
+  try {
+    await pool.query(functionSQL);
+    for (const table of tables) {
+      const trgName = `trg_${table}_changed`;
+      // Drop and recreate trigger
+      await pool.query(`DROP TRIGGER IF EXISTS ${trgName} ON ${table};`);
+      await pool.query(`
+        CREATE TRIGGER ${trgName}
+        AFTER INSERT OR UPDATE OR DELETE ON ${table}
+        FOR EACH ROW EXECUTE FUNCTION notify_table_change();
+      `);
+    }
+    res.json({ message: 'Triggers created', tables });
+  } catch (error) {
+    console.error('Setup triggers error:', error);
+    res.status(500).json({ error: 'Failed to create triggers' });
   }
 });
 

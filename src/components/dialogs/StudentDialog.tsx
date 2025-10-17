@@ -210,7 +210,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       };
 
       // Helper: lightweight client-side compression to speed up uploads
-      const compressImage = (file: File, maxSize = 800): Promise<Blob> => new Promise((resolve) => {
+      const compressImage = (file: File, maxSize = 600): Promise<Blob> => new Promise((resolve) => {
         try {
           const img = new Image();
           img.onload = () => {
@@ -221,7 +221,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
             const ctx = canvas.getContext('2d');
             if (!ctx) { resolve(file); return; }
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.7);
+            canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.62);
           };
           img.onerror = () => resolve(file);
           const reader = new FileReader();
@@ -234,9 +234,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
 
       const uploadPhotoAndGetUrl = async (proposedId: string) => {
         if (!photoFile) return '';
-        const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+        const MAX_BYTES = 5 * 1024 * 1024; // 5MB
         if (photoFile.size > MAX_BYTES) {
-          throw new Error('Image too large. Please select a file under 10MB.');
+          throw new Error('Image too large. Please select a file under 5MB.');
         }
         const blob = await compressImage(photoFile);
         const dataUrl: string = await new Promise((resolve, reject) => {
