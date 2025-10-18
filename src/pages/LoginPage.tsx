@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/OfflineAuthContext";
-import ConnectionStatus from "@/components/shared/ConnectionStatus";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,21 +9,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Lock, Loader2, User, GraduationCap } from "lucide-react";
 
 export function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isOnline } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!email || !password) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Please enter both username and password.",
+        description: "Please enter both email and password.",
       });
       return;
     }
@@ -32,11 +31,11 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const user = await login(username, password);
+      await login(email, password);
 
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.displayName}!`,
+        description: "Welcome back!",
       });
 
       // Navigate to the appropriate dashboard
@@ -55,11 +54,6 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      {/* Connection Status */}
-      <div className="absolute top-4 right-4">
-        <ConnectionStatus />
-      </div>
-      
       <div className="w-full max-w-md space-y-6">
         <Card>
           <CardHeader className="space-y-1">
@@ -80,16 +74,16 @@ export function LoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Enter email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  autoComplete="username"
+                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
