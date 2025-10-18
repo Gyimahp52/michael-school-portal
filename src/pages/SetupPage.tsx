@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { setupDefaultUsers } from "@/lib/firebase-setup";
+import { createUser } from "@/lib/custom-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+
+const defaultUsers = [
+  { username: 'admin', password: 'admin123', displayName: 'Admin User', role: 'admin' as const },
+  { username: 'teacher', password: 'teacher123', displayName: 'Teacher One', role: 'teacher' as const },
+  { username: 'accountant', password: 'account123', displayName: 'Accountant One', role: 'accountant' as const },
+];
 
 export function SetupPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +21,19 @@ export function SetupPage() {
     setMessage("");
 
     try {
-      await setupDefaultUsers();
+      for (const user of defaultUsers) {
+        try {
+          await createUser(user);
+          console.log(`Created user: ${user.username}`);
+        } catch (error: any) {
+          if (error.message === 'Username already exists') {
+            console.log(`User already exists: ${user.username}`);
+          } else {
+            throw error;
+          }
+        }
+      }
+      
       setStatus('success');
       setMessage("Users have been set up successfully! You can now login with the default credentials.");
     } catch (error: any) {
@@ -30,19 +48,18 @@ export function SetupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Firebase User Setup</CardTitle>
+          <CardTitle>User Setup</CardTitle>
           <CardDescription>
-            Initialize default users in Firebase. This will create both Authentication accounts and Firestore documents.
+            Initialize default users in the database. This will create user accounts in Firebase Realtime Database.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <h3 className="font-semibold">Default Users:</h3>
             <ul className="space-y-1 text-sm">
-              <li>• Admin: admin@school.com / admin123</li>
-              <li>• Teacher: teacher@school.com / teacher123</li>
-              <li>• Accountant: accountant@school.com / account123</li>
-              <li>• Student: student@school.com / student123</li>
+              <li>• Admin: username: <strong>admin</strong> / password: <strong>admin123</strong></li>
+              <li>• Teacher: username: <strong>teacher</strong> / password: <strong>teacher123</strong></li>
+              <li>• Accountant: username: <strong>accountant</strong> / password: <strong>account123</strong></li>
             </ul>
           </div>
 
