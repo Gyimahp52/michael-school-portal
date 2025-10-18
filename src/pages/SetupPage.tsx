@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createUser } from "@/lib/custom-auth";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
@@ -14,6 +15,7 @@ export function SetupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState("");
+  const { setupUsers } = useAuth();
 
   const handleSetup = async () => {
     setIsLoading(true);
@@ -21,19 +23,7 @@ export function SetupPage() {
     setMessage("");
 
     try {
-      for (const user of defaultUsers) {
-        try {
-          await createUser(user);
-          console.log(`Created user: ${user.username}`);
-        } catch (error: any) {
-          if (error.message === 'Username already exists') {
-            console.log(`User already exists: ${user.username}`);
-          } else {
-            throw error;
-          }
-        }
-      }
-      
+      await setupUsers();
       setStatus('success');
       setMessage("Users have been set up successfully! You can now login with the default credentials.");
     } catch (error: any) {

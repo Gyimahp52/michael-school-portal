@@ -21,7 +21,7 @@ import AcademicTermsPage from "./pages/AcademicTermsPage";
 import { ClassAssignmentsPage } from "./pages/ClassAssignmentsPage";
 import { TeacherClassStudentsPage } from "./pages/TeacherClassStudentsPage";
 import NotFound from "./pages/NotFound";
-import { AuthProvider, useAuth } from "./contexts/CustomAuthContext";
+import { AuthProvider, useAuth } from "./contexts/HybridAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import ReportCardPrintPage from "./pages/ReportCardPrintPage";
 import PromotionsPage from "./pages/PromotionsPage";

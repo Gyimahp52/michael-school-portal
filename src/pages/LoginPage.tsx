@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isOnline } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -32,20 +32,10 @@ export function LoginPage() {
 
     try {
       await login(username, password);
-
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-
-      // Navigate to the appropriate dashboard
       navigate("/");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Failed to sign in. Please check your credentials and try again.",
-      });
+      // Error handling is done in the login function
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +58,11 @@ export function LoginPage() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground text-center">Michael Adjei Educational Complex</h1>
                 <p className="text-muted-foreground text-center">School Management System</p>
+                {!isOnline && (
+                  <p className="text-warning text-center text-sm mt-2 font-medium">
+                    🔌 Offline Mode - Using cached credentials
+                  </p>
+                )}
               </div>
             </div>
           </CardHeader>

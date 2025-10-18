@@ -1,5 +1,7 @@
 import { ref, get, set, child } from 'firebase/database';
 import { rtdb } from '../firebase';
+import { OfflineAuthService } from './offline-auth';
+import { DatabaseService } from './database';
 
 export interface User {
   username: string;
@@ -9,19 +11,45 @@ export interface User {
   id: string;
 }
 
-// Initialize users check - just verify database connection
+// Initialize users - creates default users in Firebase and IndexedDB
 export const initializeUsers = async (): Promise<void> => {
+  const defaultUsers = [
+    { username: 'admin', password: 'admin123', displayName: 'Admin User', role: 'admin' as const },
+    { username: 'teacher', password: 'teacher123', displayName: 'Teacher One', role: 'teacher' as const },
+    { username: 'accountant', password: 'account123', displayName: 'Accountant One', role: 'accountant' as const },
+  ];
+
   try {
-    const usersRef = ref(rtdb, 'users');
-    const snapshot = await get(usersRef);
-    
-    if (snapshot.exists()) {
-      console.log('Users found in database:', Object.keys(snapshot.val()));
-    } else {
-      console.log('No users found in database');
+    for (const userData of defaultUsers) {
+      try {
+        // Create in Firebase
+        await createUser(userData);
+        
+        // Also store in IndexedDB with hashed password for offline access
+        const hashedPassword = await OfflineAuthService.hashPassword(userData.password);
+        const userId = `user_${userData.username}_${Date.now()}`;
+        
+        await DatabaseService.createUser({
+          username: userData.username,
+          displayName: userData.displayName,
+          password: hashedPassword,
+          role: userData.role,
+          lastLogin: new Date(),
+          status: 'active',
+        });
+        
+        console.log(`Created user: ${userData.username} (online & offline)`);
+      } catch (error: any) {
+        if (error.message === 'Username already exists') {
+          console.log(`User already exists: ${userData.username}`);
+        } else {
+          throw error;
+        }
+      }
     }
+    console.log('Users initialized successfully in both Firebase and IndexedDB');
   } catch (error) {
-    console.error('Error checking users:', error);
+    console.error('Error initializing users:', error);
     throw error;
   }
 };

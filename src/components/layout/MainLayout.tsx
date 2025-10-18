@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
+import { ConnectionStatusBanner } from "@/components/shared/ConnectionStatusBanner";
 
 export function MainLayout() {
   return (
@@ -12,6 +13,7 @@ export function MainLayout() {
         <div className="flex-1 flex flex-col">
           <TopBar />
           <main className="flex-1 p-4 md:p-6">
+            <ConnectionStatusBanner />
             <Outlet />
           </main>
         </div>
