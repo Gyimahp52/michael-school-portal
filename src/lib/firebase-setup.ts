@@ -54,9 +54,9 @@ const defaultUsers = [
   }
 ];
 
-export const createUserInDatabase = async (userData: Omit<UserData, 'uid' | 'createdAt' | 'updatedAt'>): Promise<void> => {
+export const createUserInDatabase = async (uid: string, userData: Omit<UserData, 'uid' | 'createdAt' | 'updatedAt'>): Promise<void> => {
   try {
-    const userRef = doc(collection(db, 'users'), userData.email.replace('@', '_').replace('.', '_'));
+    const userRef = doc(db, 'users', uid);
     
     const userDocument: Omit<UserData, 'uid'> = {
       email: userData.email,
@@ -95,7 +95,7 @@ export const setupDefaultUsers = async (): Promise<void> => {
       });
 
       // Create user document in Firestore
-      await createUserInDatabase({
+      await createUserInDatabase(firebaseUser.uid, {
         email: user.email,
         displayName: user.displayName,
         role: user.role,
@@ -110,20 +110,9 @@ export const setupDefaultUsers = async (): Promise<void> => {
       if (error.code === 'auth/email-already-in-use') {
         console.log(`ℹ️ User already exists: ${user.email}`);
         
-        // Still create/update the database record
-        try {
-          await createUserInDatabase({
-            email: user.email,
-            displayName: user.displayName,
-            role: user.role,
-            status: 'active',
-            department: user.department,
-            employeeId: user.employeeId,
-            studentId: user.studentId
-          });
-        } catch (dbError) {
-          console.error(`❌ Error updating database for existing user ${user.email}:`, dbError);
-        }
+        // For existing users, we need to get their UID first
+        console.log(`ℹ️ Skipping database update for existing user: ${user.email} (would need to fetch UID first)`);
+
       } else {
         console.error(`❌ Error creating user ${user.email}:`, error.message);
       }
@@ -150,15 +139,15 @@ export const getAllUsers = async (): Promise<UserData[]> => {
 };
 
 // Function to update user role
-export const updateUserRole = async (userEmail: string, newRole: UserRole): Promise<void> => {
+export const updateUserRole = async (uid: string, newRole: UserRole): Promise<void> => {
   try {
-    const userRef = doc(db, 'users', userEmail.replace('@', '_').replace('.', '_'));
+    const userRef = doc(db, 'users', uid);
     await setDoc(userRef, {
       role: newRole,
       updatedAt: serverTimestamp()
     }, { merge: true });
     
-    console.log(`✅ Updated role for ${userEmail} to ${newRole}`);
+    console.log(`✅ Updated role for user ${uid} to ${newRole}`);
   } catch (error) {
     console.error('Error updating user role:', error);
     throw error;

@@ -27,6 +27,7 @@ import ReportCardPrintPage from "./pages/ReportCardPrintPage";
 import PromotionsPage from "./pages/PromotionsPage";
 import { useEffect } from "react";
 import CanteenPage from "./pages/CanteenPage";
+import { SetupPage } from "./pages/SetupPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const AppContent = () => {
   return (
     <Routes>
       {/* Public Routes */}
+      <Route path="/setup" element={<SetupPage />} />
       <Route path="/login" element={
         currentUser ? (
           userRole === 'admin' ? <Navigate to="/admin" replace /> :
