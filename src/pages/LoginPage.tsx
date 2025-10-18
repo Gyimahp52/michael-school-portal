@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/OfflineAuthContext";
+import ConnectionStatus from "@/components/shared/ConnectionStatus";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, setupUsers } = useAuth();
+  const { login, isOnline } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,27 +52,14 @@ export function LoginPage() {
     }
   };
 
-  const handleSetupUsers = async () => {
-    try {
-      setIsLoading(true);
-      await setupUsers();
-      toast({
-        title: "Success",
-        description: "Database connection verified successfully!",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to connect to database.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      {/* Connection Status */}
+      <div className="absolute top-4 right-4">
+        <ConnectionStatus />
+      </div>
+      
       <div className="w-full max-w-md space-y-6">
         <Card>
           <CardHeader className="space-y-1">

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, User, Settings, LogOut, Key } from "lucide-react";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { Search, Bell, User, Settings, LogOut, Key, Database } from "lucide-react";
+import { useAuth } from "@/contexts/OfflineAuthContext";
+import ConnectionStatus from "@/components/shared/ConnectionStatus";
+import SyncProgressDialog from "@/components/shared/SyncProgressDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +21,7 @@ import { ChangePasswordDialog } from "@/components/dialogs/ChangePasswordDialog"
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
   
@@ -54,6 +57,19 @@ export function TopBar() {
 
         {/* Right section */}
         <div className="flex items-center gap-4">
+          {/* Connection Status */}
+          <ConnectionStatus />
+          
+          {/* Sync Progress */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setSyncDialogOpen(true)}
+            className="gap-1"
+          >
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Sync</span>
+          </Button>
           {/* Quick Actions - Only show for non-accountants */}
           {userRole !== 'accountant' && (
             <>
@@ -88,8 +104,10 @@ export function TopBar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden sm:block">
-                  <p className="text-sm font-medium">{currentUser?.displayName || 'User'}</p>
-                  <p className="text-xs text-muted-foreground">{currentUser?.role || 'User'}</p>
+                  <p className="text-sm font-medium">
+                    {currentUser?.displayName || 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{userRole || 'User'}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -119,6 +137,7 @@ export function TopBar() {
         </div>
       </div>
       <ChangePasswordDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen} />
+      <SyncProgressDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen} />
     </header>
   );
 }
