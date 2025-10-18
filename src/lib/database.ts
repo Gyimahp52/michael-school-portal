@@ -127,7 +127,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.users.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
 
     this.students.hook('creating', (primKey, obj, trans) => {
@@ -136,7 +136,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.students.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
 
     this.attendance.hook('creating', (primKey, obj, trans) => {
@@ -145,7 +145,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.attendance.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
 
     this.assessments.hook('creating', (primKey, obj, trans) => {
@@ -154,7 +154,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.assessments.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
 
     this.fees.hook('creating', (primKey, obj, trans) => {
@@ -163,7 +163,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.fees.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
 
     this.canteenCollections.hook('creating', (primKey, obj, trans) => {
@@ -172,7 +172,7 @@ export class SchoolDB extends Dexie {
     });
 
     this.canteenCollections.hook('updating', (modifications, primKey, obj, trans) => {
-      modifications.updatedAt = new Date();
+      (modifications as any).updatedAt = new Date();
     });
   }
 }
@@ -194,7 +194,7 @@ export class DatabaseService {
   }
 
   static async update<T>(table: Table<T>, id: string, data: Partial<T>): Promise<void> {
-    await table.update(id, data);
+    await table.update(id, data as any);
   }
 
   static async delete<T>(table: Table<T>, id: string): Promise<void> {
@@ -206,6 +206,16 @@ export class DatabaseService {
       return await table.filter(filter).toArray();
     }
     return await table.toArray();
+  }
+
+  static async clearAllData(): Promise<void> {
+    await db.users.clear();
+    await db.students.clear();
+    await db.attendance.clear();
+    await db.assessments.clear();
+    await db.fees.clear();
+    await db.canteenCollections.clear();
+    await db.syncStatus.clear();
   }
 
   // User-specific operations

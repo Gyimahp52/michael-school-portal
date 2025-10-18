@@ -26,12 +26,12 @@ export interface DataOperationResult<T> {
 }
 
 export class OfflineFirstDataService {
-  private static isOnline = SyncService.getOnlineStatus();
+  private static onlineStatus = SyncService.getOnlineStatus();
 
   // Initialize the service
-  static initialize(): void {
+  static initialize(): () => void {
     const unsubscribe = SyncService.addSyncListener(() => {
-      this.isOnline = SyncService.getOnlineStatus();
+      this.onlineStatus = SyncService.getOnlineStatus();
     });
     return unsubscribe;
   }
@@ -434,6 +434,6 @@ export class OfflineFirstDataService {
   }
 
   static isOnline(): boolean {
-    return this.isOnline;
+    return this.onlineStatus;
   }
 }
