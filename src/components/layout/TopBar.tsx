@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, User, Settings, LogOut, Key, Database } from "lucide-react";
-import { useAuth } from "@/contexts/OfflineAuthContext";
+import { useAuth } from "@/contexts/CustomAuthContext";
 import ConnectionStatus from "@/components/shared/ConnectionStatus";
 import SyncProgressDialog from "@/components/shared/SyncProgressDialog";
 import { Button } from "@/components/ui/button";
