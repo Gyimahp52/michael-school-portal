@@ -12,7 +12,7 @@ import {
   Student, 
   recordAttendance 
 } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { UserCheck, Users, CheckCircle2, XCircle } from "lucide-react";
 import {
   Table,

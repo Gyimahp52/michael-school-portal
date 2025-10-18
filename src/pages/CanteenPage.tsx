@@ -1,5 +1,5 @@
 import { CanteenFeeManagement } from "@/components/dashboard/CanteenFeeManagement";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 
 export default function CanteenPage() {
   const { currentUser } = useAuth();

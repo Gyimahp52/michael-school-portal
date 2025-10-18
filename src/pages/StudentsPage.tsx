@@ -42,7 +42,7 @@ import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type C
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { filterTeacherClasses, filterTeacherStudents } from "@/lib/access-control";
 
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppText } from "@/lib/whatsapp";
 import { formatCurrency } from "@/lib/utils";

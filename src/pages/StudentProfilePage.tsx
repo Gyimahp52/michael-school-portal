@@ -51,7 +51,7 @@ import {
   Term,
   getCurrentTerm,
 } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";

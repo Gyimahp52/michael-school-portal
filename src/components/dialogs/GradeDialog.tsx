@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Class, Student, Subject, AssessmentRecord, createAssessmentRecord } from '@/lib/database-operations';
-import { useAuth } from '@/contexts/CustomAuthContext';
+import { useAuth } from '@/contexts/HybridAuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { filterTeacherClasses } from '@/lib/access-control';
 

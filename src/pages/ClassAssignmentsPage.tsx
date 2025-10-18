@@ -27,7 +27,7 @@ import {
   updateClass,
   getAllClasses,
 } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { getAllUsers } from "@/lib/custom-auth";
 
 interface Teacher {

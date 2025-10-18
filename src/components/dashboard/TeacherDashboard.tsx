@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAssessments, AssessmentRecord } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { useNavigate } from "react-router-dom";
 import AssessmentDialog from "@/components/dialogs/AssessmentDialog";
 import { AttendanceDialog } from "@/components/dialogs/AttendanceDialog";

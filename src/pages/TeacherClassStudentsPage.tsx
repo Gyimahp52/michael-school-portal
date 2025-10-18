@@ -30,7 +30,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Class, Student, getAllClasses, subscribeToStudents, recordAttendance } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { validateTeacherClassAccess, filterTeacherStudents, getAccessDeniedMessage } from "@/lib/access-control";
 import { format } from "date-fns";

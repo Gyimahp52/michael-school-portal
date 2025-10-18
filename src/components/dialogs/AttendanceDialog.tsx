@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getAllClasses, getAllStudents, Class, Student, recordAttendance } from "@/lib/database-operations";
 import { Calendar as CalendarIcon, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { filterTeacherClasses } from "@/lib/access-control";
 
 interface AttendanceDialogProps {

@@ -29,7 +29,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { AssessmentRecord, subscribeToAssessments, subscribeToStudents, subscribeToSubjects, Student, Subject, updateAssessmentRecord, deleteAssessmentRecord, Class, subscribeToClasses, Term } from "@/lib/database-operations";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { GradeDialog } from '@/components/dialogs/GradeDialog';

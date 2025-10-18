@@ -20,7 +20,7 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { getSchoolSettings, updateSchoolSettings, SchoolSettings } from "@/lib/school-settings";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/CustomAuthContext";
+import { useAuth } from "@/contexts/HybridAuthContext";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState("school");

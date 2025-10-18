@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Student, Class, createPromotionRequest, PromotionDecision } from '@/lib/database-operations';
-import { useAuth } from '@/contexts/CustomAuthContext';
+import { useAuth } from '@/contexts/HybridAuthContext';
 import { Loader2, ArrowUp, RotateCcw } from 'lucide-react';
 
 interface PromotionDialogProps {
