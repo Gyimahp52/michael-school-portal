@@ -47,13 +47,17 @@ export class OfflineFirstDataService {
       // Always create locally first
       const id = await createLocalFn(data);
       
-      // If online, also create in Firebase
-      if (this.isOnline && createFirebaseFn) {
+      // Add to sync queue for offline operations
+      if (!this.isOnline || !createFirebaseFn) {
+        await DatabaseService.addToSyncQueue(tableName, id, 'create', { ...data, id });
+      } else {
+        // If online, also create in Firebase
         try {
           await createFirebaseFn(id, { ...data, id });
         } catch (firebaseError) {
           console.warn(`Firebase create failed for ${tableName}:`, firebaseError);
-          // Continue with local creation - will sync later
+          // Add to sync queue for later
+          await DatabaseService.addToSyncQueue(tableName, id, 'create', { ...data, id });
         }
       }
 
@@ -86,13 +90,17 @@ export class OfflineFirstDataService {
       // Always update locally first
       await updateLocalFn(id, data);
       
-      // If online, also update in Firebase
-      if (this.isOnline && updateFirebaseFn) {
+      // Add to sync queue for offline operations
+      if (!this.isOnline || !updateFirebaseFn) {
+        await DatabaseService.addToSyncQueue(tableName, id, 'update', data);
+      } else {
+        // If online, also update in Firebase
         try {
           await updateFirebaseFn(id, data);
         } catch (firebaseError) {
           console.warn(`Firebase update failed for ${tableName}:`, firebaseError);
-          // Continue with local update - will sync later
+          // Add to sync queue for later
+          await DatabaseService.addToSyncQueue(tableName, id, 'update', data);
         }
       }
 
@@ -120,16 +128,23 @@ export class OfflineFirstDataService {
     deleteFirebaseFn?: (id: string) => Promise<void>
   ): Promise<DataOperationResult<T>> {
     try {
+      // Store record data before deletion for sync queue
+      const recordData = await this.getRecordById(tableName, id);
+      
       // Always delete locally first
       await deleteLocalFn(id);
       
-      // If online, also delete in Firebase
-      if (this.isOnline && deleteFirebaseFn) {
+      // Add to sync queue for offline operations
+      if (!this.isOnline || !deleteFirebaseFn) {
+        await DatabaseService.addToSyncQueue(tableName, id, 'delete', recordData);
+      } else {
+        // If online, also delete in Firebase
         try {
           await deleteFirebaseFn(id);
         } catch (firebaseError) {
           console.warn(`Firebase delete failed for ${tableName}:`, firebaseError);
-          // Continue with local delete - will sync later
+          // Add to sync queue for later
+          await DatabaseService.addToSyncQueue(tableName, id, 'delete', recordData);
         }
       }
 

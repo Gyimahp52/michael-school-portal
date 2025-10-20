@@ -98,6 +98,18 @@ export interface SyncStatus {
   lastError?: string;
 }
 
+// Sync queue for tracking dirty records
+export interface SyncQueueItem {
+  id: string;
+  tableName: string;
+  recordId: string;
+  operation: 'create' | 'update' | 'delete';
+  data?: any;
+  timestamp: Date;
+  attempts: number;
+  lastError?: string;
+}
+
 export class SchoolDB extends Dexie {
   users!: Table<User>;
   students!: Table<Student>;
@@ -106,18 +118,20 @@ export class SchoolDB extends Dexie {
   fees!: Table<Fee>;
   canteenCollections!: Table<CanteenCollection>;
   syncStatus!: Table<SyncStatus>;
+  syncQueue!: Table<SyncQueueItem>;
 
   constructor() {
     super('SchoolDB');
     
-    this.version(1).stores({
+    this.version(2).stores({
       users: 'id, username, displayName, role, status, lastLogin, createdAt, updatedAt, lastSyncAt',
       students: 'id, name, studentCode, classId, academicYear, term, createdAt, updatedAt, lastSyncAt',
       attendance: 'id, studentId, classId, date, status, term, teacherId, academicYear, createdAt, updatedAt, lastSyncAt',
       assessments: 'id, studentId, subjectId, term, teacherId, academicYear, createdAt, updatedAt, lastSyncAt',
       fees: 'id, studentId, term, academicYear, createdAt, updatedAt, lastSyncAt',
       canteenCollections: 'id, date, recordedBy, createdAt, updatedAt, lastSyncAt',
-      syncStatus: 'id, tableName, lastSyncAt, pendingChanges'
+      syncStatus: 'id, tableName, lastSyncAt, pendingChanges',
+      syncQueue: 'id, tableName, recordId, operation, timestamp, attempts'
     });
 
     // Add hooks for automatic timestamp updates
@@ -216,6 +230,35 @@ export class DatabaseService {
     await db.fees.clear();
     await db.canteenCollections.clear();
     await db.syncStatus.clear();
+    await db.syncQueue.clear();
+  }
+
+  // Add item to sync queue for offline operations
+  static async addToSyncQueue(tableName: string, recordId: string, operation: 'create' | 'update' | 'delete', data?: any): Promise<void> {
+    const queueItem: Omit<SyncQueueItem, 'id'> = {
+      tableName,
+      recordId,
+      operation,
+      data,
+      timestamp: new Date(),
+      attempts: 0
+    };
+    await db.syncQueue.add({ ...queueItem, id: crypto.randomUUID() });
+  }
+
+  // Get all pending sync queue items
+  static async getPendingSyncItems(): Promise<SyncQueueItem[]> {
+    return await db.syncQueue.orderBy('timestamp').toArray();
+  }
+
+  // Remove processed sync queue item
+  static async removeSyncQueueItem(id: string): Promise<void> {
+    await db.syncQueue.delete(id);
+  }
+
+  // Clear all sync queue items
+  static async clearSyncQueue(): Promise<void> {
+    await db.syncQueue.clear();
   }
 
   // User-specific operations

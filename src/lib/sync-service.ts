@@ -167,9 +167,11 @@ export class SyncService {
         record.lastLogin = new Date(record.lastLogin);
       }
 
-      // Only update if Firebase record is newer
+  // Only update if Firebase record is newer
       const existingRecord = await this.getLocalRecord(tableName, record.id);
       if (!existingRecord || record.updatedAt > existingRecord.updatedAt) {
+        // Mark as synced since this came from Firebase
+        record.lastSyncAt = new Date();
         await this.updateLocalRecord(tableName, record);
       }
     }
@@ -177,51 +179,68 @@ export class SyncService {
 
   // Upload data from IndexedDB to Firebase
   private static async uploadToFirebase(tableName: string, since: Date): Promise<void> {
-    const localRecords = await this.getLocalRecords(tableName);
-    const pendingRecords = localRecords.filter(record => 
-      !record.lastSyncAt || record.lastSyncAt < record.updatedAt
-    );
+    // Get pending items from sync queue instead of checking timestamps
+    const syncQueueItems = await DatabaseService.getPendingSyncItems();
+    const pendingRecords = syncQueueItems.filter(item => item.tableName === tableName);
 
-    for (const record of pendingRecords) {
+    for (const queueItem of pendingRecords) {
       try {
-        const firebaseRef = ref(rtdb, `${tableName}/${record.id}`);
-        
-        // Convert Date objects to Firebase timestamps
-        const firebaseRecord = { ...record };
-        if (firebaseRecord.createdAt) {
-          firebaseRecord.createdAt = firebaseRecord.createdAt.toISOString();
-        }
-        if (firebaseRecord.updatedAt) {
-          firebaseRecord.updatedAt = firebaseRecord.updatedAt.toISOString();
-        }
-        if (firebaseRecord.lastSyncAt) {
-          firebaseRecord.lastSyncAt = firebaseRecord.lastSyncAt.toISOString();
-        }
-        if (firebaseRecord.date) {
-          firebaseRecord.date = firebaseRecord.date.toISOString();
-        }
-        if (firebaseRecord.dateOfBirth) {
-          firebaseRecord.dateOfBirth = firebaseRecord.dateOfBirth.toISOString();
-        }
-        if (firebaseRecord.admissionDate) {
-          firebaseRecord.admissionDate = firebaseRecord.admissionDate.toISOString();
-        }
-        if (firebaseRecord.datePaid) {
-          firebaseRecord.datePaid = firebaseRecord.datePaid.toISOString();
-        }
-        if (firebaseRecord.lastLogin) {
-          firebaseRecord.lastLogin = firebaseRecord.lastLogin.toISOString();
+        const record = queueItem.data || await this.getLocalRecord(tableName, queueItem.recordId);
+        if (!record) {
+          // Record no longer exists, remove from queue
+          await DatabaseService.removeSyncQueueItem(queueItem.id);
+          continue;
         }
 
-        await set(firebaseRef, firebaseRecord);
+        const firebaseRef = ref(rtdb, `${tableName}/${queueItem.recordId}`);
         
-        // Update local record with sync timestamp
-        await this.updateLocalRecord(tableName, {
-          ...record,
-          lastSyncAt: new Date()
-        });
+        if (queueItem.operation === 'delete') {
+          await remove(firebaseRef);
+        } else {
+          // Convert Date objects to Firebase timestamps
+          const firebaseRecord = { ...record };
+          if (firebaseRecord.createdAt) {
+            firebaseRecord.createdAt = firebaseRecord.createdAt.toISOString();
+          }
+          if (firebaseRecord.updatedAt) {
+            firebaseRecord.updatedAt = firebaseRecord.updatedAt.toISOString();
+          }
+          if (firebaseRecord.lastSyncAt) {
+            firebaseRecord.lastSyncAt = firebaseRecord.lastSyncAt.toISOString();
+          }
+          if (firebaseRecord.date) {
+            firebaseRecord.date = firebaseRecord.date.toISOString();
+          }
+          if (firebaseRecord.dateOfBirth) {
+            firebaseRecord.dateOfBirth = firebaseRecord.dateOfBirth.toISOString();
+          }
+          if (firebaseRecord.admissionDate) {
+            firebaseRecord.admissionDate = firebaseRecord.admissionDate.toISOString();
+          }
+          if (firebaseRecord.datePaid) {
+            firebaseRecord.datePaid = firebaseRecord.datePaid.toISOString();
+          }
+          if (firebaseRecord.lastLogin) {
+            firebaseRecord.lastLogin = firebaseRecord.lastLogin.toISOString();
+          }
+
+          await set(firebaseRef, firebaseRecord);
+          
+          // Update local record with sync timestamp
+          await this.updateLocalRecord(tableName, {
+            ...record,
+            lastSyncAt: new Date()
+          });
+        }
+
+        // Remove successfully synced item from queue
+        await DatabaseService.removeSyncQueueItem(queueItem.id);
       } catch (error) {
-        console.error(`Upload error for ${tableName}/${record.id}:`, error);
+        console.error(`Upload error for ${tableName}/${queueItem.recordId}:`, error);
+        // Update queue item with error and increment attempts
+        queueItem.attempts += 1;
+        queueItem.lastError = error instanceof Error ? error.message : 'Unknown error';
+        await db.syncQueue.update(queueItem.id, { attempts: queueItem.attempts, lastError: queueItem.lastError });
         throw error;
       }
     }
@@ -329,6 +348,8 @@ export class SyncService {
               record.lastLogin = new Date(record.lastLogin);
             }
 
+            // Mark as synced since this came from Firebase
+            record.lastSyncAt = new Date();
             // Update local record
             await this.updateLocalRecord(tableName, record);
           }
@@ -359,10 +380,9 @@ export class SyncService {
 
     for (const tableName of tables) {
       const syncStatus = await DatabaseService.getSyncStatus(tableName);
+      const syncQueueItems = await DatabaseService.getPendingSyncItems();
+      const pendingChanges = syncQueueItems.filter(item => item.tableName === tableName).length;
       const localRecords = await this.getLocalRecords(tableName);
-      const pendingChanges = localRecords.filter(record => 
-        !record.lastSyncAt || record.lastSyncAt < record.updatedAt
-      ).length;
 
       statuses.push({
         tableName,
@@ -385,5 +405,6 @@ export class SyncService {
     await db.fees.clear();
     await db.canteenCollections.clear();
     await db.syncStatus.clear();
+    await db.syncQueue.clear();
   }
 }
