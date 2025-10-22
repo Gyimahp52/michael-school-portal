@@ -11,16 +11,18 @@ import {
   upsertStudent, 
   Student, 
   subscribeToStudents, 
-  subscribeToClasses, 
   type Class,
-  subscribeToAcademicYears,
-  subscribeToTerms,
   AcademicYear,
   Term,
-  getCurrentAcademicYear,
-  getCurrentTerm,
-  getTermsByAcademicYear
 } from "@/lib/database-operations";
+import {
+  subscribeToClassesOfflineFirst,
+  subscribeToAcademicYearsOfflineFirst,
+  subscribeToTermsOfflineFirst,
+  getCurrentAcademicYearOfflineFirst,
+  getCurrentTermOfflineFirst,
+  getTermsByAcademicYearOfflineFirst
+} from "@/lib/offline-reference-data";
 import { ref, get } from 'firebase/database';
 import { rtdb } from "@/firebase";
 import { AcademicYearSelector } from "@/components/shared/AcademicYearSelector";
@@ -68,9 +70,9 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
 
   useEffect(() => {
     const unsubStudents = subscribeToStudents(setExistingStudents);
-    const unsubClasses = subscribeToClasses(setClassesFromDb);
-    const unsubAcademicYears = subscribeToAcademicYears(setAcademicYears);
-    const unsubTerms = subscribeToTerms(setTerms);
+    const unsubClasses = subscribeToClassesOfflineFirst(setClassesFromDb);
+    const unsubAcademicYears = subscribeToAcademicYearsOfflineFirst(setAcademicYears);
+    const unsubTerms = subscribeToTermsOfflineFirst(setTerms);
     return () => { 
       unsubStudents(); 
       unsubClasses(); 
@@ -85,8 +87,8 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
       if (mode === "create" && open) {
         try {
           const [currentYear, currentTerm] = await Promise.all([
-            getCurrentAcademicYear(),
-            getCurrentTerm()
+            getCurrentAcademicYearOfflineFirst(),
+            getCurrentTermOfflineFirst()
           ]);
           
           if (currentYear && currentTerm) {
@@ -96,7 +98,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
               termId: currentTerm.id || ""
             }));
             // Update available terms for the selected academic year
-            const yearTerms = await getTermsByAcademicYear(currentYear.id!);
+            const yearTerms = await getTermsByAcademicYearOfflineFirst(currentYear.id!);
             setAvailableTerms(yearTerms);
           }
         } catch (error) {
@@ -185,7 +187,7 @@ export function StudentDialog({ open, onOpenChange, student, mode }: StudentDial
     if (academicYear) {
       setFormData(prev => ({ ...prev, academicYear: academicYear.name }));
       // Update available terms for the selected academic year
-      const yearTerms = await getTermsByAcademicYear(academicYearId);
+      const yearTerms = await getTermsByAcademicYearOfflineFirst(academicYearId);
       setAvailableTerms(yearTerms);
       // Reset term selection when academic year changes
       setFormData(prev => ({ ...prev, termId: "" }));

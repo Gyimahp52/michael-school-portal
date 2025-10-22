@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { AcademicYear, subscribeToAcademicYears } from "@/lib/database-operations";
+import { AcademicYear } from "@/lib/database-operations";
+import { subscribeToAcademicYearsOfflineFirst } from "@/lib/offline-reference-data";
 import { Calendar } from "lucide-react";
 
 interface AcademicYearSelectorProps {
@@ -23,7 +24,7 @@ export function AcademicYearSelector({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubYears = subscribeToAcademicYears((data) => {
+    const unsubYears = subscribeToAcademicYearsOfflineFirst((data) => {
       setAcademicYears(data);
       setLoading(false);
     });
