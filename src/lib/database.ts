@@ -207,8 +207,14 @@ export class DatabaseService {
     return await table.get(id);
   }
 
-  static async update<T>(table: Table<T>, id: string, data: Partial<T>): Promise<void> {
-    await table.update(id, data as any);
+  static async update<T>(table: Table<T>, id: string | number | Date, data: Partial<T>): Promise<void> {
+    // Guard against invalid primary keys to avoid Dexie WhereClause.equals errors
+    const validKey = typeof id === 'string' || typeof id === 'number' || id instanceof Date;
+    if (!validKey) {
+      console.warn('DatabaseService.update skipped due to invalid key', { table: (table as any).name, id });
+      return;
+    }
+    await table.update(id as any, data as any);
   }
 
   static async delete<T>(table: Table<T>, id: string): Promise<void> {

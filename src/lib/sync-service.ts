@@ -141,7 +141,10 @@ export class SyncService {
     const entries = Object.entries(data) as [string, any][];
 
     for (const [id, record] of entries) {
+      if (!record || typeof record !== 'object') continue;
       if (!record.id) record.id = id;
+      const validKey = typeof record.id === 'string' || typeof record.id === 'number' || record.id instanceof Date;
+      if (!validKey) continue;
 
       // Convert Firebase timestamps to Date objects
       if (record.createdAt) {
@@ -292,25 +295,30 @@ export class SyncService {
 
   // Update local record
   private static async updateLocalRecord(tableName: string, record: any): Promise<void> {
-    const { id, ...changes } = record;
+    const { id, ...changes } = record || {};
+    const validKey = typeof id === 'string' || typeof id === 'number' || id instanceof Date;
+    if (!validKey) {
+      console.warn('SyncService.updateLocalRecord skipped due to invalid key', { tableName, id });
+      return;
+    }
     switch (tableName) {
       case 'users':
-        await DatabaseService.updateUser(id, changes);
+        await DatabaseService.updateUser(id as any, changes);
         break;
       case 'students':
-        await DatabaseService.updateStudent(id, changes);
+        await DatabaseService.updateStudent(id as any, changes);
         break;
       case 'attendance':
-        await DatabaseService.updateAttendance(id, changes);
+        await DatabaseService.updateAttendance(id as any, changes);
         break;
       case 'assessments':
-        await DatabaseService.updateAssessment(id, changes);
+        await DatabaseService.updateAssessment(id as any, changes);
         break;
       case 'fees':
-        await DatabaseService.updateFee(id, changes);
+        await DatabaseService.updateFee(id as any, changes);
         break;
       case 'canteenCollections':
-        await DatabaseService.updateCanteenCollection(id, changes);
+        await DatabaseService.updateCanteenCollection(id as any, changes);
         break;
     }
   }
@@ -327,7 +335,10 @@ export class SyncService {
           const entries = Object.entries(data) as [string, any][];
           
           for (const [id, record] of entries) {
+            if (!record || typeof record !== 'object') continue;
             if (!record.id) record.id = id;
+            const validKey = typeof record.id === 'string' || typeof record.id === 'number' || record.id instanceof Date;
+            if (!validKey) continue;
             // Convert Firebase timestamps to Date objects
             if (record.createdAt) {
               record.createdAt = new Date(record.createdAt);
