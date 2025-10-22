@@ -138,9 +138,11 @@ export class SyncService {
     if (!snapshot.exists()) return;
 
     const data = snapshot.val();
-    const records = Object.values(data) as any[];
+    const entries = Object.entries(data) as [string, any][];
 
-    for (const record of records) {
+    for (const [id, record] of entries) {
+      if (!record.id) record.id = id;
+
       // Convert Firebase timestamps to Date objects
       if (record.createdAt) {
         record.createdAt = new Date(record.createdAt);
@@ -167,9 +169,11 @@ export class SyncService {
         record.lastLogin = new Date(record.lastLogin);
       }
 
-  // Only update if Firebase record is newer
+      // Only update if Firebase record is newer
       const existingRecord = await this.getLocalRecord(tableName, record.id);
-      if (!existingRecord || record.updatedAt > existingRecord.updatedAt) {
+      const incomingUpdatedAt = record.updatedAt instanceof Date ? record.updatedAt : new Date(0);
+      const existingUpdatedAt = existingRecord?.updatedAt instanceof Date ? existingRecord.updatedAt : new Date(0);
+      if (!existingRecord || incomingUpdatedAt > existingUpdatedAt) {
         // Mark as synced since this came from Firebase
         record.lastSyncAt = new Date();
         await this.updateLocalRecord(tableName, record);
@@ -288,24 +292,25 @@ export class SyncService {
 
   // Update local record
   private static async updateLocalRecord(tableName: string, record: any): Promise<void> {
+    const { id, ...changes } = record;
     switch (tableName) {
       case 'users':
-        await DatabaseService.updateUser(record.id, record);
+        await DatabaseService.updateUser(id, changes);
         break;
       case 'students':
-        await DatabaseService.updateStudent(record.id, record);
+        await DatabaseService.updateStudent(id, changes);
         break;
       case 'attendance':
-        await DatabaseService.updateAttendance(record.id, record);
+        await DatabaseService.updateAttendance(id, changes);
         break;
       case 'assessments':
-        await DatabaseService.updateAssessment(record.id, record);
+        await DatabaseService.updateAssessment(id, changes);
         break;
       case 'fees':
-        await DatabaseService.updateFee(record.id, record);
+        await DatabaseService.updateFee(id, changes);
         break;
       case 'canteenCollections':
-        await DatabaseService.updateCanteenCollection(record.id, record);
+        await DatabaseService.updateCanteenCollection(id, changes);
         break;
     }
   }
@@ -319,9 +324,10 @@ export class SyncService {
       onValue(firebaseRef, async (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
-          const records = Object.values(data) as any[];
+          const entries = Object.entries(data) as [string, any][];
           
-          for (const record of records) {
+          for (const [id, record] of entries) {
+            if (!record.id) record.id = id;
             // Convert Firebase timestamps to Date objects
             if (record.createdAt) {
               record.createdAt = new Date(record.createdAt);
