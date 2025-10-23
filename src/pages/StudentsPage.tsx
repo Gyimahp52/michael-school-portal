@@ -38,9 +38,10 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent, subscribeToClasses, type Class, subscribeToStudentBalances, type StudentBalance } from "@/lib/database-operations";
+import { Student, subscribeToStudents, deleteStudent, type Class, subscribeToStudentBalances, type StudentBalance } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { filterTeacherClasses, filterTeacherStudents } from "@/lib/access-control";
+import { subscribeToClassesOfflineFirst } from "@/lib/offline-reference-data";
 
 import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +66,7 @@ export function StudentsPage() {
     const unsubscribe = subscribeToStudents((studentsData) => {
       setStudents(studentsData);
     });
-    const unsubClasses = subscribeToClasses(setClasses);
+    const unsubClasses = subscribeToClassesOfflineFirst(setClasses);
     const unsubBalances = subscribeToStudentBalances(setStudentBalances);
     return () => {
       unsubscribe();
