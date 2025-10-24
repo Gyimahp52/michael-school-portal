@@ -320,6 +320,7 @@ useEffect(() => {
               const age = student.dateOfBirth ? 
                 Math.floor((Date.now() - new Date(student.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 
                 0;
+              const initials = `${(student.firstName || '').trim().charAt(0)}${(student.lastName || '').trim().charAt(0)}` || 'S';
               
               return (
                 <TableRow key={student.id} className="hover:bg-muted/30">
@@ -330,7 +331,7 @@ useEffect(() => {
                           <AvatarImage src={student.photoUrl} alt={`${student.firstName} ${student.lastName}`} />
                         )}
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                          {student.firstName[0]}{student.lastName[0]}
+                          {initials || 'S'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
