@@ -5,15 +5,21 @@ import {
   subscribeToClasses,
   subscribeToAcademicYears,
   subscribeToTerms,
+  subscribeToStudents,
+  subscribeToStudentBalances,
   type Class,
   type AcademicYear,
-  type Term
+  type Term,
+  type Student,
+  type StudentBalance
 } from './database-operations';
 
 const STORAGE_KEYS = {
   CLASSES: 'offline_classes',
   ACADEMIC_YEARS: 'offline_academic_years',
   TERMS: 'offline_terms',
+  STUDENTS: 'offline_students',
+  STUDENT_BALANCES: 'offline_student_balances',
   LAST_SYNC: 'offline_reference_data_last_sync'
 };
 
@@ -142,6 +148,61 @@ export const subscribeToTermsOfflineFirst = (callback: (terms: Term[]) => void):
     // If offline, return a no-op unsubscribe function
     return () => {};
   }
+};
+
+// Offline-first students operations
+export const getStudentsOfflineFirst = async (): Promise<Student[]> => {
+  if (isOnline()) {
+    try {
+      // We don't have a getAllStudents here; we rely on realtime to cache via subscribe below.
+      // So when online and no cache yet, just return cache for immediate UI; realtime will refresh.
+      return getCachedData<Student>(STORAGE_KEYS.STUDENTS);
+    } catch (_) {
+      return getCachedData<Student>(STORAGE_KEYS.STUDENTS);
+    }
+  }
+  return getCachedData<Student>(STORAGE_KEYS.STUDENTS);
+};
+
+export const subscribeToStudentsOfflineFirst = (callback: (students: Student[]) => void): (() => void) => {
+  // Emit cache immediately
+  const cached = getCachedData<Student>(STORAGE_KEYS.STUDENTS);
+  callback(cached);
+
+  if (isOnline()) {
+    const unsubscribe = subscribeToStudents((students) => {
+      setCachedData(STORAGE_KEYS.STUDENTS, students as Student[]);
+      callback(students);
+    });
+    return unsubscribe;
+  }
+  return () => {};
+};
+
+// Offline-first student balances operations
+export const getStudentBalancesOfflineFirst = async (): Promise<StudentBalance[]> => {
+  if (isOnline()) {
+    try {
+      return getCachedData<StudentBalance>(STORAGE_KEYS.STUDENT_BALANCES);
+    } catch (_) {
+      return getCachedData<StudentBalance>(STORAGE_KEYS.STUDENT_BALANCES);
+    }
+  }
+  return getCachedData<StudentBalance>(STORAGE_KEYS.STUDENT_BALANCES);
+};
+
+export const subscribeToStudentBalancesOfflineFirst = (callback: (balances: StudentBalance[]) => void): (() => void) => {
+  const cached = getCachedData<StudentBalance>(STORAGE_KEYS.STUDENT_BALANCES);
+  callback(cached);
+
+  if (isOnline()) {
+    const unsubscribe = subscribeToStudentBalances((balances) => {
+      setCachedData(STORAGE_KEYS.STUDENT_BALANCES, balances as StudentBalance[]);
+      callback(balances);
+    });
+    return unsubscribe;
+  }
+  return () => {};
 };
 
 // Helper function to get terms by academic year ID (offline-first)

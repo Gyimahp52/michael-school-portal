@@ -38,10 +38,10 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-import { Student, subscribeToStudents, deleteStudent, type Class, subscribeToStudentBalances, type StudentBalance } from "@/lib/database-operations";
+import { Student, deleteStudent, type Class, type StudentBalance } from "@/lib/database-operations";
 import { StudentDialog } from "@/components/dialogs/StudentDialog";
 import { filterTeacherClasses, filterTeacherStudents } from "@/lib/access-control";
-import { subscribeToClassesOfflineFirst } from "@/lib/offline-reference-data";
+import { subscribeToClassesOfflineFirst, subscribeToStudentsOfflineFirst, subscribeToStudentBalancesOfflineFirst } from "@/lib/offline-reference-data";
 
 import { useAuth } from "@/contexts/HybridAuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -62,18 +62,16 @@ export function StudentsPage() {
   const { toast } = useToast();
   const { userRole, currentUser } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = subscribeToStudents((studentsData) => {
-      setStudents(studentsData);
-    });
-    const unsubClasses = subscribeToClassesOfflineFirst(setClasses);
-    const unsubBalances = subscribeToStudentBalances(setStudentBalances);
-    return () => {
-      unsubscribe();
-      unsubClasses();
-      unsubBalances();
-    };
-  }, []);
+useEffect(() => {
+  const unsubStudents = subscribeToStudentsOfflineFirst(setStudents);
+  const unsubClasses = subscribeToClassesOfflineFirst(setClasses);
+  const unsubBalances = subscribeToStudentBalancesOfflineFirst(setStudentBalances);
+  return () => {
+    unsubStudents();
+    unsubClasses();
+    unsubBalances();
+  };
+}, []);
 
   // Sync initial and subsequent URL changes (?q=) into local search state
   useEffect(() => {
@@ -203,7 +201,7 @@ export function StudentsPage() {
           </div>
         </div>
         {userRole !== 'teacher' && (
-          <Button className="gap-2 bg-gradient-primary w-full sm:w-auto" onClick={handleAddStudent}>
+<Button className="gap-2 bg-gradient-primary w-full sm:w-auto" onClick={handleAddStudent} aria-label="Add Student">
             <Plus className="w-4 h-4" />
             Add Student
           </Button>
