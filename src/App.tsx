@@ -28,7 +28,6 @@ import PromotionsPage from "./pages/PromotionsPage";
 import { useEffect } from "react";
 import CanteenPage from "./pages/CanteenPage";
 import { SetupPage } from "./pages/SetupPage";
-import { SyncDebugPage } from "./pages/SyncDebugPage";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +76,6 @@ const AppContent = () => {
           <Route path="school-fees" element={<SchoolFeesPage />} />
           <Route path="terms" element={<AcademicTermsPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="sync-debug" element={<SyncDebugPage />} />
         </Route>
       </Route>
 

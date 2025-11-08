@@ -1,7 +1,5 @@
 import { ref, get, set, child } from 'firebase/database';
 import { rtdb } from '../firebase';
-import { OfflineAuthService } from './offline-auth';
-import { DatabaseService } from './database';
 
 export interface User {
   username: string;
@@ -11,7 +9,7 @@ export interface User {
   id: string;
 }
 
-// Initialize users - creates default users in Firebase and IndexedDB
+// Initialize users - creates default users in Firebase
 export const initializeUsers = async (): Promise<void> => {
   const defaultUsers = [
     { username: 'admin', password: 'admin123', displayName: 'Admin User', role: 'admin' as const },
@@ -24,21 +22,7 @@ export const initializeUsers = async (): Promise<void> => {
       try {
         // Create in Firebase
         await createUser(userData);
-        
-        // Also store in IndexedDB with hashed password for offline access
-        const hashedPassword = await OfflineAuthService.hashPassword(userData.password);
-        const userId = `user_${userData.username}_${Date.now()}`;
-        
-        await DatabaseService.createUser({
-          username: userData.username,
-          displayName: userData.displayName,
-          password: hashedPassword,
-          role: userData.role,
-          lastLogin: new Date(),
-          status: 'active',
-        });
-        
-        console.log(`Created user: ${userData.username} (online & offline)`);
+        console.log(`Created user: ${userData.username}`);
       } catch (error: any) {
         if (error.message === 'Username already exists') {
           console.log(`User already exists: ${userData.username}`);
@@ -47,7 +31,7 @@ export const initializeUsers = async (): Promise<void> => {
         }
       }
     }
-    console.log('Users initialized successfully in both Firebase and IndexedDB');
+    console.log('Users initialized successfully in Firebase');
   } catch (error) {
     console.error('Error initializing users:', error);
     throw error;

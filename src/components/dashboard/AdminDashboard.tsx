@@ -37,7 +37,6 @@ import {
 } from "recharts";
 
 import { useNavigate } from "react-router-dom";
-import OfflineTestComponent from "@/components/shared/OfflineTestComponent";
 import {
   getDashboardStats,
   getEnrollmentGrowthData,
@@ -609,9 +608,6 @@ export function AdminDashboard() {
         open={monthlyExpensesDialogOpen} 
         onOpenChange={setMonthlyExpensesDialogOpen}
       />
-      
-      {/* Offline Test Component - Remove in production */}
-      <OfflineTestComponent />
     </div>
   );
 }

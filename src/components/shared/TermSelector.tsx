@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Term, AcademicYear } from "@/lib/database-operations";
-import { subscribeToTermsOfflineFirst, subscribeToAcademicYearsOfflineFirst } from "@/lib/offline-reference-data";
+import { Term, AcademicYear, subscribeToTerms, subscribeToAcademicYears } from "@/lib/database-operations";
 import { Calendar } from "lucide-react";
 
 interface TermSelectorProps {
@@ -31,11 +30,11 @@ export function TermSelector({
       setTerms(providedTerms);
       setLoading(false);
     } else {
-      const unsubTerms = subscribeToTermsOfflineFirst((data) => {
+      const unsubTerms = subscribeToTerms((data) => {
         setTerms(data);
         setLoading(false);
       });
-      const unsubYears = subscribeToAcademicYearsOfflineFirst(setAcademicYears);
+      const unsubYears = subscribeToAcademicYears(setAcademicYears);
 
       return () => {
         unsubTerms();
