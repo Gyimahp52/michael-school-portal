@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/HybridAuthContext";
 import { ref, get, update } from "firebase/database";
 import { rtdb } from "@/firebase";
-import bcrypt from "bcryptjs";
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -71,18 +70,14 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
       const userData = snapshot.val();
       
-      // Verify current password
-      const isValid = await bcrypt.compare(currentPassword, userData.password);
-      if (!isValid) {
+      // Verify current password (plain text comparison)
+      if (currentPassword !== userData.password) {
         throw new Error("Current password is incorrect");
       }
-
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
       
-      // Update password
+      // Update password (stored as plain text)
       await update(userRef, {
-        password: hashedPassword,
+        password: newPassword,
         updatedAt: new Date().toISOString(),
       });
 
