@@ -110,6 +110,43 @@ export {
   useRecentOperations,
 } from './use-data-flow';
 
+// School Operations Utilities
+export {
+  recordBulkAttendance,
+  computeStudentAverage,
+  computeClassAverage,
+  isDuplicatePayment,
+  generateReceipt,
+  hasPendingSyncForCollections,
+  getReportContext,
+} from './school-ops-utils';
+
+// School-Specific Error Policies & Handlers
+export {
+  buildAttendanceKey,
+  upsertAttendanceIdempotent,
+  mergeAttendanceEntries,
+  resolveConcurrentAttendance,
+  markPaymentForVerification,
+  resolveGradeConflict,
+  stampWithTermContext,
+  validateTermContext,
+  initBulkTracker,
+  updateBulkTracker,
+  attachLocalUploadPlaceholder,
+  setUploadStatus,
+  finalizeUploadUrl,
+} from './error-policies';
+export type {
+  ConflictStrategy,
+  AttendanceEntryWithMeta,
+  AttendanceRecordLike,
+  VerificationStatus,
+  TermContext,
+  BulkTracker,
+  UploadItemMeta,
+} from './error-policies';
+
 // Types
 export type {
   AcademicYearLocal,
