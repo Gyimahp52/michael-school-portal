@@ -24,7 +24,7 @@ export function ConnectionStatusBanner() {
             </span>
           ) : (
             <span>
-              <strong>No Internet Connection:</strong> Working in offline mode with limited features.
+              <strong>Working Offline:</strong> All features available. Changes will sync automatically when connection is restored.
             </span>
           )}
         </AlertDescription>
