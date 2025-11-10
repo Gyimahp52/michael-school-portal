@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, User, Settings, LogOut, Key } from "lucide-react";
+import { Bell, User, Settings, LogOut, Key } from "lucide-react";
 import { useAuth } from "@/contexts/HybridAuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,21 +17,10 @@ import { ChangePasswordDialog } from "@/components/dialogs/ChangePasswordDialog"
 import { subscribeToPromotionRequests, type PromotionRequest } from "@/lib/database-operations";
 
 export function TopBar() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
   const [pendingPromotionCount, setPendingPromotionCount] = useState(0);
-  
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter') return;
-    const q = searchQuery.trim();
-    if (!q) return;
-    const base = userRole === 'admin' ? '/admin' : userRole === 'teacher' ? '/teacher' : userRole === 'accountant' ? '/accountant' : '';
-    const target = userRole === 'accountant' ? `${base}/billing` : `${base}/students`;
-    const url = `${target}?q=${encodeURIComponent(q)}`;
-    navigate(url);
-  };
 
   useEffect(() => {
     const unsubscribe = subscribeToPromotionRequests((requests: PromotionRequest[]) => {
@@ -48,18 +36,6 @@ export function TopBar() {
         {/* Left section */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          
-          {/* Search - Hidden on mobile */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search students, teachers, or records..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="w-full md:w-64 lg:w-80 pl-10 bg-muted/50 border-border focus:bg-background"
-            />
-          </div>
         </div>
 
         {/* Right section */}
