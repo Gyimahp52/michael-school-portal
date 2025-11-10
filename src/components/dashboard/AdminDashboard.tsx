@@ -98,7 +98,7 @@ export function AdminDashboard() {
   const [totalRevenueDialogOpen, setTotalRevenueDialogOpen] = useState(false);
   const [monthlyExpensesDialogOpen, setMonthlyExpensesDialogOpen] = useState(false);
   const [promotionRequests, setPromotionRequests] = useState<PromotionRequest[]>([]);
-  const [previousRequestCount, setPreviousRequestCount] = useState<number>(0);
+  const [previousRequestCount, setPreviousRequestCount] = useState<number | null>(null);
 
   // Load initial data and set up real-time subscriptions
   useEffect(() => {
@@ -152,7 +152,7 @@ export function AdminDashboard() {
     const pendingRequests = promotionRequests.filter(req => req.status === 'pending');
     
     // Only show notification if we have a previous count and the new count is higher
-    if (previousRequestCount > 0 && pendingRequests.length > previousRequestCount) {
+    if (previousRequestCount !== null && pendingRequests.length > previousRequestCount) {
       const newRequestsCount = pendingRequests.length - previousRequestCount;
       toast.info(`New Promotion Request${newRequestsCount > 1 ? 's' : ''}`, {
         description: `${newRequestsCount} teacher${newRequestsCount > 1 ? 's have' : ' has'} submitted promotion decisions for review.`,
