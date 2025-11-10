@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, User, Settings, LogOut, Key } from "lucide-react";
 import { useAuth } from "@/contexts/HybridAuthContext";
@@ -15,12 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ChangePasswordDialog } from "@/components/dialogs/ChangePasswordDialog";
+import { subscribeToPromotionRequests, type PromotionRequest } from "@/lib/database-operations";
 
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
+  const [pendingPromotionCount, setPendingPromotionCount] = useState(0);
   
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;
@@ -31,6 +33,14 @@ export function TopBar() {
     const url = `${target}?q=${encodeURIComponent(q)}`;
     navigate(url);
   };
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPromotionRequests((requests: PromotionRequest[]) => {
+      const count = requests.filter(r => r.status === 'pending').length;
+      setPendingPromotionCount(count);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <header className="h-16 border-b border-border bg-card shadow-soft">
@@ -72,9 +82,11 @@ export function TopBar() {
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-destructive">
-              3
-            </Badge>
+            {pendingPromotionCount > 0 && (
+              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+                {pendingPromotionCount}
+              </Badge>
+            )}
           </Button>
 
           {/* User Profile */}
