@@ -15,9 +15,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ChangePasswordDialog } from "@/components/dialogs/ChangePasswordDialog";
 import { subscribeToPromotionRequests, type PromotionRequest } from "@/lib/database-operations";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function TopBar() {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
   const [pendingPromotionCount, setPendingPromotionCount] = useState(0);
@@ -104,7 +115,7 @@ export function TopBar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="gap-2 text-destructive cursor-pointer"
-                onClick={logout}
+                onClick={() => setLogoutDialogOpen(true)}
               >
                 <LogOut className="h-4 w-4" />
                 Logout
@@ -114,6 +125,21 @@ export function TopBar() {
         </div>
       </div>
       <ChangePasswordDialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen} />
+      
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to login again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={logout}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }
