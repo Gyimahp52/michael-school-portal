@@ -3,47 +3,53 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { MainLayout } from "./components/layout/MainLayout";
-import { AdminDashboard } from "./components/dashboard/AdminDashboard";
-import { TeacherDashboard } from "./components/dashboard/TeacherDashboard";
-import { AccountantDashboard } from "./components/dashboard/AccountantDashboard";
-import { StudentsPage } from "./pages/StudentsPage";
-import { StudentProfilePage } from "./pages/StudentProfilePage";
-import { BillingPage } from "./pages/BillingPage";
-import { GradesPage } from "./pages/GradesPage";
-import { LoginPage } from "./pages/LoginPage";
-import AcademicsPage from "./pages/AcademicsPage";
-import ReportsPage from "./pages/ReportsPage";
-import UserManagementPage from "./pages/UserManagementPage";
-import SettingsPage from "./pages/SettingsPage";
-import SchoolFeesPage from "./pages/SchoolFeesPage";
-import AcademicTermsPage from "./pages/AcademicTermsPage";
-import { ClassAssignmentsPage } from "./pages/ClassAssignmentsPage";
-import { TeacherClassStudentsPage } from "./pages/TeacherClassStudentsPage";
-import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./contexts/HybridAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import ReportCardPrintPage from "./pages/ReportCardPrintPage";
-import PromotionsPage from "./pages/PromotionsPage";
-import { useEffect } from "react";
-import CanteenPage from "./pages/CanteenPage";
-import { SetupPage } from "./pages/SetupPage";
+
+// Lazy load components for faster initial page load
+const MainLayout = lazy(() => import("./components/layout/MainLayout").then(m => ({ default: m.MainLayout })));
+const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const TeacherDashboard = lazy(() => import("./components/dashboard/TeacherDashboard").then(m => ({ default: m.TeacherDashboard })));
+const AccountantDashboard = lazy(() => import("./components/dashboard/AccountantDashboard").then(m => ({ default: m.AccountantDashboard })));
+const StudentsPage = lazy(() => import("./pages/StudentsPage").then(m => ({ default: m.StudentsPage })));
+const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage").then(m => ({ default: m.StudentProfilePage })));
+const BillingPage = lazy(() => import("./pages/BillingPage").then(m => ({ default: m.BillingPage })));
+const GradesPage = lazy(() => import("./pages/GradesPage").then(m => ({ default: m.GradesPage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const AcademicsPage = lazy(() => import("./pages/AcademicsPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SchoolFeesPage = lazy(() => import("./pages/SchoolFeesPage"));
+const AcademicTermsPage = lazy(() => import("./pages/AcademicTermsPage"));
+const ClassAssignmentsPage = lazy(() => import("./pages/ClassAssignmentsPage").then(m => ({ default: m.ClassAssignmentsPage })));
+const TeacherClassStudentsPage = lazy(() => import("./pages/TeacherClassStudentsPage").then(m => ({ default: m.TeacherClassStudentsPage })));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ReportCardPrintPage = lazy(() => import("./pages/ReportCardPrintPage"));
+const PromotionsPage = lazy(() => import("./pages/PromotionsPage"));
+const CanteenPage = lazy(() => import("./pages/CanteenPage"));
+const SetupPage = lazy(() => import("./pages/SetupPage").then(m => ({ default: m.SetupPage })));
 
 const queryClient = new QueryClient();
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex h-screen items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
 
 const AppContent = () => {
   const { currentUser, userRole, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   return (
-    <Routes>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
       {/* Public Routes */}
       <Route path="/setup" element={<SetupPage />} />
       <Route path="/login" element={
@@ -122,6 +128,7 @@ const AppContent = () => {
       {/* 404 Route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

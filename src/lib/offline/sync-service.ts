@@ -374,7 +374,7 @@ export class SyncService {
     }));
 
     // Transform from Firebase format
-    const transformedItems = batchTransformFromFirebase(items);
+    const transformedItems = batchTransformFromFirebase(items) as any[];
 
     // Merge with local data
     for (const item of transformedItems) {
@@ -382,7 +382,7 @@ export class SyncService {
         await this.mergeWithLocal(collectionName, item, result);
         result.synced++;
       } catch (error) {
-        console.error(`Error merging ${collectionName}/${item.id}:`, error);
+        console.error(`Error merging ${collectionName}/${(item as any).id}:`, error);
         result.failed++;
       }
     }
