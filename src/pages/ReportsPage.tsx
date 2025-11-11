@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-// import { sendWhatsAppText } from "@/lib/whatsapp"; // Removed WhatsApp functionality
+import { sendWhatsAppText } from "@/lib/whatsapp";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import {
   subscribeToInvoices,
   subscribeToSchoolFees,
   subscribeToStudentBalances,
+  subscribeToAssessments,
+  subscribeToSubjects,
   createInvoice,
   updateStudentBalance,
   createStudentBalance,
@@ -28,7 +30,9 @@ import {
   Class,
   Invoice,
   SchoolFees,
-  StudentBalance
+  StudentBalance,
+  AssessmentRecord,
+  Subject
 } from "@/lib/database-operations";
 import {
   FileText,
@@ -66,6 +70,8 @@ export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
   const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
@@ -113,6 +119,14 @@ export default function ReportsPage() {
       setStudentBalances(balancesData);
     });
 
+    const unsubscribeAssessments = subscribeToAssessments((assessmentsData) => {
+      setAssessments(assessmentsData);
+    });
+
+    const unsubscribeSubjects = subscribeToSubjects((subjectsData) => {
+      setSubjects(subjectsData);
+    });
+
     setLoading(false);
 
     // Cleanup subscriptions
@@ -124,6 +138,8 @@ export default function ReportsPage() {
       unsubscribeInvoices();
       unsubscribeSchoolFees();
       unsubscribeStudentBalances();
+      unsubscribeAssessments();
+      unsubscribeSubjects();
     };
   }, []);
 
@@ -392,33 +408,122 @@ export default function ReportsPage() {
           description: "No students found in the selected class",
           variant: "destructive",
         });
+        setSendingReports(false);
         return;
       }
 
-      // Generate PDF report for the class
-      const classReportData = classStudents.map(student => ({
-        'Code': student.studentCode,
-        'Name': `${student.firstName} ${student.lastName}`,
-        'Email': student.email,
-        'Phone': student.phone,
-        'Class': student.className,
-        'Previous Class': student.previousClass || 'N/A',
-        'Academic Year': student.academicYear || 'N/A',
-        'Date of Birth': student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A',
-        'Status': student.status || 'Active'
-      }));
+      // Filter students with WhatsApp numbers
+      const studentsWithWhatsApp = classStudents.filter(s => s.parentWhatsApp);
+      
+      if (studentsWithWhatsApp.length === 0) {
+        toast({
+          title: "No WhatsApp Numbers",
+          description: "No students have parent WhatsApp numbers in this class",
+          variant: "destructive",
+        });
+        setSendingReports(false);
+        return;
+      }
 
-      const columns = ['Code', 'Name', 'Email', 'Phone', 'Class', 'Previous Class', 'Academic Year', 'Date of Birth', 'Status'];
-      generatePDF(classReportData, `Class_Report_${selectedClass}`, `Class Report - ${selectedClass}`, columns);
+      let successCount = 0;
+      let failCount = 0;
+
+      // Helper function to compute grade
+      const computeGrade = (percentage: number): string => {
+        if (percentage >= 80) return 'A';
+        if (percentage >= 70) return 'B';
+        if (percentage >= 60) return 'C';
+        if (percentage >= 50) return 'D';
+        return 'F';
+      };
+
+      // Helper function to compute remark
+      const computeRemark = (grade: string): string => {
+        switch (grade) {
+          case 'A': return 'Excellent';
+          case 'B': return 'Very Good';
+          case 'C': return 'Good';
+          case 'D': return 'Needs Improvement';
+          default: return 'Unsatisfactory';
+        }
+      };
+
+      // Send reports to each student's parent
+      for (const student of studentsWithWhatsApp) {
+        try {
+          // Get student's assessments
+          const studentAssessments = assessments.filter(a => a.studentId === student.id);
+          
+          // Group by subject
+          const subjectIds = Array.from(new Set(studentAssessments.map(a => a.subjectId).filter(Boolean)));
+          
+          // Build subject breakdown
+          const subjectLines: string[] = [];
+          let totalMarks = 0;
+          let subjectCount = 0;
+          
+          for (const subjectId of subjectIds) {
+            const subject = subjects.find(s => s.id === subjectId);
+            if (!subject) continue;
+            
+            const subjectAssessments = studentAssessments.filter(a => a.subjectId === subjectId);
+            const classwork = subjectAssessments.filter(a => a.assessmentType !== 'exam').reduce((sum, a) => sum + (a.score || 0), 0);
+            const exam = subjectAssessments.filter(a => a.assessmentType === 'exam').reduce((sum, a) => sum + (a.score || 0), 0);
+            const totalMax = subjectAssessments.reduce((sum, a) => sum + (a.maxScore || 0), 0) || 100;
+            const total = classwork + exam;
+            const percentage = totalMax > 0 ? (total / totalMax) * 100 : 0;
+            const grade = computeGrade(percentage);
+            
+            totalMarks += percentage;
+            subjectCount++;
+            
+            subjectLines.push(
+              `${subject.name}: ${total}/${totalMax} (${percentage.toFixed(1)}%) - Grade ${grade}`
+            );
+          }
+          
+          const averagePercentage = subjectCount > 0 ? totalMarks / subjectCount : 0;
+          const overallGrade = computeGrade(averagePercentage);
+          const overallRemark = computeRemark(overallGrade);
+          
+          // Build WhatsApp message
+          let message = `📚 *TERMINAL REPORT CARD*\n\n`;
+          message += `*Student:* ${student.firstName} ${student.lastName}\n`;
+          message += `*Class:* ${student.className}\n`;
+          message += `*Student Code:* ${student.studentCode}\n\n`;
+          
+          if (subjectLines.length > 0) {
+            message += `*SUBJECT PERFORMANCE:*\n${subjectLines.join('\n')}\n\n`;
+            message += `*OVERALL AVERAGE:* ${averagePercentage.toFixed(1)}%\n`;
+            message += `*OVERALL GRADE:* ${overallGrade}\n`;
+            message += `*REMARK:* ${overallRemark}\n\n`;
+          } else {
+            message += `*No assessment records found for this term.*\n\n`;
+          }
+          
+          message += `This is an automated message from the school management system.`;
+          
+          // Send via WhatsApp
+          await sendWhatsAppText(student.parentWhatsApp, message);
+          successCount++;
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error: any) {
+          console.error(`Failed to send report for ${student.firstName} ${student.lastName}:`, error);
+          failCount++;
+        }
+      }
 
       toast({
-        title: "Report Generated Successfully",
-        description: `Academic report for ${selectedClass} has been downloaded as PDF`,
+        title: "Reports Sent",
+        description: `Successfully sent ${successCount} report(s) via WhatsApp. ${failCount > 0 ? `${failCount} failed.` : ''}`,
       });
     } catch (error) {
+      console.error('Error sending class reports:', error);
       toast({
         title: "Error",
-        description: "Failed to generate class report",
+        description: "Failed to send class reports",
         variant: "destructive",
       });
     } finally {
