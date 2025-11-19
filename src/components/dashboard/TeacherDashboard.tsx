@@ -70,38 +70,57 @@ export function TeacherDashboard() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Teacher Dashboard</h1>
-          <p className="text-muted-foreground">Manage your classes, students, and academic activities</p>
+          <p className="text-muted-foreground mt-2 flex items-center gap-2">
+            Manage your classes, students, and academic activities
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse-soft" />
+              Live Data
+            </div>
+          </p>
           {classCount > 0 && (
-            <p className="text-sm text-primary mt-1">You are currently managing {classCount} class{classCount !== 1 ? 'es' : ''}</p>
+            <p className="text-sm text-primary mt-1 font-medium">You are currently managing {classCount} class{classCount !== 1 ? 'es' : ''}</p>
           )}
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Enhanced */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {teacherStats.map((stat, index) => (
-          <Card key={index} className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card 
+            key={index} 
+            className="card-hover shadow-soft animate-scale-in overflow-hidden relative group"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <div className={`p-2 rounded-lg ${
+                stat.color.includes('blue') ? 'bg-primary/10' : 
+                stat.color.includes('green') ? 'bg-success/10' : 
+                stat.color.includes('purple') ? 'bg-accent/10' : 'bg-warning/10'
+              } transition-transform group-hover:scale-110`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+            <CardContent className="relative z-10">
+              <div className="text-3xl font-bold text-foreground bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                {stat.value}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs defaultValue="overview" className="w-full animate-fade-in" style={{ animationDelay: '300ms' }}>
+        <TabsList className="grid w-full grid-cols-3 max-w-md shadow-soft">
           <TabsTrigger value="overview" className="gap-2">
             <BookOpen className="w-4 h-4" />
             Overview
@@ -120,19 +139,25 @@ export function TeacherDashboard() {
         <TabsContent value="overview" className="space-y-6">
           {/* My Assigned Classes */}
           {classes.length > 0 && (
-            <Card className="shadow-sm">
+            <Card className="shadow-soft card-hover animate-slide-up">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
-                  My Assigned Classes
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <BookOpen className="w-5 h-5 text-primary" />
+                  </div>
+                  <span>My Assigned Classes</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {classes.map((classItem) => {
+                  {classes.map((classItem, idx) => {
                     const classStudents = students.filter(s => s.className === classItem.className && s.status === 'active');
                     return (
-                      <Card key={classItem.id} className="border-2 hover:border-primary/50 transition-colors">
+                      <Card 
+                        key={classItem.id} 
+                        className="border-2 hover:border-primary/50 transition-all card-hover animate-scale-in"
+                        style={{ animationDelay: `${idx * 100}ms` }}
+                      >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div>
@@ -141,14 +166,16 @@ export function TeacherDashboard() {
                                 {classStudents.length} Student{classStudents.length !== 1 ? 's' : ''}
                               </p>
                             </div>
-                            <Badge variant="secondary">{classItem.section || 'Main'}</Badge>
+                            <Badge variant="secondary" className="bg-gradient-primary text-primary-foreground shadow-soft">
+                              {classItem.section || 'Main'}
+                            </Badge>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full justify-start gap-2"
+                            className="w-full justify-start gap-2 hover:bg-primary/10"
                             onClick={() => navigate(`/teacher/class/${classItem.id}`)}
                           >
                             <Users className="w-4 h-4" />
@@ -157,7 +184,7 @@ export function TeacherDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full justify-start gap-2"
+                            className="w-full justify-start gap-2 hover:bg-accent/10"
                             onClick={() => navigate(`/grades?class=${classItem.id}`)}
                           >
                             <Eye className="w-4 h-4" />
