@@ -154,36 +154,65 @@ export function AccountantDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span>Loading financial data...</span>
+      <div className="space-y-6 p-6">
+        <div className="animate-fade-in">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="h-8 w-64 bg-muted rounded-lg animate-pulse-soft" />
+                <div className="h-4 w-96 bg-muted/60 rounded animate-pulse-soft" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-10 w-32 bg-muted rounded-lg animate-pulse-soft" />
+                <div className="h-10 w-32 bg-muted rounded-lg animate-pulse-soft" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="shadow-soft">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="h-4 w-24 bg-muted rounded animate-pulse-soft" />
+                      <div className="h-8 w-32 bg-muted rounded animate-pulse-soft" />
+                      <div className="h-3 w-20 bg-muted/60 rounded animate-pulse-soft" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Finance Dashboard</h1>
-          <p className="text-muted-foreground">Monitor school finances, fees, and expenses</p>
+          <p className="text-muted-foreground mt-2 flex items-center gap-2">
+            Monitor school finances, fees, and expenses
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="w-2 h-2 bg-success rounded-full animate-pulse-soft" />
+              Live Data
+            </div>
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFinancialReportDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setFinancialReportDialogOpen(true)} className="hover:bg-muted">
             <Download className="w-4 h-4 mr-2" />
             Export Report
           </Button>
-          <Button size="sm" className="bg-gradient-primary" onClick={() => setPaymentDialogOpen(true)}>
+          <Button size="sm" className="bg-gradient-primary hover:opacity-90 shadow-medium" onClick={() => setPaymentDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Record Payment
           </Button>
         </div>
       </div>
 
-      {/* Financial Stats Cards */}
+      {/* Financial Stats Cards - Enhanced */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {financialStats.map((stat, index) => {
           const handleCardClick = () => {
@@ -201,19 +230,25 @@ export function AccountantDashboard() {
           return (
             <Card 
               key={index} 
-              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow" 
+              className="card-hover shadow-soft cursor-pointer animate-scale-in overflow-hidden relative group" 
+              style={{ animationDelay: `${index * 100}ms` }}
               onClick={handleCardClick}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`p-2 rounded-lg ${stat.color.includes('green') ? 'bg-success/10' : stat.color.includes('yellow') ? 'bg-warning/10' : 'bg-primary/10'} transition-transform group-hover:scale-110`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <span className={stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold text-foreground bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                  {stat.value}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                  <span className={stat.trend.startsWith('+') ? 'text-success font-medium' : 'text-destructive font-medium'}>
                     {stat.trend}
                   </span>
                   <span>vs last month</span>
@@ -224,13 +259,16 @@ export function AccountantDashboard() {
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 animate-fade-in" style={{ animationDelay: '400ms' }}>
         {/* Revenue Trend */}
-        <Card className="shadow-sm">
+        <Card className="shadow-soft card-hover overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-success" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Monthly Revenue vs Expenses
+              <div className="p-2 rounded-lg bg-success/10">
+                <TrendingUp className="w-5 h-5 text-success" />
+              </div>
+              <span>Monthly Revenue vs Expenses</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -261,11 +299,14 @@ export function AccountantDashboard() {
         </Card>
 
         {/* Fee Breakdown */}
-        <Card className="shadow-sm">
+        <Card className="shadow-soft card-hover overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-primary" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Receipt className="w-5 h-5" />
-              Fee Collection Breakdown
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Receipt className="w-5 h-5 text-primary" />
+              </div>
+              <span>Fee Collection Breakdown</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -300,11 +341,13 @@ export function AccountantDashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <Card className="shadow-sm">
+      <Card className="shadow-soft card-hover animate-fade-in" style={{ animationDelay: '600ms' }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            Recent Transactions
+            <div className="p-2 rounded-lg bg-accent/10">
+              <CreditCard className="w-5 h-5 text-accent" />
+            </div>
+            <span>Recent Transactions</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

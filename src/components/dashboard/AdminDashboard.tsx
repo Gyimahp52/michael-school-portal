@@ -266,8 +266,33 @@ export function AdminDashboard() {
   if (loading) {
     return (
       <div className="space-y-6 p-6">
-        <div className="text-center">
-          <div className="text-lg">Loading dashboard...</div>
+        <div className="animate-fade-in">
+          {/* Skeleton loader */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="space-y-2">
+                <div className="h-8 w-64 bg-muted rounded-lg animate-pulse-soft" />
+                <div className="h-4 w-96 bg-muted/60 rounded animate-pulse-soft" />
+              </div>
+              <div className="flex gap-3">
+                <div className="h-10 w-32 bg-muted rounded-lg animate-pulse-soft" />
+                <div className="h-10 w-32 bg-muted rounded-lg animate-pulse-soft" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="shadow-soft">
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      <div className="h-4 w-24 bg-muted rounded animate-pulse-soft" />
+                      <div className="h-8 w-32 bg-muted rounded animate-pulse-soft" />
+                      <div className="h-3 w-20 bg-muted/60 rounded animate-pulse-soft" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -301,24 +326,38 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Primary Stats Cards */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4 text-foreground">School Overview</h2>
+      {/* Primary Stats Cards - Enhanced with animations */}
+      <div className="animate-fade-in">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">School Overview</h2>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="w-2 h-2 bg-success rounded-full animate-pulse-soft" />
+            Live Data
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {primaryStats.map((stat, index) => (
-            <Card key={index} className="shadow-soft border-border/50 hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+            <Card 
+              key={index} 
+              className="card-hover shadow-soft border-border/50 animate-scale-in overflow-hidden relative group"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <h3 className="text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                      {stat.value}
+                    </h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
                       {stat.change}
                     </p>
                   </div>
-                  <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                  <div className={`${stat.bgColor} p-4 rounded-xl shadow-medium transition-transform group-hover:scale-110`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -328,16 +367,17 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Financial Summary */}
-      <div>
+      {/* Financial Summary - Enhanced with real-time indicators */}
+      <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Financial Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {financialStats.map((stat, index) => (
             <Card 
               key={index} 
-              className={`shadow-soft border-border/50 hover:shadow-lg transition-shadow ${
+              className={`card-hover shadow-soft border-border/50 animate-scale-in overflow-hidden relative group ${
                 stat.title !== 'Net Balance' ? 'cursor-pointer' : ''
               }`}
+              style={{ animationDelay: `${(index + 4) * 100}ms` }}
               onClick={() => {
                 if (stat.title === 'Total Revenue') {
                   setTotalRevenueDialogOpen(true);
@@ -348,18 +388,21 @@ export function AdminDashboard() {
                 }
               }}
             >
-              <CardContent className="p-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <h3 className="text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                      {stat.value}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
                       {stat.change}
                     </p>
                   </div>
-                  <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                  <div className={`${stat.bgColor} p-4 rounded-xl shadow-medium transition-transform group-hover:scale-110 group-hover:rotate-3`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -369,14 +412,17 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* Charts Section - Enhanced with animations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
         {/* Enrollment Growth Chart */}
-        <Card className="shadow-soft border-border/50">
+        <Card className="shadow-soft border-border/50 card-hover overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-primary" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              Enrollment Growth
+              <div className="p-2 rounded-lg bg-primary/10">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <span>Enrollment Growth</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
