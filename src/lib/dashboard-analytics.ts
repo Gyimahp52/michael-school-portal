@@ -291,27 +291,49 @@ export const getRecentActivities = async (): Promise<RecentActivity[]> => {
 
 export const getPendingTasks = async (): Promise<PendingTask[]> => {
   try {
-    const [studentsSnapshot, financialSnapshot] = await Promise.all([
+    const [studentsSnapshot, financialSnapshot, applicationsSnapshot, assessmentsSnapshot, balancesSnapshot] = await Promise.all([
       get(ref(rtdb, 'students')),
-      get(ref(rtdb, 'financial'))
+      get(ref(rtdb, 'financial')),
+      get(ref(rtdb, 'applications')),
+      get(ref(rtdb, 'assessments')),
+      get(ref(rtdb, 'studentBalances'))
     ]);
 
     const students = studentsSnapshot.exists() ? Object.values(studentsSnapshot.val()) : [];
     const financial = financialSnapshot.exists() ? Object.values(financialSnapshot.val()) as FinancialRecord[] : [];
+    const applications = applicationsSnapshot.exists() ? Object.values(applicationsSnapshot.val()) as any[] : [];
+    const assessments = assessmentsSnapshot.exists() ? Object.values(assessmentsSnapshot.val()) as any[] : [];
+    const balances = balancesSnapshot.exists() ? Object.values(balancesSnapshot.val()) as any[] : [];
 
     // Calculate pending tasks
-    const pendingAdmissions = students.filter((s: any) => s.status === 'pending').length;
-    const outstandingFees = financial
-      .filter(f => f.type === 'income' && (f.status === 'pending' || f.status === 'overdue'))
-      .reduce((sum, f) => sum + f.amount, 0);
-    const pendingGrades = Math.floor(Math.random() * 15); // This would come from grades system
-    const pendingEvaluations = Math.floor(Math.random() * 10); // This would come from evaluation system
+    const pendingAdmissions = applications.filter((app: any) => app.status === 'pending').length;
+    
+    // Outstanding fees count from student balances
+    const outstandingFeesCount = balances.filter(bal => 
+      bal.status === 'partial' || bal.status === 'overdue'
+    ).length;
+    
+    // Pending grades - assessments that don't have grades yet or are incomplete
+    const pendingGrades = assessments.filter((assessment: any) => 
+      !assessment.grade || assessment.status === 'pending'
+    ).length;
+    
+    // Pending evaluations - count students without recent assessments (this term)
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const recentAssessments = assessments.filter((assessment: any) => {
+      const assessmentDate = new Date(assessment.date || assessment.createdAt);
+      return assessmentDate.getMonth() === currentMonth;
+    });
+    const studentsWithRecentAssessments = new Set(recentAssessments.map((a: any) => a.studentId));
+    const activeStudents = students.filter((s: any) => s.status === 'active');
+    const pendingEvaluations = activeStudents.length - studentsWithRecentAssessments.size;
 
     return [
-      { type: 'admissions', label: 'Admission Reviews', count: pendingAdmissions },
-      { type: 'fees', label: 'Outstanding Fees', count: 0, amount: outstandingFees },
-      { type: 'grades', label: 'Grade Approvals', count: pendingGrades },
-      { type: 'evaluations', label: 'Teacher Evaluations', count: pendingEvaluations }
+      { type: 'admissions', label: 'Pending Admissions', count: pendingAdmissions },
+      { type: 'fees', label: 'Outstanding Fees', count: outstandingFeesCount },
+      { type: 'grades', label: 'Pending Grades', count: pendingGrades },
+      { type: 'evaluations', label: 'Pending Evaluations', count: pendingEvaluations }
     ];
   } catch (error) {
     console.error('Error fetching pending tasks:', error);
@@ -388,4 +410,32 @@ export const subscribeToRecentActivities = (callback: (activities: RecentActivit
   });
 
   return () => off(activitiesRef);
+};
+
+// Real-time subscription for pending tasks
+export const subscribeToPendingTasks = (callback: (tasks: PendingTask[]) => void): (() => void) => {
+  const studentsRef = ref(rtdb, 'students');
+  const financialRef = ref(rtdb, 'financial');
+  const applicationsRef = ref(rtdb, 'applications');
+  const assessmentsRef = ref(rtdb, 'assessments');
+  const balancesRef = ref(rtdb, 'studentBalances');
+
+  const updateTasks = async () => {
+    const tasks = await getPendingTasks();
+    callback(tasks);
+  };
+
+  onValue(studentsRef, updateTasks);
+  onValue(financialRef, updateTasks);
+  onValue(applicationsRef, updateTasks);
+  onValue(assessmentsRef, updateTasks);
+  onValue(balancesRef, updateTasks);
+
+  return () => {
+    off(studentsRef);
+    off(financialRef);
+    off(applicationsRef);
+    off(assessmentsRef);
+    off(balancesRef);
+  };
 };

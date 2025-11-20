@@ -46,6 +46,7 @@ import {
   getPendingTasks,
   subscribeToDashboardStats,
   subscribeToRecentActivities,
+  subscribeToPendingTasks,
   type DashboardStats,
   type EnrollmentData,
   type FeeCollectionData,
@@ -132,6 +133,7 @@ export function AdminDashboard() {
     // Set up real-time subscriptions
     const unsubscribeStats = subscribeToDashboardStats(setDashboardStats);
     const unsubscribeActivities = subscribeToRecentActivities(setRecentActivities);
+    const unsubscribeTasks = subscribeToPendingTasks(setPendingTasks);
     const unsubscribeStudents = subscribeToStudents(setStudents);
     const unsubscribeBalances = subscribeToStudentBalances(setStudentBalances);
     const unsubscribeFees = subscribeToSchoolFees(setSchoolFees);
@@ -140,6 +142,7 @@ export function AdminDashboard() {
     return () => {
       unsubscribeStats();
       unsubscribeActivities();
+      unsubscribeTasks();
       unsubscribeStudents();
       unsubscribeBalances();
       unsubscribeFees();
