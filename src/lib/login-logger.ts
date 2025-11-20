@@ -1,5 +1,6 @@
 import { ref, push, serverTimestamp } from 'firebase/database';
 import { rtdb } from '../firebase';
+import { logAuditEvent } from './audit-logger';
 
 type LoginStatus = 'success' | 'failed' | 'unauthorized';
 
@@ -38,6 +39,18 @@ export const logLoginAttempt = async (
       ...base,
       timestamp: serverTimestamp(),
     });
+
+    // Also log to audit log if successful
+    if (status === 'success') {
+      await logAuditEvent(
+        userId,
+        email,
+        'login',
+        'user',
+        userId,
+        { userRole: role, details: 'User logged in successfully' }
+      );
+    }
   } catch (error) {
     console.error('Failed to log login attempt:', error);
     // Fail silently - we don't want login to fail because logging failed
