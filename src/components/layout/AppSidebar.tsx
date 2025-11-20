@@ -12,6 +12,7 @@ import {
   DollarSign,
   ArrowUpCircle,
   Calendar,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -86,9 +87,15 @@ const baseItems = [
   },
   {
     title: "User Management",
-    suffix: "/users",
+    suffix: "/user-management",
     icon: Users,
     group: "System", 
+  },
+  {
+    title: "Audit Log",
+    suffix: "/audit-log",
+    icon: Shield,
+    group: "System",
   },
   {
     title: "School Fees",

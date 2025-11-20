@@ -1,5 +1,6 @@
 import { ref, push, set, get, update, remove, onValue } from 'firebase/database';
 import { rtdb } from '../firebase';
+import { logAuditEvent } from './audit-logger';
 
 // ===== ACADEMIC YEAR & TERM OPERATIONS =====
 export interface AcademicYear {
@@ -271,7 +272,10 @@ export const generateStudentCode = async (): Promise<string> => {
   }
 };
 
-export const createStudent = async (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+export const createStudent = async (
+  student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
+  createdBy?: { userId: string; userName: string; userRole?: string }
+): Promise<string> => {
   try {
     const studentsRef = ref(rtdb, 'students');
     const newStudentRef = push(studentsRef);
@@ -287,6 +291,23 @@ export const createStudent = async (student: Omit<Student, 'id' | 'createdAt' | 
     };
     
     await set(newStudentRef, studentData);
+    
+    // Log audit event
+    if (createdBy) {
+      await logAuditEvent(
+        createdBy.userId,
+        createdBy.userName,
+        'create',
+        'student',
+        newStudentRef.key!,
+        {
+          userRole: createdBy.userRole,
+          entityName: `${student.firstName} ${student.lastName}`,
+          details: `Created student ${studentCode} in class ${student.className}`
+        }
+      );
+    }
+    
     return newStudentRef.key!;
   } catch (error) {
     console.error('Error creating student:', error);
@@ -312,13 +333,42 @@ export const getAllStudents = async (): Promise<Student[]> => {
   }
 };
 
-export const updateStudent = async (studentId: string, updates: Partial<Student>): Promise<void> => {
+export const updateStudent = async (
+  studentId: string,
+  updates: Partial<Student>,
+  updatedBy?: { userId: string; userName: string; userRole?: string }
+): Promise<void> => {
   try {
     const studentRef = ref(rtdb, `students/${studentId}`);
+    
+    // Get old data for change tracking
+    const oldSnapshot = await get(studentRef);
+    const oldData = oldSnapshot.val();
+    
     await update(studentRef, {
       ...updates,
       updatedAt: new Date().toISOString()
     });
+    
+    // Log audit event
+    if (updatedBy && oldData) {
+      const studentName = updates.firstName || updates.lastName 
+        ? `${updates.firstName || oldData.firstName} ${updates.lastName || oldData.lastName}`
+        : `${oldData.firstName} ${oldData.lastName}`;
+      
+      await logAuditEvent(
+        updatedBy.userId,
+        updatedBy.userName,
+        'update',
+        'student',
+        studentId,
+        {
+          userRole: updatedBy.userRole,
+          entityName: studentName,
+          details: `Updated student information`
+        }
+      );
+    }
   } catch (error) {
     console.error('Error updating student:', error);
     throw error;
@@ -717,7 +767,10 @@ export interface Invoice {
   academicYearName?: string;
 }
 
-export const createInvoice = async (invoice: Omit<Invoice, 'id'>): Promise<string> => {
+export const createInvoice = async (
+  invoice: Omit<Invoice, 'id'>,
+  createdBy?: { userId: string; userName: string; userRole?: string }
+): Promise<string> => {
   try {
     const invoicesRef = ref(rtdb, 'invoices');
     const newInvoiceRef = push(invoicesRef);
@@ -729,6 +782,23 @@ export const createInvoice = async (invoice: Omit<Invoice, 'id'>): Promise<strin
     };
     
     await set(newInvoiceRef, invoiceData);
+    
+    // Log audit event
+    if (createdBy) {
+      await logAuditEvent(
+        createdBy.userId,
+        createdBy.userName,
+        'payment',
+        'invoice',
+        newInvoiceRef.key!,
+        {
+          userRole: createdBy.userRole,
+          entityName: `Invoice #${newInvoiceRef.key?.substring(0, 8)}`,
+          details: `Created invoice for ${invoice.studentName} - ${invoice.description}: $${invoice.amount}`
+        }
+      );
+    }
+    
     return newInvoiceRef.key!;
   } catch (error) {
     console.error('Error creating invoice:', error);

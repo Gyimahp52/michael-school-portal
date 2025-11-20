@@ -29,6 +29,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const ReportCardPrintPage = lazy(() => import("./pages/ReportCardPrintPage"));
 const PromotionsPage = lazy(() => import("./pages/PromotionsPage"));
 const CanteenPage = lazy(() => import("./pages/CanteenPage"));
+const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const SetupPage = lazy(() => import("./pages/SetupPage").then(m => ({ default: m.SetupPage })));
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const AppContent = () => {
           <Route path="students/:studentId" element={<StudentProfilePage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="canteen" element={<CanteenPage />} />
+          <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="grades/print/:classId" element={<ReportCardPrintPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
