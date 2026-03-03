@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,18 +12,21 @@ import {
   FileText,
   Plus,
   Download,
-  Loader2
+  Loader2,
+  Users
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar } from "recharts";
 import { 
   subscribeToInvoices, 
   subscribeToStudentBalances,
   subscribeToStudents,
   subscribeToSchoolFees,
+  subscribeToClasses,
   Invoice, 
   StudentBalance, 
   Student,
-  SchoolFees
+  SchoolFees,
+  Class
 } from "@/lib/database-operations";
 import { PaymentDialog } from "@/components/dialogs/PaymentDialog";
 import { StudentBalancesByClass } from "./StudentBalancesByClass";
@@ -40,6 +43,7 @@ export function AccountantDashboard() {
   const [studentBalances, setStudentBalances] = useState<StudentBalance[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [schoolFees, setSchoolFees] = useState<SchoolFees[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [feesCollectedDialogOpen, setFeesCollectedDialogOpen] = useState(false);
@@ -51,6 +55,7 @@ export function AccountantDashboard() {
   useEffect(() => {
     const unsubscribeInvoices = subscribeToInvoices((invoicesData) => {
       setInvoices(invoicesData);
+      setLoading(false);
     });
 
     const unsubscribeBalances = subscribeToStudentBalances((balancesData) => {
@@ -65,13 +70,16 @@ export function AccountantDashboard() {
       setSchoolFees(feesData);
     });
 
-    setLoading(false);
+    const unsubscribeClasses = subscribeToClasses((classesData) => {
+      setClasses(classesData);
+    });
 
     return () => {
       unsubscribeInvoices();
       unsubscribeBalances();
       unsubscribeStudents();
       unsubscribeFees();
+      unsubscribeClasses();
     };
   }, []);
 
@@ -87,48 +95,98 @@ export function AccountantDashboard() {
 
   const feesCollected = monthlyInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   const outstandingFees = studentBalances.reduce((sum, balance) => sum + balance.balance, 0);
-  const totalStudents = students.length;
+  const totalStudentsCount = students.length;
+  const activeStudents = students.filter(s => s.status === 'active').length;
   const paidStudents = studentBalances.filter(b => b.status === 'paid').length;
   const partialStudents = studentBalances.filter(b => b.status === 'partial').length;
   const overdueStudents = studentBalances.filter(b => b.status === 'overdue').length;
+
+  // Students per class - real-time
+  const studentsPerClass = useMemo(() => {
+    const classMap = new Map<string, number>();
+    students.filter(s => s.status === 'active').forEach(s => {
+      const cls = s.className || 'Unassigned';
+      classMap.set(cls, (classMap.get(cls) || 0) + 1);
+    });
+    return Array.from(classMap.entries())
+      .map(([name, count]) => ({ name, students: count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [students]);
+
+  // Previous month comparison
+  const prevMonthInvoices = invoices.filter(invoice => {
+    if (!invoice.paymentDate) return false;
+    const paymentDate = new Date(invoice.paymentDate);
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    return paymentDate.getMonth() === prevMonth && paymentDate.getFullYear() === prevYear;
+  });
+  const prevMonthTotal = prevMonthInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const trendPercent = prevMonthTotal > 0 
+    ? ((feesCollected - prevMonthTotal) / prevMonthTotal * 100).toFixed(1)
+    : feesCollected > 0 ? '+100' : '0';
 
   const financialStats = [
     { 
       title: "Fees Collected (This Month)", 
       value: formatCurrency(feesCollected), 
       icon: DollarSign, 
-      color: "text-green-600", 
-      trend: "+12.5%" 
+      color: "text-success", 
+      bgColor: "bg-success/10",
+      trend: `${Number(trendPercent) >= 0 ? '+' : ''}${trendPercent}%`
     },
     { 
       title: "Outstanding Fees", 
       value: formatCurrency(outstandingFees), 
       icon: AlertTriangle, 
-      color: "text-red-600", 
+      color: "text-warning", 
+      bgColor: "bg-warning/10",
       trend: `${overdueStudents} overdue` 
     },
     { 
       title: "Total Students", 
-      value: totalStudents.toString(), 
-      icon: TrendingUp, 
-      color: "text-blue-600", 
-      trend: `${paidStudents} paid` 
+      value: activeStudents.toString(), 
+      icon: Users, 
+      color: "text-primary", 
+      bgColor: "bg-primary/10",
+      trend: `${paidStudents} fully paid` 
     },
     { 
       title: "Payment Status", 
       value: `${partialStudents} partial`, 
       icon: Receipt, 
-      color: "text-orange-600", 
+      color: "text-accent", 
+      bgColor: "bg-accent/10",
       trend: `${overdueStudents} overdue` 
     },
   ];
 
-  // Generate chart data from real invoices
-  const monthlyRevenue = [
-    { name: 'Jan', fees: 0, expenses: 0 },
-    { name: 'Feb', fees: 0, expenses: 0 },
-    { name: 'Mar', fees: feesCollected, expenses: 0 },
-  ];
+  // Generate chart data from real invoices - last 6 months
+  const monthlyRevenue = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const data = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const monthFees = invoices
+        .filter(inv => {
+          if (!inv.paymentDate) return false;
+          const pd = new Date(inv.paymentDate);
+          return pd >= startOfMonth && pd <= endOfMonth;
+        })
+        .reduce((sum, inv) => sum + inv.amount, 0);
+      
+      data.push({
+        name: monthNames[date.getMonth()],
+        fees: monthFees,
+      });
+    }
+    return data;
+  }, [invoices]);
 
   // Calculate fee breakdown from student balances
   const totalTuition = studentBalances.reduce((sum, balance) => sum + balance.totalFees, 0);
@@ -136,14 +194,14 @@ export function AccountantDashboard() {
   const totalOutstanding = totalTuition - totalPaid;
 
   const feeBreakdown = [
-    { name: 'Paid Fees', value: totalPaid, color: '#10b981' },
-    { name: 'Outstanding', value: totalOutstanding, color: '#ef4444' },
+    { name: 'Paid Fees', value: totalPaid, color: 'hsl(var(--success))' },
+    { name: 'Outstanding', value: totalOutstanding, color: 'hsl(var(--destructive))' },
   ];
 
   // Recent transactions from real invoices
   const recentTransactions = invoices
     .sort((a, b) => new Date(b.paymentDate || b.dueDate).getTime() - new Date(a.paymentDate || a.dueDate).getTime())
-    .slice(0, 4)
+    .slice(0, 5)
     .map(invoice => ({
       type: "Fee Payment",
       student: invoice.studentName,
@@ -194,10 +252,10 @@ export function AccountantDashboard() {
           <h1 className="text-3xl font-bold text-foreground">Finance Dashboard</h1>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             Monitor school finances, fees, and expenses
-            <div className="flex items-center gap-1.5 text-xs">
-              <div className="w-2 h-2 bg-success rounded-full animate-pulse-soft" />
+            <span className="flex items-center gap-1.5 text-xs">
+              <span className="w-2 h-2 bg-success rounded-full animate-pulse-soft inline-block" />
               Live Data
-            </div>
+            </span>
           </p>
         </div>
         <div className="flex gap-2">
@@ -212,7 +270,7 @@ export function AccountantDashboard() {
         </div>
       </div>
 
-      {/* Financial Stats Cards - Enhanced */}
+      {/* Financial Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {financialStats.map((stat, index) => {
           const handleCardClick = () => {
@@ -239,7 +297,7 @@ export function AccountantDashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.color.includes('green') ? 'bg-success/10' : stat.color.includes('yellow') ? 'bg-warning/10' : 'bg-primary/10'} transition-transform group-hover:scale-110`}>
+                <div className={`p-2 rounded-lg ${stat.bgColor} transition-transform group-hover:scale-110`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </CardHeader>
@@ -248,10 +306,18 @@ export function AccountantDashboard() {
                   {stat.value}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                  <span className={stat.trend.startsWith('+') ? 'text-success font-medium' : 'text-destructive font-medium'}>
+                  {stat.trend.startsWith('+') ? (
+                    <TrendingUp className="w-3 h-3 text-success" />
+                  ) : stat.trend.startsWith('-') ? (
+                    <TrendingDown className="w-3 h-3 text-destructive" />
+                  ) : null}
+                  <span className={
+                    stat.trend.startsWith('+') ? 'text-success font-medium' : 
+                    stat.trend.startsWith('-') ? 'text-destructive font-medium' : 
+                    'text-muted-foreground font-medium'
+                  }>
                     {stat.trend}
                   </span>
-                  <span>vs last month</span>
                 </div>
               </CardContent>
             </Card>
@@ -259,8 +325,44 @@ export function AccountantDashboard() {
         })}
       </div>
 
+      {/* Students Per Class - Real-time */}
+      {studentsPerClass.length > 0 && (
+        <Card className="shadow-soft card-hover overflow-hidden animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-primary" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <span>Students Per Class</span>
+              <Badge variant="secondary" className="ml-auto">{activeStudents} total active</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={studentsPerClass}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <Bar dataKey="students" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Students" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2 animate-fade-in" style={{ animationDelay: '400ms' }}>
-        {/* Revenue Trend */}
+        {/* Revenue Trend - Real 6 months */}
         <Card className="shadow-soft card-hover overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-success" />
           <CardHeader>
@@ -268,31 +370,26 @@ export function AccountantDashboard() {
               <div className="p-2 rounded-lg bg-success/10">
                 <TrendingUp className="w-5 h-5 text-success" />
               </div>
-              <span>Monthly Revenue vs Expenses</span>
+              <span>Monthly Fee Collection</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyRevenue}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Line 
-                    type="monotone" 
-                    dataKey="fees" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    name="Fees Collected"
+                <BarChart data={monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), 'Collected']}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="expenses" 
-                    stroke="#ef4444" 
-                    strokeWidth={2}
-                    name="Expenses"
-                  />
-                </LineChart>
+                  <Bar dataKey="fees" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Fees Collected" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -310,7 +407,7 @@ export function AccountantDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] flex items-center">
+            <div className="h-[240px] flex items-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -320,19 +417,33 @@ export function AccountantDashboard() {
                     innerRadius={60}
                     outerRadius={100}
                     dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    fontSize={11}
                   >
                     {feeBreakdown.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), 'Amount']}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               {feeBreakdown.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-sm text-muted-foreground">{item.name}</span>
+                <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                  <div className="min-w-0">
+                    <span className="text-sm text-muted-foreground block truncate">{item.name}</span>
+                    <span className="text-sm font-semibold text-foreground">{formatCurrency(item.value)}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -348,37 +459,36 @@ export function AccountantDashboard() {
               <CreditCard className="w-5 h-5 text-accent" />
             </div>
             <span>Recent Transactions</span>
+            <Badge variant="secondary" className="ml-auto">{invoices.length} total</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentTransactions.map((transaction, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+            {recentTransactions.length > 0 ? recentTransactions.map((transaction, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${
-                    transaction.type === "Fee Payment" ? "bg-green-100 text-green-600" :
-                    transaction.type === "Salary Payment" ? "bg-blue-100 text-blue-600" :
-                    "bg-orange-100 text-orange-600"
-                  }`}>
-                    {transaction.type === "Fee Payment" ? <DollarSign className="w-4 h-4" /> :
-                     transaction.type === "Salary Payment" ? <CreditCard className="w-4 h-4" /> :
-                     <FileText className="w-4 h-4" />}
+                  <div className="p-2 rounded-full bg-success/10">
+                    <DollarSign className="w-4 h-4 text-success" />
                   </div>
                   <div>
-                    <p className="font-medium">{transaction.type}</p>
-                     <p className="text-sm text-muted-foreground">
-                       {transaction.student} • {transaction.date}
-                     </p>
+                    <p className="font-medium text-foreground">{transaction.type}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {transaction.student} • {transaction.date}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{transaction.amount}</p>
-                  <Badge variant={transaction.status === "completed" ? "default" : "secondary"}>
+                  <p className="font-semibold text-foreground">{transaction.amount}</p>
+                  <Badge variant={transaction.status === "paid" ? "default" : "secondary"}>
                     {transaction.status}
                   </Badge>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center text-muted-foreground py-8">
+                No transactions recorded yet
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -406,26 +516,26 @@ export function AccountantDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="shadow-sm">
+      <Card className="shadow-soft animate-fade-in" style={{ animationDelay: '800ms' }}>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4">
-              <Receipt className="w-6 h-6" />
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors">
+              <Receipt className="w-6 h-6 text-primary" />
               <span>Generate Invoice</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setPaymentDialogOpen(true)}>
-              <DollarSign className="w-6 h-6" />
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => setPaymentDialogOpen(true)}>
+              <DollarSign className="w-6 h-6 text-success" />
               <span>Record Payment</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setFinancialReportDialogOpen(true)}>
-              <FileText className="w-6 h-6" />
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => setFinancialReportDialogOpen(true)}>
+              <FileText className="w-6 h-6 text-accent" />
               <span>Financial Report</span>
             </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setFinancialReportDialogOpen(true)}>
-              <TrendingUp className="w-6 h-6" />
+            <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => setFinancialReportDialogOpen(true)}>
+              <TrendingUp className="w-6 h-6 text-secondary" />
               <span>View Analytics</span>
             </Button>
           </div>
@@ -433,7 +543,10 @@ export function AccountantDashboard() {
       </Card>
 
       <PaymentDialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen} />
-      <FeesCollectedDialog open={feesCollectedDialogOpen} onOpenChange={setFeesCollectedDialogOpen} />
+      <FeesCollectedDialog 
+        open={feesCollectedDialogOpen} 
+        onOpenChange={setFeesCollectedDialogOpen}
+      />
       <OutstandingFeesDialog 
         open={outstandingFeesDialogOpen} 
         onOpenChange={setOutstandingFeesDialogOpen}
@@ -449,8 +562,8 @@ export function AccountantDashboard() {
       <PaymentStatusDialog 
         open={paymentStatusDialogOpen} 
         onOpenChange={setPaymentStatusDialogOpen}
-        students={students}
         studentBalances={studentBalances}
+        students={students}
       />
       <FinancialReportDialog 
         open={financialReportDialogOpen} 

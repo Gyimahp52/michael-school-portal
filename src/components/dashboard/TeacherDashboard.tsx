@@ -13,7 +13,8 @@ import {
   Eye,
   ArrowUpCircle,
   ClipboardList,
-  UserCheck
+  UserCheck,
+  TrendingUp
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { subscribeToClasses, Class, subscribeToStudents, Student, subscribeToAssessments, AssessmentRecord } from "@/lib/database-operations";
@@ -47,21 +48,32 @@ export function TeacherDashboard() {
   }, [currentUser?.id]);
 
   const classCount = classes.length;
-  const studentCount = useMemo(() => {
-    // Approximate: count active students in same grades as teacher classes
-    const grades = new Set(classes.map(c => c.className).filter(Boolean) as string[]);
-    return students.filter(s => s.status === 'active' && (grades.size === 0 || grades.has(s.className))).length;
+  
+  // Real-time student count per teacher's classes
+  const myStudents = useMemo(() => {
+    const classNames = new Set(classes.map(c => c.className).filter(Boolean) as string[]);
+    return students.filter(s => s.status === 'active' && (classNames.size === 0 || classNames.has(s.className)));
   }, [classes, students]);
+  
+  const studentCount = myStudents.length;
   const pendingGrades = assessments.filter(a => a.score === 0).length;
+  const completedAssessments = assessments.filter(a => a.score > 0).length;
+
+  // Students per class for this teacher
+  const classStudentCounts = useMemo(() => {
+    return classes.map(cls => {
+      const count = students.filter(s => s.className === cls.className && s.status === 'active').length;
+      return { className: cls.className, count, section: cls.section };
+    });
+  }, [classes, students]);
 
   const teacherStats = [
-    { title: "My Classes", value: String(classCount), icon: BookOpen, color: "text-blue-600" },
-    { title: "Total Students", value: String(studentCount), icon: Users, color: "text-green-600" },
-    { title: "Today's Classes", value: "-", icon: Calendar, color: "text-purple-600" },
-    { title: "Pending Grades", value: String(pendingGrades), icon: Clock, color: "text-orange-600" },
+    { title: "My Classes", value: String(classCount), subtitle: `${classCount} assigned`, icon: BookOpen, color: "text-primary", bgColor: "bg-primary/10" },
+    { title: "Total Students", value: String(studentCount), subtitle: "Active students", icon: Users, color: "text-success", bgColor: "bg-success/10" },
+    { title: "Assessments", value: String(completedAssessments), subtitle: `${pendingGrades} pending`, icon: ClipboardList, color: "text-accent", bgColor: "bg-accent/10" },
+    { title: "Pending Grades", value: String(pendingGrades), subtitle: "Needs attention", icon: Clock, color: "text-warning", bgColor: "bg-warning/10" },
   ];
 
-  const todayClasses: { time: string; subject: string; class: string; room: string }[] = [];
   const recentActivities = assessments.slice(0, 4).map(a => ({
     action: `${a.assessmentType} - ${a.subjectId}`,
     class: a.classId,
@@ -77,18 +89,30 @@ export function TeacherDashboard() {
           <h1 className="text-3xl font-bold text-foreground">Teacher Dashboard</h1>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             Manage your classes, students, and academic activities
-            <div className="flex items-center gap-1.5 text-xs">
-              <div className="w-2 h-2 bg-success rounded-full animate-pulse-soft" />
+            <span className="flex items-center gap-1.5 text-xs">
+              <span className="w-2 h-2 bg-success rounded-full animate-pulse-soft inline-block" />
               Live Data
-            </div>
+            </span>
           </p>
           {classCount > 0 && (
-            <p className="text-sm text-primary mt-1 font-medium">You are currently managing {classCount} class{classCount !== 1 ? 'es' : ''}</p>
+            <p className="text-sm text-primary mt-1 font-medium">
+              Managing {classCount} class{classCount !== 1 ? 'es' : ''} with {studentCount} student{studentCount !== 1 ? 's' : ''}
+            </p>
           )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="hover:bg-muted" onClick={() => setOpenAttendance(true)}>
+            <Calendar className="w-4 h-4 mr-2" />
+            Mark Attendance
+          </Button>
+          <Button size="sm" className="bg-gradient-primary hover:opacity-90 shadow-medium" onClick={() => setOpenAssessment(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Assessment
+          </Button>
         </div>
       </div>
 
-      {/* Stats Cards - Enhanced */}
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {teacherStats.map((stat, index) => (
           <Card 
@@ -101,11 +125,7 @@ export function TeacherDashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className={`p-2 rounded-lg ${
-                stat.color.includes('blue') ? 'bg-primary/10' : 
-                stat.color.includes('green') ? 'bg-success/10' : 
-                stat.color.includes('purple') ? 'bg-accent/10' : 'bg-warning/10'
-              } transition-transform group-hover:scale-110`}>
+              <div className={`p-2 rounded-lg ${stat.bgColor} transition-transform group-hover:scale-110`}>
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
             </CardHeader>
@@ -113,6 +133,10 @@ export function TeacherDashboard() {
               <div className="text-3xl font-bold text-foreground bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
                 {stat.value}
               </div>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                {stat.subtitle}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -137,7 +161,7 @@ export function TeacherDashboard() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* My Assigned Classes */}
+          {/* My Assigned Classes with real student counts */}
           {classes.length > 0 && (
             <Card className="shadow-soft card-hover animate-slide-up">
               <CardHeader>
@@ -146,6 +170,7 @@ export function TeacherDashboard() {
                     <BookOpen className="w-5 h-5 text-primary" />
                   </div>
                   <span>My Assigned Classes</span>
+                  <Badge variant="secondary" className="ml-auto">{classCount} classes</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -155,14 +180,15 @@ export function TeacherDashboard() {
                     return (
                       <Card 
                         key={classItem.id} 
-                        className="border-2 hover:border-primary/50 transition-all card-hover animate-scale-in"
+                        className="border-2 border-border/50 hover:border-primary/50 transition-all card-hover animate-scale-in"
                         style={{ animationDelay: `${idx * 100}ms` }}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <div>
                               <CardTitle className="text-lg">{classItem.className}</CardTitle>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                                <Users className="w-3 h-3" />
                                 {classStudents.length} Student{classStudents.length !== 1 ? 's' : ''}
                               </p>
                             </div>
@@ -175,7 +201,7 @@ export function TeacherDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full justify-start gap-2 hover:bg-primary/10"
+                            className="w-full justify-start gap-2 hover:bg-primary/5"
                             onClick={() => navigate(`/teacher/class/${classItem.id}`)}
                           >
                             <Users className="w-4 h-4" />
@@ -184,7 +210,7 @@ export function TeacherDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full justify-start gap-2 hover:bg-accent/10"
+                            className="w-full justify-start gap-2 hover:bg-accent/5"
                             onClick={() => navigate(`/grades?class=${classItem.id}`)}
                           >
                             <Eye className="w-4 h-4" />
@@ -195,102 +221,100 @@ export function TeacherDashboard() {
                     );
                   })}
                 </div>
-                {classes.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No classes assigned yet</p>
-                    <p className="text-sm mt-1">Contact admin to assign classes to you</p>
-                  </div>
-                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {classes.length === 0 && (
+            <Card className="shadow-soft">
+              <CardContent className="text-center py-12">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-muted-foreground font-medium">No classes assigned yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Contact admin to assign classes to you</p>
               </CardContent>
             </Card>
           )}
 
           <div className="grid gap-6 lg:grid-cols-2">
-        {/* Today's Classes */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Today's Classes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {todayClasses.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No classes scheduled</div>
-              ) : todayClasses.map((cls, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="text-sm font-medium text-primary">{cls.time}</div>
-                    <div>
-                      <p className="font-medium">{cls.subject}</p>
-                      <p className="text-sm text-muted-foreground">{cls.class} • {cls.room}</p>
-                    </div>
+            {/* Today's Classes */}
+            <Card className="shadow-soft card-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Calendar className="w-5 h-5 text-accent" />
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Eye className="w-4 h-4" />
-                  </Button>
+                  <span>Today's Classes</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-6 text-muted-foreground">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Schedule not configured</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* Recent Activities */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Recent Activities
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    {activity.status === "completed" ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 text-orange-600" />
-                    )}
-                    <div>
-                      <p className="font-medium">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">{activity.class} • {activity.time}</p>
-                    </div>
+            {/* Recent Activities */}
+            <Card className="shadow-soft card-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-warning/10">
+                    <Clock className="w-5 h-5 text-warning" />
                   </div>
-                  <Badge variant={activity.status === "completed" ? "default" : "secondary"}>
-                    {activity.status}
-                  </Badge>
+                  <span>Recent Activities</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-3">
+                        {activity.status === "completed" ? (
+                          <CheckCircle className="w-4 h-4 text-success" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-warning" />
+                        )}
+                        <div>
+                          <p className="font-medium text-foreground">{activity.action}</p>
+                          <p className="text-sm text-muted-foreground">{activity.class} • {activity.time}</p>
+                        </div>
+                      </div>
+                      <Badge variant={activity.status === "completed" ? "default" : "secondary"}>
+                        {activity.status}
+                      </Badge>
+                    </div>
+                  )) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No recent activities</p>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Quick Actions */}
-          <Card className="shadow-sm">
+          <Card className="shadow-soft">
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/grades')}>
-                  <BookOpen className="w-6 h-6" />
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => navigate('/grades')}>
+                  <BookOpen className="w-6 h-6 text-primary" />
                   <span>View All Grades</span>
                 </Button>
-                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => navigate('/students')}>
-                  <Users className="w-6 h-6" />
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => navigate('/students')}>
+                  <Users className="w-6 h-6 text-success" />
                   <span>View Students</span>
                 </Button>
-                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAttendance(true)}>
-                  <Calendar className="w-6 h-6" />
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => setOpenAttendance(true)}>
+                  <Calendar className="w-6 h-6 text-accent" />
                   <span>Mark Attendance</span>
                 </Button>
-                <Button variant="outline" className="h-auto flex-col gap-2 p-4" onClick={() => setOpenAssessment(true)}>
-                  <Plus className="w-6 h-6" />
+                <Button variant="outline" className="h-auto flex-col gap-2 p-4 hover:bg-muted/50 transition-colors" onClick={() => setOpenAssessment(true)}>
+                  <Plus className="w-6 h-6 text-warning" />
                   <span>Add Assessment</span>
                 </Button>
               </div>
