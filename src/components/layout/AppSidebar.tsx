@@ -87,7 +87,7 @@ const baseItems = [
   },
   {
     title: "User Management",
-    suffix: "/user-management",
+    suffix: "/users",
     icon: Users,
     group: "System", 
   },
