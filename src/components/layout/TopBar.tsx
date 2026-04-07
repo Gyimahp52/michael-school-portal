@@ -51,20 +51,6 @@ export function TopBar() {
 
         {/* Right section */}
         <div className="flex items-center gap-4">
-          {/* Quick Actions - Only show for non-accountants */}
-          {userRole !== 'accountant' && (
-            <>
-              <Button variant="outline" size="sm" className="gap-2 hidden md:flex" onClick={() => navigate('/admin/students')}>
-                <User className="h-4 w-4" />
-                Add Student
-              </Button>
-              
-              {/* Mobile Quick Action */}
-              <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/admin/students')}>
-                <User className="h-4 w-4" />
-              </Button>
-            </>
-          )}
 
           {/* Notifications */}
           <Button 
