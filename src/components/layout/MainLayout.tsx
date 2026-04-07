@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
@@ -10,9 +9,9 @@ export function MainLayout() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <TopBar />
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 p-2 sm:p-4 md:p-6 overflow-x-hidden">
             <ConnectionStatusBanner />
             <Outlet />
           </main>

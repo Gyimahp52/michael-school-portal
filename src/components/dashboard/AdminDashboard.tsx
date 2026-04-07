@@ -302,7 +302,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -338,7 +338,7 @@ export function AdminDashboard() {
             Live Data
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {primaryStats.map((stat, index) => (
             <Card 
               key={index} 
@@ -352,7 +352,7 @@ export function AdminDashboard() {
                     <p className="text-sm font-medium text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <h3 className="text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                    <h3 className="text-xl sm:text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
                       {stat.value}
                     </h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -373,7 +373,7 @@ export function AdminDashboard() {
       {/* Financial Summary - Enhanced with real-time indicators */}
       <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
         <h2 className="text-xl font-semibold mb-4 text-foreground">Financial Summary</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {financialStats.map((stat, index) => (
             <Card 
               key={index} 
@@ -398,7 +398,7 @@ export function AdminDashboard() {
                     <p className="text-sm font-medium text-muted-foreground mb-2">
                       {stat.title}
                     </p>
-                    <h3 className="text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                    <h3 className="text-xl sm:text-3xl font-bold mb-1 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
                       {stat.value}
                     </h3>
                     <p className="text-xs text-muted-foreground">
