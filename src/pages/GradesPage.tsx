@@ -409,7 +409,7 @@ export function GradesPage() {
                   <TableCell>{grade.teacherName}</TableCell>
                   <TableCell>{grade.date}</TableCell>
                   <TableCell className="text-right">
-                    {userRole === 'teacher' && (
+                    {(userRole === 'teacher' || userRole === 'admin') && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon"><MoreHorizontal className="w-4 h-4" /></Button>
