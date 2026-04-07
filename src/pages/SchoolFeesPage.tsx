@@ -187,7 +187,7 @@ export default function SchoolFeesPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -338,7 +338,7 @@ export default function SchoolFeesPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
         <Card className="shadow-soft border-border/50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -427,58 +427,58 @@ export default function SchoolFeesPage() {
                 const expectedRevenue = fees.totalFees * studentsInClass;
                 
                 return (
-                  <Card key={fees.id} className="shadow-sm border-border/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10">
+                   <Card key={fees.id} className="shadow-sm border-border/30">
+                    <CardContent className="p-3 sm:p-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
                             <GraduationCap className="w-5 h-5 text-primary" />
                           </div>
                           <div>
                             <h4 className="font-medium text-foreground">Class {fees.className}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {fees.termName} • Academic Year {fees.academicYear} • {studentsInClass} students
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {fees.termName} • {fees.academicYear} • {studentsInClass} students
                             </p>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <div className="grid grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <p className="text-muted-foreground">Tuition</p>
-                                <p className="font-medium">{formatCurrency(fees.tuitionFees)}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Exam</p>
-                                <p className="font-medium">{formatCurrency(fees.examFees)}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Activity</p>
-                                <p className="font-medium">{formatCurrency(fees.activityFees)}</p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">Other</p>
-                                <p className="font-medium">{formatCurrency(fees.otherFees)}</p>
-                              </div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-sm w-full sm:w-auto">
+                            <div>
+                              <p className="text-muted-foreground text-xs">Tuition</p>
+                              <p className="font-medium text-sm">{formatCurrency(fees.tuitionFees)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs">Exam</p>
+                              <p className="font-medium text-sm">{formatCurrency(fees.examFees)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs">Activity</p>
+                              <p className="font-medium text-sm">{formatCurrency(fees.activityFees)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs">Other</p>
+                              <p className="font-medium text-sm">{formatCurrency(fees.otherFees)}</p>
                             </div>
                           </div>
                           
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Total per student</p>
-                            <p className="text-xl font-bold text-primary">{formatCurrency(fees.totalFees)}</p>
-                            <p className="text-xs text-muted-foreground">Expected: {formatCurrency(expectedRevenue)}</p>
+                          <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                            <div className="text-left sm:text-right">
+                              <p className="text-xs text-muted-foreground">Total/student</p>
+                              <p className="text-lg font-bold text-primary">{formatCurrency(fees.totalFees)}</p>
+                              <p className="text-xs text-muted-foreground">Expected: {formatCurrency(expectedRevenue)}</p>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(fees)}
+                              className="gap-2 shrink-0"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Button>
                           </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(fees)}
-                            className="gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
                         </div>
                       </div>
                     </CardContent>

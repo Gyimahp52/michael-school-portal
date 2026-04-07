@@ -42,8 +42,8 @@ export function TopBar() {
   }, []);
 
   return (
-    <header className="h-16 border-b border-border bg-card shadow-soft">
-      <div className="flex h-full items-center justify-between px-6">
+    <header className="h-14 sm:h-16 border-b border-border bg-card shadow-soft">
+      <div className="flex h-full items-center justify-between px-3 sm:px-6">
         {/* Left section */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />

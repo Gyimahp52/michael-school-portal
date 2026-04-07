@@ -32,7 +32,16 @@ const CanteenPage = lazy(() => import("./pages/CanteenPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
 const SetupPage = lazy(() => import("./pages/SetupPage").then(m => ({ default: m.SetupPage })));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 // Loading fallback component
 const LoadingFallback = () => (

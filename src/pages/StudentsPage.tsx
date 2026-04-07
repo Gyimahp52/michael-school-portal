@@ -208,7 +208,7 @@ useEffect(() => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card className="shadow-soft border-border/50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
